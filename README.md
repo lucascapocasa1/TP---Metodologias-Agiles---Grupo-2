@@ -71,17 +71,37 @@ Django Test Framework) y manualmente contra el servidor de desarrollo.
 
 ## 3. Cómo correr el proyecto
 
-```bash
-python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
+Abrí una terminal en VSCode (menú Terminal > New Terminal) y ejecutá los
+siguientes comandos **uno por uno**:
+
+```powershell
+# 1. Entrar a la carpeta del proyecto
+cd "C:\Users\TU_USUARIO\Desktop\UNAB\2026 SEGUNDO CUATRI\METODOLOGIAS AGILES\TP\kiosco_sprint1"
+
+# 2. Crear el entorno virtual (una sola vez)
+python -m venv venv
+
+# 3. Activar el entorno virtual
+.\venv\Scripts\Activate.ps1
+
+# 4. Instalar las dependencias (una sola vez)
 pip install -r requirements.txt
 
+# 5. Crear las tablas de la base de datos (una sola vez)
 python manage.py migrate
-python manage.py setup_inicial   # crea grupos y usuarios de prueba
+
+# 6. Crear los grupos y usuarios de prueba (una sola vez)
+python manage.py setup_inicial
+
+# 7. Levantar el servidor de desarrollo
 python manage.py runserver
 ```
 
-Abrir `http://127.0.0.1:8000/`.
+Abrí `http://127.0.0.1:8000/` en el navegador.
+
+> **Nota:** los pasos 2, 4, 5 y 6 solo se hacen la **primera vez**. Después
+> de eso, solo necesitás activar el entorno (paso 3) y levantar el servidor
+> (paso 7).
 
 ### Usuarios de prueba (creados por `setup_inicial`)
 
@@ -92,7 +112,9 @@ Abrir `http://127.0.0.1:8000/`.
 
 ## 4. Correr los tests
 
-```bash
+Con el entorno virtual activado:
+
+```powershell
 python manage.py test
 ```
 
