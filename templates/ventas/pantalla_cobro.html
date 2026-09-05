@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block titulo %}Cobro{% endblock %}
+{% block contenido %}
+<h2>🧾 Pantalla de cobro</h2>
+<p class="text-muted">
+    Esta es la única pantalla a la que el Cajero puede entrar. Acá irá el
+    escaneo por código de barras, el carrito rápido y el cálculo de vuelto
+    con billetes (Sprint 2).
+</p>
+<div class="alert alert-info">
+    Sprint 1: por ahora esta pantalla solo demuestra que el acceso está
+    protegido por login y disponible tanto para <strong>Cajero</strong>
+    como para <strong>Administrador</strong>.
+</div>
+{% if request.user.groups.first.name == "Administrador" or request.user.is_superuser %}
+<a href="{% url 'administracion:dashboard' %}" class="btn btn-outline-secondary btn-sm">Ir al panel de administración</a>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block titulo %}Panel Administrador{% endblock %}
+{% block contenido %}
+<h2>⚙️ Panel de Administración</h2>
+<p class="text-muted">
+    Acceso exclusivo del rol <strong>Administrador</strong>. Un usuario Cajero
+    que intente entrar acá recibe "Acceso denegado".
+</p>
+<div class="alert alert-info">
+    Sprint 1: cáscara protegida. La gestión de stock, precios de costo y
+    reportes de cierre de caja se implementan en próximos sprints.
+</div>
+<a href="{% url 'ventas:pantalla_cobro' %}" class="btn btn-outline-secondary btn-sm">Ir a pantalla de cobro</a>
+{% endblock %}
