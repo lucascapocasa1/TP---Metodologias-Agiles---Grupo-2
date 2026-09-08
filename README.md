@@ -59,11 +59,12 @@ Django Test Framework) y manualmente contra el servidor de desarrollo.
 - **Redirección post-login por rol** (`usuarios/views.py::post_login`): cada
   usuario cae directo en su pantalla (cajero → cobro, admin → dashboard),
   para no exponer un menú con opciones que no le corresponden.
-- **Base de datos**: se usa SQLite en este sprint en lugar de PostgreSQL
-  para que cualquiera del grupo pueda clonar y correr el proyecto sin
-  instalar un servidor de base de datos. El cambio a PostgreSQL es solo
-  editar `DATABASES` en `config/settings.py`; el ORM de Django no cambia
-  (ver comentario en `requirements.txt`).
+- **Base de datos**: el proyecto corre contra **PostgreSQL (Supabase)** si existe la
+  variable `DATABASE_URL` en el archivo `.env`. Si no está definida, cae a SQLite
+  automáticamente para que cualquiera del grupo pueda clonar y correr sin configuración.
+  Los modelos del kiosco (empresa, cargo, empleado, proveedor, producto, compra,
+  detalle_compra, cliente, contacto, venta, detalle_venta) viven en las apps
+  `administracion` y `ventas`.
 - **Frontend**: Bootstrap 5 vía CDN, sin HTMX todavía — no hace falta
   interactividad dinámica para un login y dos pantallas placeholder. HTMX
   entra en el sprint del carrito de cobro (agregar productos sin recargar
@@ -87,21 +88,26 @@ python -m venv venv
 # 4. Instalar las dependencias (una sola vez)
 pip install -r requirements.txt
 
-# 5. Crear las tablas de la base de datos (una sola vez)
+# 5. (Opcional) Conectar a PostgreSQL/Supabase compartido.
+#    Copiar .env.example a .env y pegar la DATABASE_URL del equipo.
+#    Sin este paso el proyecto usa SQLite local.
+Copy-Item .env.example .env
+
+# 6. Crear las tablas de la base de datos (una sola vez)
 python manage.py migrate
 
-# 6. Crear los grupos y usuarios de prueba (una sola vez)
+# 7. Crear los grupos y usuarios de prueba (una sola vez)
 python manage.py setup_inicial
 
-# 7. Levantar el servidor de desarrollo
+# 8. Levantar el servidor de desarrollo
 python manage.py runserver
 ```
 
 Abrí `http://127.0.0.1:8000/` en el navegador.
 
-> **Nota:** los pasos 2, 4, 5 y 6 solo se hacen la **primera vez**. Después
+> **Nota:** los pasos 2, 4, 6 y 7 solo se hacen la **primera vez**. Después
 > de eso, solo necesitás activar el entorno (paso 3) y levantar el servidor
-> (paso 7).
+> (paso 8).
 
 ### Usuarios de prueba (creados por `setup_inicial`)
 

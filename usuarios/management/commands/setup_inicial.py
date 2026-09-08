@@ -1,29 +1,38 @@
+from datetime import date
+
 from django.contrib.auth.models import Group, User
 from django.core.management.base import BaseCommand
+
+from administracion.models import Cargo, Empleado, Empresa
 
 
 class Command(BaseCommand):
     """
-    Comando de conveniencia para el Sprint 1.
+    Comando de conveniencia para dejar el sistema listo para operar.
 
     Crea:
       - Los grupos "Administrador" y "Cajero".
-      - Un usuario administrador de prueba: admin / kiosco2024
-      - Un usuario cajero de prueba: cajero1 / kiosco2024
+      - Los cargos "Administrador" y "Cajero".
+      - La empresa (kiosco) con un CUIT de ejemplo.
+      - Los usuarios de prueba:
+          * admin / kiosco2024  (grupo y cargo Administrador)
+          * cajero1 / kiosco2024 (grupo y cargo Cajero)
+      - La ficha de empleado ligada a cada usuario (necesaria para poder
+        cargar ventas y compras).
 
     Uso:
         python manage.py setup_inicial
 
-    Esto NO reemplaza a `createsuperuser`; es solo para poder probar
-    rápido el login y la separación de roles sin cargar nada a mano.
+    Es idempotente: si ya existe, no duplica. No reemplaza a
+    `createsuperuser`; es solo para poder probar rápido el sistema.
     """
 
-    help = "Crea los grupos Administrador/Cajero y usuarios de prueba para el Sprint 1"
+    help = "Crea grupos, cargos, empresa, usuarios y sus fichas de empleado"
 
     def handle(self, *args, **options):
+        # 1. Grupos de permisos (Sprint 1)
         grupo_admin, creado_admin = Group.objects.get_or_create(name="Administrador")
         grupo_cajero, creado_cajero = Group.objects.get_or_create(name="Cajero")
-
         self.stdout.write(
             self.style.SUCCESS(
                 f"Grupo 'Administrador' {'creado' if creado_admin else 'ya existía'}."
@@ -35,33 +44,114 @@ class Command(BaseCommand):
             )
         )
 
-        # Usuario administrador de prueba
-        if not User.objects.filter(username="admin").exists():
-            admin = User.objects.create_user(
-                username="admin",
-                password="kiosco2024",
-                first_name="Carlos",
-                is_staff=True,  # puede entrar al /admin/ de Django si hace falta
+        # 2. Cargos del kiosco
+        cargo_admin, creado_cargo_admin = Cargo.objects.get_or_create(
+            nombre="Administrador",
+            defaults={"descripcion": "Dueño/administrador con acceso total."},
+        )
+        cargo_cajero, creado_cargo_cajero = Cargo.objects.get_or_create(
+            nombre="Cajero",
+            defaults={"descripcion": "Encargado del punto de venta."},
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Cargo 'Administrador' {'creado' if creado_cargo_admin else 'ya existía'}."
             )
-            admin.groups.add(grupo_admin)
-            self.stdout.write(
-                self.style.SUCCESS("Usuario 'admin' (Administrador) creado. Clave: kiosco2024")
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Cargo 'Cajero' {'creado' if creado_cargo_cajero else 'ya existía'}."
             )
-        else:
-            self.stdout.write(self.style.WARNING("Usuario 'admin' ya existía, no se modificó."))
+        )
 
-        # Usuario cajero de prueba
-        if not User.objects.filter(username="cajero1").exists():
-            cajero = User.objects.create_user(
-                username="cajero1",
-                password="kiosco2024",
-                first_name="Empleado",
+        # 3. Empresa (el kiosco) con CUIT de ejemplo editable después
+        empresa, creada_empresa = Empresa.objects.get_or_create(
+            nombre="Kiosco UNAB",
+            defaults={
+                "cuit": "30111111111",
+                "direccion": "Av. de Mayo 1234",
+                "telefono": "1122334455",
+                "email": "kiosco@unab.com",
+            },
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Empresa '{empresa.nombre}' {'creada' if creada_empresa else 'ya existía'}."
             )
-            cajero.groups.add(grupo_cajero)
-            self.stdout.write(
-                self.style.SUCCESS("Usuario 'cajero1' (Cajero) creado. Clave: kiosco2024")
+        )
+
+        # 4. Usuarios de prueba + fichas de empleado ligadas
+        admin, creado_user_admin = User.objects.get_or_create(
+            username="admin",
+            defaults={
+                "first_name": "Carlos",
+                "is_staff": True,  # puede entrar al /admin/ de Django
+            },
+        )
+        if creado_user_admin:
+            admin.set_password("kiosco2024")
+            admin.save()
+        admin.groups.add(grupo_admin)
+        _, creado_emp_admin = self._get_or_create_empleado(
+            admin,
+            cargo_admin,
+            nombre="Carlos",
+            apellido="González",
+            dni="12345678",
+            cuil="20123456782",
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Usuario 'admin' {'creado' if creado_user_admin else 'ya existía'}."
             )
-        else:
-            self.stdout.write(self.style.WARNING("Usuario 'cajero1' ya existía, no se modificó."))
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Empleado 'Carlos González' {'creado' if creado_emp_admin else 'ya existía'}."
+            )
+        )
+
+        cajero, creado_user_cajero = User.objects.get_or_create(
+            username="cajero1",
+            defaults={"first_name": "Empleado"},
+        )
+        if creado_user_cajero:
+            cajero.set_password("kiosco2024")
+            cajero.save()
+        cajero.groups.add(grupo_cajero)
+        _, creado_emp_cajero = self._get_or_create_empleado(
+            cajero,
+            cargo_cajero,
+            nombre="Empleado",
+            apellido="Pérez",
+            dni="87654321",
+            cuil="20876543210",
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Usuario 'cajero1' {'creado' if creado_user_cajero else 'ya existía'}."
+            )
+        )
+        self.stdout.write(
+            self.style.SUCCESS(
+                f"Empleado 'Empleado Pérez' {'creado' if creado_emp_cajero else 'ya existía'}."
+            )
+        )
 
         self.stdout.write(self.style.SUCCESS("Setup inicial completo."))
+
+    def _get_or_create_empleado(
+        self, user, cargo, nombre, apellido, dni, cuil
+    ):
+        return Empleado.objects.get_or_create(
+            user=user,
+            defaults={
+                "cargo": cargo,
+                "nombre": nombre,
+                "apellido": apellido,
+                "dni": dni,
+                "cuil": cuil,
+                "fecha_ingreso": date.today(),
+                "activo": True,
+            },
+        )

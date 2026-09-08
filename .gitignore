@@ -6,3 +6,6 @@ venv/
 env/
 *.log
 .DS_Store
+
+# Variables de entorno (credenciales locales, NO subir)
+.env
