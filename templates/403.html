@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block titulo %}Acceso denegado{% endblock %}
 {% block contenido %}
-<div class="d-flex flex-column align-items-center justify-content-center text-center" style="min-height: 60vh;">
-    <h1 class="display-1">🔒</h1>
+<div class="error-page">
+    <div class="error-icon">&#x1F512;</div>
     <h2>Acceso denegado</h2>
-    <p class="text-muted">No tenés permisos para entrar a esta sección del sistema.</p>
-    <a href="{% url 'usuarios:post_login' %}" class="btn btn-primary mt-3">Volver a mi pantalla</a>
+    <p>No tenés permisos para entrar a esta sección del sistema.</p>
+    <a href="{% url 'usuarios:post_login' %}" class="btn btn-kiosco">Volver a mi pantalla</a>
 </div>
 {% endblock %}

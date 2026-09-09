@@ -44,6 +44,8 @@ Django Test Framework) y manualmente contra el servidor de desarrollo.
 
 ## 2. Decisiones técnicas
 
+### Backend
+
 - **Roles con Django Groups**, no con permisos sueltos: el pedido de este
   sprint es binario ("cajero solo ve cobro"), no hay todavía acciones finas
   para diferenciar (ej. "puede ver stock pero no editar precio"). Eso se
@@ -64,10 +66,31 @@ Django Test Framework) y manualmente contra el servidor de desarrollo.
   instalar un servidor de base de datos. El cambio a PostgreSQL es solo
   editar `DATABASES` en `config/settings.py`; el ORM de Django no cambia
   (ver comentario en `requirements.txt`).
-- **Frontend**: Bootstrap 5 vía CDN, sin HTMX todavía — no hace falta
-  interactividad dinámica para un login y dos pantallas placeholder. HTMX
-  entra en el sprint del carrito de cobro (agregar productos sin recargar
-  la página).
+
+### Frontend
+
+- **Bootstrap 5.3.3** vía CDN como framework de utilidades.
+- **CSS custom** (`static/css/styles.css`) con design tokens via CSS
+  custom properties para mantener consistencia visual y facilitar cambios
+  futuros. La paleta, tipografía y espaciados se definen una vez en
+  `:root` y se reutilizan en todas las páginas.
+- **Tipografía DM Sans** (Google Fonts): familia redondeada y amigable
+  que refleja la naturaleza de un kiosco de barrio — no corporativa ni
+  genérica.
+- **Paleta cálida**: amarillo dorado (`#F5A623`) como color primario
+  (evoca la señalética de kioscos argentinos), navy profundo (`#1A1A2E`)
+  para la barra de navegación, y superficies cálidas (`#FFFDF7`) en
+  lugar del gris clínico de Bootstrap.
+- **Componentes custom**: botones con feedback táctil (hover + sombra),
+  alertas con borde lateral de color, cards con sombras sutiles, inputs
+  con focus amarillo. Todo construido sobre las utilidades de Bootstrap
+  pero con identidad propia.
+- **Accesibilidad**: contraste WCAG AA, focus-visible para navegación
+  por teclado, `prefers-reduced-motion` respetado.
+- **Responsive**: el navbar se adapta a mobile ocultando el nombre de
+  usuario y manteniendo los badges y el botón de salida.
+- **HTMX** entra en el sprint del carrito de cobro (agregar productos
+  sin recargar la página).
 
 ## 3. Cómo correr el proyecto
 
@@ -130,6 +153,7 @@ usuarios/          # login, logout, grupos/roles, decorador de autorización
 ventas/            # pantalla de cobro (placeholder protegido, Sprint 2 la completa)
 administracion/    # panel del dueño (placeholder protegido, sprints siguientes lo completan)
 templates/         # HTML compartido (base) + templates por app
+static/css/        # estilos custom (design tokens, componentes kiosco)
 ```
 
 ## 6. Backlog para próximos sprints (según la reunión con el cliente)

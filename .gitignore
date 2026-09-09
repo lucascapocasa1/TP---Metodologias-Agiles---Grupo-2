@@ -6,3 +6,7 @@ venv/
 env/
 *.log
 .DS_Store
+
+# Agentes AI / config local
+.agents/
+skills-lock.json

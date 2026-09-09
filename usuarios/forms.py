@@ -8,8 +8,8 @@ class LoginKioscoForm(AuthenticationForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.fields["username"].widget.attrs.update(
-            {"class": "form-control", "autofocus": True, "placeholder": "usuario"}
+            {"class": "kiosco-input", "autofocus": True, "placeholder": "Tu usuario"}
         )
         self.fields["password"].widget.attrs.update(
-            {"class": "form-control", "placeholder": "contraseña"}
+            {"class": "kiosco-input", "placeholder": "Tu contraseña"}
         )
