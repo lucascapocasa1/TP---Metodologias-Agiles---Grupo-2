@@ -46,26 +46,27 @@ Django Test Framework) y manualmente contra el servidor de desarrollo.
 
 ### Backend
 
+- **Base de datos**: PostgreSQL como base de datos principal del proyecto.
+  Se utiliza `django-environ` para leer la variable `DATABASE_URL` desde un
+  archivo `.env` (no subido al repo por seguridad). Si no se define la
+  variable, el sistema cae automáticamente a SQLite para desarrollo local
+  sin configuración extra.
+
 - **Roles con Django Groups**, no con permisos sueltos: el pedido de este
   sprint es binario ("cajero solo ve cobro"), no hay todavía acciones finas
   para diferenciar (ej. "puede ver stock pero no editar precio"). Eso se
   resuelve más adelante con `django.contrib.auth.models.Permission` sobre
-  cada modelo, cuando exista el modelo de Producto. Por eso ya se dejó
-  `Django Groups & Permissions` como mecanismo base, tal como está en el
-  stack definido.
+  cada modelo, cuando exista el modelo de Producto.
+
 - **Restricción por decorador (`usuarios/decorators.py`)**: `rol_requerido`
   para vistas de función y `RolRequeridoMixin` para vistas basadas en clase
   (se va a necesitar en el sprint de stock con `ListView`/`CreateView`).
   El cajero no solo "no ve el botón": si escribe la URL a mano, el servidor
   le devuelve 403. Es un requisito de seguridad real, no solo de UI.
+
 - **Redirección post-login por rol** (`usuarios/views.py::post_login`): cada
   usuario cae directo en su pantalla (cajero → cobro, admin → dashboard),
   para no exponer un menú con opciones que no le corresponden.
-- **Base de datos**: se usa SQLite en este sprint en lugar de PostgreSQL
-  para que cualquiera del grupo pueda clonar y correr el proyecto sin
-  instalar un servidor de base de datos. El cambio a PostgreSQL es solo
-  editar `DATABASES` en `config/settings.py`; el ORM de Django no cambia
-  (ver comentario en `requirements.txt`).
 
 ### Frontend
 
@@ -94,6 +95,13 @@ Django Test Framework) y manualmente contra el servidor de desarrollo.
 
 ## 3. Cómo correr el proyecto
 
+### Requisitos previos
+
+- Python 3.10+
+- PostgreSQL instalado y corriendo
+
+### Instalación
+
 Abrí una terminal en VSCode (menú Terminal > New Terminal) y ejecutá los
 siguientes comandos **uno por uno**:
 
@@ -110,21 +118,44 @@ python -m venv venv
 # 4. Instalar las dependencias (una sola vez)
 pip install -r requirements.txt
 
-# 5. Crear las tablas de la base de datos (una sola vez)
+# 5. Crear la base de datos en PostgreSQL
+#    Abrí psql (o pgAdmin) y ejecutá:
+#    CREATE DATABASE db_kiosco;
+
+# 6. Configurar la conexión en el archivo .env (ver sección 3.1)
+
+# 7. Crear las tablas de la base de datos (una sola vez)
 python manage.py migrate
 
-# 6. Crear los grupos y usuarios de prueba (una sola vez)
+# 8. Crear los grupos y usuarios de prueba (una sola vez)
 python manage.py setup_inicial
 
-# 7. Levantar el servidor de desarrollo
+# 9. Levantar el servidor de desarrollo
 python manage.py runserver
 ```
 
 Abrí `http://127.0.0.1:8000/` en el navegador.
 
-> **Nota:** los pasos 2, 4, 5 y 6 solo se hacen la **primera vez**. Después
-> de eso, solo necesitás activar el entorno (paso 3) y levantar el servidor
-> (paso 7).
+> **Nota:** los pasos 2, 4, 5, 6, 7 y 8 solo se hacen la **primera vez**.
+> Después de eso, solo necesitás activar el entorno (paso 3) y levantar
+> el servidor (paso 9).
+
+### 3.1. Archivo .env
+
+El proyecto usa `django-environ` para leer la configuración de base de datos
+desde un archivo `.env` en la raíz del proyecto.
+
+Copiá el archivo `.env.example` como `.env` y completá con tus datos:
+
+```
+DATABASE_URL=postgresql://postgres:1234@localhost:5432/db_kiosco
+```
+
+Formato: `postgresql://USUARIO:CONTRASEÑA@HOST:PUERTO/NOMBRE_DB`
+
+> **Importante:** el archivo `.env` está en `.gitignore` y **nunca** se sube
+> al repositorio (contiene contraseñas). Si no se define `DATABASE_URL`, el
+> sistema usa SQLite automáticamente como fallback.
 
 ### Usuarios de prueba (creados por `setup_inicial`)
 
@@ -141,9 +172,14 @@ Con el entorno virtual activado:
 python manage.py test
 ```
 
-Se incluyen 9 tests (`usuarios/tests.py`) que cubren: login correcto e
-incorrecto, acceso anónimo bloqueado, cajero bloqueado en administración,
-administrador con acceso total, y la redirección post-login según rol.
+Se incluyen tests que cubren:
+- **`usuarios/tests.py`**: login correcto e incorrecto, acceso anónimo
+  bloqueado, cajero bloqueado en administración, administrador con acceso
+  total, y la redirección post-login según rol.
+- **`ventas/tests.py`**: pantalla de cobro accesible solo con login,
+  respuestas HTTP correctas.
+- **`administracion/tests.py`**: dashboard accesible solo para
+  administradores, cajero bloqueado, Superuser con acceso total.
 
 ## 5. Estructura del proyecto
 
@@ -154,6 +190,7 @@ ventas/            # pantalla de cobro (placeholder protegido, Sprint 2 la compl
 administracion/    # panel del dueño (placeholder protegido, sprints siguientes lo completan)
 templates/         # HTML compartido (base) + templates por app
 static/css/        # estilos custom (design tokens, componentes kiosco)
+.env.example       # plantilla del archivo de configuración (.env)
 ```
 
 ## 6. Backlog para próximos sprints (según la reunión con el cliente)
