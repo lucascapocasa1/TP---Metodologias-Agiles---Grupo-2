@@ -44,6 +44,8 @@ Django Test Framework) y manualmente contra el servidor de desarrollo.
 
 ## 2. Decisiones técnicas
 
+### Backend
+
 - **Roles con Django Groups**, no con permisos sueltos: el pedido de este
   sprint es binario ("cajero solo ve cobro"), no hay todavía acciones finas
   para diferenciar (ej. "puede ver stock pero no editar precio"). Eso se
@@ -136,6 +138,7 @@ usuarios/          # login, logout, grupos/roles, decorador de autorización
 ventas/            # pantalla de cobro (placeholder protegido, Sprint 2 la completa)
 administracion/    # panel del dueño (placeholder protegido, sprints siguientes lo completan)
 templates/         # HTML compartido (base) + templates por app
+static/css/        # estilos custom (design tokens, componentes kiosco)
 ```
 
 ## 6. Backlog para próximos sprints (según la reunión con el cliente)

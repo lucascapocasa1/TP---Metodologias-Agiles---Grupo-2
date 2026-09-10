@@ -1,0 +1,533 @@
+/* ============================================================
+   Sistema Kiosco — Custom Styles
+   Sprint 1: Identidad visual + Login + Layout base
+   ============================================================ */
+
+/* --- Google Fonts (DM Sans) --- */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+
+/* --- Design Tokens --- */
+:root {
+  --kiosco-yellow: #F5A623;
+  --kiosco-amber: #D4891A;
+  --kiosco-yellow-light: #FEF3CD;
+  --surface: #FFFDF7;
+  --bg: #F0EDE5;
+  --navy: #1A1A2E;
+  --navy-light: #2D2D44;
+  --text-primary: #1A1A2E;
+  --text-muted: #6B7280;
+  --green: #22C55E;
+  --green-dark: #16A34A;
+  --red: #EF4444;
+  --red-dark: #DC2626;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --shadow-sm: 0 1px 3px rgba(26, 26, 46, 0.06);
+  --shadow-md: 0 4px 12px rgba(26, 26, 46, 0.08);
+  --shadow-lg: 0 8px 24px rgba(26, 26, 46, 0.12);
+  --transition: 200ms ease;
+}
+
+/* --- Base Reset & Typography --- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* --- Navbar --- */
+.kiosco-navbar {
+  background-color: var(--navy) !important;
+  padding: 0.6rem 1.25rem;
+  box-shadow: 0 2px 8px rgba(26, 26, 46, 0.15);
+}
+
+.kiosco-navbar .navbar-brand {
+  font-weight: 700;
+  font-size: 1.25rem;
+  color: var(--kiosco-yellow) !important;
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.kiosco-navbar .navbar-brand .brand-icon {
+  font-size: 1.4rem;
+}
+
+.kiosco-navbar .navbar-brand .brand-text {
+  position: relative;
+}
+
+.kiosco-navbar .navbar-brand .brand-text::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--kiosco-yellow);
+  border-radius: 1px;
+  opacity: 0.4;
+}
+
+.kiosco-navbar .user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.kiosco-navbar .user-name {
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.kiosco-navbar .badge-rol {
+  background-color: rgba(245, 166, 35, 0.15);
+  color: var(--kiosco-yellow);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25em 0.6em;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.kiosco-navbar .badge-superuser {
+  background-color: rgba(34, 197, 94, 0.15);
+  color: var(--green);
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25em 0.6em;
+  border-radius: 6px;
+}
+
+.kiosco-navbar .btn-salir {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.8rem;
+  font-weight: 500;
+  padding: 0.35em 0.85em;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  cursor: pointer;
+}
+
+.kiosco-navbar .btn-salir:hover {
+  background: rgba(239, 68, 68, 0.15);
+  border-color: rgba(239, 68, 68, 0.3);
+  color: #EF4444;
+}
+
+/* --- Cards --- */
+.kiosco-card {
+  background: var(--surface);
+  border: 1px solid rgba(26, 26, 46, 0.06);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition);
+}
+
+.kiosco-card:hover {
+  box-shadow: var(--shadow-md);
+}
+
+.kiosco-card-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid rgba(26, 26, 46, 0.06);
+}
+
+.kiosco-card-body {
+  padding: 1.5rem;
+}
+
+/* --- Buttons --- */
+.btn-kiosco {
+  background-color: var(--kiosco-yellow);
+  border-color: var(--kiosco-yellow);
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 0.6em 1.5em;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+  letter-spacing: -0.01em;
+}
+
+.btn-kiosco:hover,
+.btn-kiosco:focus {
+  background-color: var(--kiosco-amber);
+  border-color: var(--kiosco-amber);
+  color: var(--navy);
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
+  transform: translateY(-1px);
+}
+
+.btn-kiosco:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-kiosco:focus-visible {
+  outline: 3px solid rgba(245, 166, 35, 0.4);
+  outline-offset: 2px;
+}
+
+.btn-kiosco-outline {
+  background: transparent;
+  border: 1.5px solid var(--navy);
+  color: var(--navy);
+  font-weight: 600;
+  font-size: 0.875rem;
+  padding: 0.5em 1.25em;
+  border-radius: var(--radius-sm);
+  transition: all var(--transition);
+}
+
+.btn-kiosco-outline:hover {
+  background: var(--navy);
+  color: #fff;
+}
+
+/* --- Forms --- */
+.kiosco-input {
+  background: #fff;
+  border: 1.5px solid rgba(26, 26, 46, 0.12);
+  border-radius: var(--radius-sm);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.95rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  width: 100%;
+}
+
+.kiosco-input:focus {
+  outline: none;
+  border-color: var(--kiosco-yellow);
+  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
+}
+
+.kiosco-input::placeholder {
+  color: var(--text-muted);
+}
+
+.kiosco-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 0.35rem;
+  display: block;
+}
+
+/* --- Alerts --- */
+.kiosco-alert {
+  border-radius: var(--radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  padding: 0.85rem 1.1rem;
+}
+
+.kiosco-alert-danger {
+  background: #FEF2F2;
+  color: #991B1B;
+  border-left: 3px solid var(--red);
+}
+
+.kiosco-alert-warning {
+  background: #FFFBEB;
+  color: #92400E;
+  border-left: 3px solid #F59E0B;
+}
+
+.kiosco-alert-info {
+  background: #EFF6FF;
+  color: #1E40AF;
+  border-left: 3px solid #3B82F6;
+}
+
+.kiosco-alert-success {
+  background: #F0FDF4;
+  color: #166534;
+  border-left: 3px solid var(--green);
+}
+
+/* --- Page Sections --- */
+.page-header {
+  margin-bottom: 1.5rem;
+}
+
+.page-header h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.02em;
+}
+
+.page-header .page-subtitle {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+/* --- Login Page --- */
+.login-wrapper {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 1rem;
+  position: relative;
+  overflow: hidden;
+}
+
+.login-wrapper::before {
+  content: '';
+  position: absolute;
+  top: -30%;
+  right: -20%;
+  width: 500px;
+  height: 500px;
+  background: radial-gradient(circle, rgba(245, 166, 35, 0.08) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.login-wrapper::after {
+  content: '';
+  position: absolute;
+  bottom: -20%;
+  left: -15%;
+  width: 400px;
+  height: 400px;
+  background: radial-gradient(circle, rgba(26, 26, 46, 0.04) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border: 1px solid rgba(26, 26, 46, 0.06);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-lg);
+  padding: 2.5rem 2rem;
+  position: relative;
+  z-index: 1;
+}
+
+.login-brand {
+  text-align: center;
+  margin-bottom: 1.75rem;
+}
+
+.login-brand-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, var(--kiosco-yellow), var(--kiosco-amber));
+  border-radius: 16px;
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);
+}
+
+.login-brand h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.25rem;
+  letter-spacing: -0.03em;
+}
+
+.login-brand p {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.login-form .form-group {
+  margin-bottom: 1.1rem;
+}
+
+.login-form .btn-submit {
+  width: 100%;
+  padding: 0.75rem;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+}
+
+/* --- Error Page (403) --- */
+.error-page {
+  min-height: 70vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 2rem;
+}
+
+.error-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 88px;
+  height: 88px;
+  background: #FEF2F2;
+  border-radius: 24px;
+  font-size: 2.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.error-page h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+}
+
+.error-page p {
+  color: var(--text-muted);
+  max-width: 360px;
+  margin-bottom: 1.5rem;
+}
+
+/* --- Warning Page (sin_rol) --- */
+.warning-page {
+  min-height: 60vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem;
+}
+
+.warning-card {
+  max-width: 480px;
+  width: 100%;
+  background: var(--surface);
+  border: 1px solid rgba(26, 26, 46, 0.06);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  padding: 2rem;
+  text-align: center;
+}
+
+.warning-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  background: #FFFBEB;
+  border-radius: 16px;
+  font-size: 1.75rem;
+  margin-bottom: 1rem;
+}
+
+/* --- Placeholder Pages (cobro, dashboard) --- */
+.placeholder-page {
+  max-width: 640px;
+}
+
+.placeholder-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--kiosco-yellow-light), rgba(245, 166, 35, 0.1));
+  border-radius: 14px;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.placeholder-page h2 {
+  font-size: 1.35rem;
+}
+
+/* --- Utility Classes --- */
+.text-kiosco {
+  color: var(--kiosco-yellow) !important;
+}
+
+.bg-kiosco {
+  background-color: var(--kiosco-yellow) !important;
+}
+
+.focus-ring-kiosco:focus-visible {
+  outline: 3px solid rgba(245, 166, 35, 0.4);
+  outline-offset: 2px;
+}
+
+/* --- Responsive --- */
+@media (max-width: 576px) {
+  .login-card {
+    padding: 2rem 1.5rem;
+  }
+
+  .kiosco-navbar .user-name {
+    display: none;
+  }
+
+  .kiosco-navbar .badge-rol {
+    font-size: 0.65rem;
+  }
+
+  .page-header h2 {
+    font-size: 1.25rem;
+  }
+}
+
+/* --- Reduced Motion --- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* --- Scrollbar (subtle) --- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(26, 26, 46, 0.15);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(26, 26, 46, 0.25);
+}

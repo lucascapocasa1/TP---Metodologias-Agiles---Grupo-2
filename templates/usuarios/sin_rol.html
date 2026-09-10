@@ -1,8 +1,15 @@
 {% extends "base.html" %}
 {% block titulo %}Sin rol asignado{% endblock %}
 {% block contenido %}
-<div class="alert alert-warning">
-    Tu usuario todavía no tiene un rol asignado (Administrador o Cajero).
-    Pedile al dueño que te agregue a un grupo desde el panel de administración de Django.
+<div class="warning-page">
+    <div class="warning-card">
+        <div class="warning-icon">&#x26A0;&#xFE0F;</div>
+        <h3 style="font-weight: 700; margin-bottom: 0.5rem;">Sin rol asignado</h3>
+        <p class="text-muted" style="margin-bottom: 1rem;">
+            Tu usuario todavía no tiene un rol asignado (Administrador o Cajero).
+            Pedile al dueño que te agregue a un grupo desde el panel de administración de Django.
+        </p>
+        <a href="{% url 'usuarios:logout' %}" class="btn btn-kiosco-outline">Volver al login</a>
+    </div>
 </div>
 {% endblock %}
