@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block titulo %}Página no encontrada{% endblock %}
+{% block contenido %}
+<div class="error-page">
+    <div class="error-icon"><i class="bi bi-question-circle"></i></div>
+    <h2>Página no encontrada</h2>
+    <p>La página que buscás no existe o fue movida a otra ubicación.</p>
+    <a href="{% url 'usuarios:post_login' %}" class="btn btn-kiosco">Volver a mi pantalla</a>
+</div>
+{% endblock %}

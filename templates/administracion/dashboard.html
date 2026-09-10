@@ -3,7 +3,7 @@
 {% block contenido %}
 <div class="placeholder-page">
     <div class="page-header">
-        <div class="placeholder-icon">&#x2699;&#xFE0F;</div>
+        <div class="placeholder-icon"><i class="bi bi-gear"></i></div>
         <h2>Panel de Administración</h2>
         <p class="page-subtitle">
             Acceso exclusivo del rol <strong>Administrador</strong>. Un usuario Cajero
@@ -12,12 +12,15 @@
     </div>
 
     <div class="kiosco-alert kiosco-alert-info">
+        <i class="bi bi-info-circle-fill"></i>
         Sprint 1: cáscara protegida. La gestión de stock, precios de costo y
         reportes de cierre de caja se implementan en próximos sprints.
     </div>
 
     <div class="mt-3">
-        <a href="{% url 'ventas:pantalla_cobro' %}" class="btn btn-kiosco-outline">Ir a pantalla de cobro</a>
+        <a href="{% url 'ventas:pantalla_cobro' %}" class="btn btn-kiosco-outline">
+            <i class="bi bi-receipt"></i> Ir a pantalla de cobro
+        </a>
     </div>
 </div>
 {% endblock %}

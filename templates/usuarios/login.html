@@ -4,13 +4,14 @@
 <div class="login-wrapper">
     <div class="login-card">
         <div class="login-brand">
-            <div class="login-brand-icon">&#x1F3EA;</div>
+            <div class="login-brand-icon"><i class="bi bi-shop text-dark"></i></div>
             <h1>Sistema Kiosco</h1>
             <p>Ingresá con tu usuario y contraseña</p>
         </div>
 
         {% if form.errors %}
             <div class="kiosco-alert kiosco-alert-danger mb-3">
+                <i class="bi bi-exclamation-triangle-fill"></i>
                 Usuario o contraseña incorrectos.
             </div>
         {% endif %}

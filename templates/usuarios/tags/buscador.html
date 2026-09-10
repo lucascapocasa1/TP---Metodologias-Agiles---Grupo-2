@@ -1,0 +1,12 @@
+{% load pagination_tags %}
+
+<div class="kiosco-search mb-3">
+    <i class="bi bi-search kiosco-search-icon"></i>
+    <form method="get" action="">
+        <input type="text"
+               name="q"
+               class="kiosco-input"
+               placeholder="Buscar..."
+               value="{{ request.GET.q|default:'' }}">
+    </form>
+</div>

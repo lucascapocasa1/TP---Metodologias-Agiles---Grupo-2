@@ -2,7 +2,7 @@
 {% block titulo %}Acceso denegado{% endblock %}
 {% block contenido %}
 <div class="error-page">
-    <div class="error-icon">&#x1F512;</div>
+    <div class="error-icon"><i class="bi bi-lock"></i></div>
     <h2>Acceso denegado</h2>
     <p>No tenés permisos para entrar a esta sección del sistema.</p>
     <a href="{% url 'usuarios:post_login' %}" class="btn btn-kiosco">Volver a mi pantalla</a>
