@@ -50,6 +50,16 @@
     {% endif %}
 
     <main class="{% if user.is_authenticated %}container py-4{% endif %}">
+        {% if messages %}
+        <div class="container mt-3">
+            {% for msg in messages %}
+            <div class="kiosco-alert kiosco-alert-{% if msg.tags == 'success' %}success{% elif msg.tags == 'error' %}danger{% elif msg.tags == 'warning' %}warning{% else %}info{% endif %} mb-2">
+                <i class="bi {% if msg.tags == 'success' %}bi-check-circle-fill{% elif msg.tags == 'error' %}bi-exclamation-triangle-fill{% elif msg.tags == 'warning' %}bi-exclamation-circle-fill{% else %}bi-info-circle-fill{% endif %}"></i>
+                {{ msg }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
         {% block contenido %}{% endblock %}
     </main>
 

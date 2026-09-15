@@ -291,8 +291,29 @@ h1, h2, h3, h4, h5, h6 {
   margin: 0;
 }
 
-/* --- Login Page --- */
-.login-wrapper {
+/* --- Auth Pages (Login + Registro) --- */
+@keyframes authCardIn {
+  0% {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes authIconPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+@keyframes authGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+.auth-wrapper {
   min-height: 100vh;
   display: flex;
   align-items: center;
@@ -303,33 +324,34 @@ h1, h2, h3, h4, h5, h6 {
   overflow: hidden;
 }
 
-.login-wrapper::before {
+.auth-wrapper::before {
   content: '';
   position: absolute;
   top: -30%;
   right: -20%;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(245, 166, 35, 0.08) 0%, transparent 70%);
+  width: 550px;
+  height: 550px;
+  background: radial-gradient(circle, rgba(245, 166, 35, 0.1) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
+  animation: authGlow 6s ease-in-out infinite;
 }
 
-.login-wrapper::after {
+.auth-wrapper::after {
   content: '';
   position: absolute;
-  bottom: -20%;
-  left: -15%;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(26, 26, 46, 0.04) 0%, transparent 70%);
+  bottom: -25%;
+  left: -18%;
+  width: 450px;
+  height: 450px;
+  background: radial-gradient(circle, rgba(26, 26, 46, 0.05) 0%, transparent 70%);
   border-radius: 50%;
   pointer-events: none;
 }
 
-.login-card {
+.auth-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   background: var(--surface);
   border: 1px solid rgba(26, 26, 46, 0.06);
   border-radius: var(--radius-lg);
@@ -339,25 +361,35 @@ h1, h2, h3, h4, h5, h6 {
   z-index: 1;
 }
 
-.login-brand {
+.auth-card--slide-in {
+  animation: authCardIn 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.auth-brand {
   text-align: center;
   margin-bottom: 1.75rem;
 }
 
-.login-brand-icon {
+.auth-brand-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
+  width: 68px;
+  height: 68px;
   background: linear-gradient(135deg, var(--kiosco-yellow), var(--kiosco-amber));
-  border-radius: 16px;
-  font-size: 1.75rem;
+  border-radius: 18px;
+  font-size: 1.85rem;
+  color: var(--navy);
   margin-bottom: 1rem;
-  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);
+  box-shadow: 0 6px 16px rgba(245, 166, 35, 0.3);
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.login-brand h1 {
+.auth-brand-icon:hover {
+  animation: authIconPulse 1.2s ease-in-out infinite;
+}
+
+.auth-brand h1 {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--text-primary);
@@ -365,21 +397,63 @@ h1, h2, h3, h4, h5, h6 {
   letter-spacing: -0.03em;
 }
 
-.login-brand p {
+.auth-brand p {
   color: var(--text-muted);
   font-size: 0.9rem;
   margin: 0;
 }
 
-.login-form .form-group {
-  margin-bottom: 1.1rem;
+.auth-form .form-group {
+  margin-bottom: 1rem;
 }
 
-.login-form .btn-submit {
+.auth-form .btn-submit {
   width: 100%;
-  padding: 0.75rem;
+  padding: 0.8rem;
   font-size: 1rem;
   margin-top: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border-radius: var(--radius-md);
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.auth-form .btn-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(245, 166, 35, 0.35);
+}
+
+.auth-form .btn-submit:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.auth-footer {
+  text-align: center;
+  margin-top: 1.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid rgba(26, 26, 46, 0.06);
+}
+
+.auth-footer p {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.75rem;
+}
+
+.auth-footer .btn {
+  font-size: 0.875rem;
+  padding: 0.5em 1.2em;
+}
+
+.field-error {
+  display: block;
+  color: var(--red);
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+  font-weight: 500;
 }
 
 /* --- Error Page (403) --- */
@@ -486,7 +560,7 @@ h1, h2, h3, h4, h5, h6 {
 
 /* --- Responsive --- */
 @media (max-width: 576px) {
-  .login-card {
+  .auth-card {
     padding: 2rem 1.5rem;
   }
 
@@ -577,7 +651,7 @@ h1, h2, h3, h4, h5, h6 {
   color: #A6E3A1;
 }
 
-[data-theme="dark"] .login-card {
+[data-theme="dark"] .auth-card {
   background: #1E1E2E;
   border-color: rgba(205, 214, 244, 0.08);
 }
@@ -599,7 +673,7 @@ h1, h2, h3, h4, h5, h6 {
   background: linear-gradient(135deg, rgba(245, 166, 35, 0.15), rgba(245, 166, 35, 0.05));
 }
 
-[data-theme="dark"] .login-brand-icon {
+[data-theme="dark"] .auth-brand-icon {
   box-shadow: 0 4px 12px rgba(245, 166, 35, 0.15);
 }
 
