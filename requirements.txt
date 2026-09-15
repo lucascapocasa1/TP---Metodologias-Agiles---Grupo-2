@@ -1,0 +1,9 @@
+Django==6.1.1
+# Nota: el TP menciona PostgreSQL como base de datos objetivo del proyecto.
+# En este Sprint 1 se usa SQLite (viene con Django, cero configuración) para
+# que cualquiera del grupo pueda clonar y correr sin instalar un servidor de
+# base de datos. Cuando se sume el módulo de stock/ventas se migra a
+# PostgreSQL cambiando únicamente DATABASES en config/settings.py (el ORM
+# de Django ya abstrae esa diferencia). Si prefieren arrancar directo con
+# PostgreSQL, descomenten la siguiente línea e instalen el driver:
+# psycopg2-binary==2.9.9
