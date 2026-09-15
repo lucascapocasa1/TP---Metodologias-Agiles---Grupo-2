@@ -1,0 +1,41 @@
+{% if paginator.num_pages > 1 %}
+<nav class="kiosco-pagination">
+    <ul class="pagination mb-0">
+        {% if paginator.has_previous %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ paginator.previous_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+        </li>
+        {% endif %}
+
+        {% for num in paginator.page_range %}
+            {% if paginator.number == num %}
+            <li class="page-item active">
+                <span class="page-link">{{ num }}</span>
+            </li>
+            {% elif num > paginator.number|add:"-3" and num < paginator.number|add:"3" %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endif %}
+        {% endfor %}
+
+        {% if paginator.has_next %}
+        <li class="page-item">
+            <a class="page-link" href="?page={{ paginator.next_page_number }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">
+                <i class="bi bi-chevron-right"></i>
+            </a>
+        </li>
+        {% else %}
+        <li class="page-item disabled">
+            <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}

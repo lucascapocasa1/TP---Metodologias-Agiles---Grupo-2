@@ -1,31 +1,42 @@
 {% extends "base.html" %}
 {% block titulo %}Ingresar{% endblock %}
 {% block contenido %}
-<div class="d-flex justify-content-center align-items-center" style="min-height: 70vh;">
-    <div class="card shadow-sm" style="width: 100%; max-width: 380px;">
-        <div class="card-body p-4">
-            <h3 class="text-center mb-1">🏪 Sistema Kiosco</h3>
-            <p class="text-center text-muted small mb-4">Ingresá con tu usuario y contraseña</p>
+<div class="auth-wrapper">
+    <div class="auth-card auth-card--slide-in">
+        <div class="auth-brand">
+            <div class="auth-brand-icon"><i class="bi bi-shop"></i></div>
+            <h1>Sistema Kiosco</h1>
+            <p>Ingresá con usuario y contraseña</p>
+        </div>
 
-            {% if form.errors %}
-                <div class="alert alert-danger py-2 small">
-                    Usuario o contraseña incorrectos.
-                </div>
-            {% endif %}
+        {% if form.errors %}
+            <div class="kiosco-alert kiosco-alert-danger mb-3">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                Usuario o contraseña incorrectos.
+            </div>
+        {% endif %}
 
-            <form method="post">
-                {% csrf_token %}
-                <div class="mb-3">
-                    <label class="form-label">Usuario</label>
-                    {{ form.username }}
-                </div>
-                <div class="mb-3">
-                    <label class="form-label">Contraseña</label>
-                    {{ form.password }}
-                </div>
-                <input type="hidden" name="next" value="{{ next }}">
-                <button type="submit" class="btn btn-primary w-100">Ingresar</button>
-            </form>
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+            <div class="form-group">
+                <label class="kiosco-label">Usuario</label>
+                {{ form.username }}
+            </div>
+            <div class="form-group">
+                <label class="kiosco-label">Contraseña</label>
+                {{ form.password }}
+            </div>
+            <input type="hidden" name="next" value="{{ next }}">
+            <button type="submit" class="btn btn-kiosco auth-form btn-submit">
+                <i class="bi bi-box-arrow-in-right"></i> Ingresar
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>¿No tenés cuenta?</p>
+            <a href="{% url 'usuarios:registro' %}" class="btn btn-kiosco-outline">
+                <i class="bi bi-person-plus"></i> Crear usuario
+            </a>
         </div>
     </div>
 </div>

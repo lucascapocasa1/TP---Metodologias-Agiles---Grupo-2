@@ -1,9 +1,10 @@
+from django.contrib import messages
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
 
 from .decorators import es_administrador, es_cajero
-from .forms import LoginKioscoForm
+from .forms import LoginKioscoForm, RegistroUsuarioForm
 
 
 class LoginKioscoView(LoginView):
@@ -13,6 +14,30 @@ class LoginKioscoView(LoginView):
     template_name = "usuarios/login.html"
     authentication_form = LoginKioscoForm
     redirect_authenticated_user = True
+
+
+def registro_usuario(request):
+    """
+    Registro de usuario nuevo. Cualquiera puede crear su cuenta.
+    El rol (Administrador/Cajero) lo asigna el administrador después
+    desde el panel de Django admin o el manager de usuarios.
+    """
+    if request.user.is_authenticated:
+        return redirect("usuarios:post_login")
+
+    if request.method == "POST":
+        form = RegistroUsuarioForm(request.POST)
+        if form.is_valid():
+            user = form.save()
+            messages.success(
+                request,
+                f"¡Cuenta creada! Ahora podés ingresar con el usuario «{user.username}».",
+            )
+            return redirect("usuarios:login")
+    else:
+        form = RegistroUsuarioForm()
+
+    return render(request, "usuarios/registro.html", {"form": form})
 
 
 @login_required
