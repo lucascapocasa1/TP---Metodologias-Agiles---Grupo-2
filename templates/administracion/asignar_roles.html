@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block titulo %}Asignar Roles - {{ usuario.username }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <a href="{% url 'administracion:listar_usuarios' %}" class="btn-back">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h1><i class="bi bi-person-gear"></i> Asignar Roles</h1>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header">
+            <h2><i class="bi bi-shield-check"></i> Roles de: {{ usuario.username }}</h2>
+        </div>
+        <div class="card-body">
+            <div class="user-profile">
+                <div class="profile-avatar">
+                    {% if usuario.is_superuser %}
+                        <i class="bi bi-shield-fill"></i>
+                    {% else %}
+                        {{ usuario.username|first|upper }}
+                    {% endif %}
+                </div>
+                <div class="profile-info">
+                    <h3>{{ usuario.first_name }} {{ usuario.last_name|default:usuario.username }}</h3>
+                    <p>{{ usuario.email|default:"Sin email" }}</p>
+                    <div class="current-roles">
+                        <span class="label">Roles actuales:</span>
+                        {% for grupo in usuario.groups.all %}
+                            <span class="badge-role badge-{{ grupo.name|lower }}">{{ grupo.name }}</span>
+                        {% empty %}
+                            <span class="badge-role badge-none">Sin roles</span>
+                        {% endfor %}
+                        {% if usuario.is_superuser %}
+                            <span class="badge-role badge-superuser">Superuser</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="admin-form">
+                {% csrf_token %}
+                
+                <div class="roles-section">
+                    <h3><i class="bi bi-list-check"></i> Seleccionar Roles</h3>
+                    <p class="roles-description">Los roles determinan qué secciones del sistema puede acceder el usuario.</p>
+                    
+                    <div class="roles-grid">
+                        {% for grupo in form.grupos %}
+                        <div class="role-card">
+                            <label class="role-label">
+                                {{ grupo }}
+                                <div class="role-info">
+                                    <div class="role-name">
+                                        {% if grupo.choice_label == "Administrador" %}
+                                            <i class="bi bi-shield-fill"></i>
+                                        {% elif grupo.choice_label == "Cajero" %}
+                                            <i class="bi bi-receipt"></i>
+                                        {% else %}
+                                            <i class="bi bi-person"></i>
+                                        {% endif %}
+                                        {{ grupo.choice_label }}
+                                    </div>
+                                    <div class="role-description">
+                                        {% if grupo.choice_label == "Administrador" %}
+                                            Acceso total: stock, precios, reportes, usuarios
+                                        {% elif grupo.choice_label == "Cajero" %}
+                                            Acceso a pantalla de cobro y ventas
+                                        {% else %}
+                                            Rol personalizado
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'administracion:listar_usuarios' %}" class="btn btn-admin-cancel">
+                        <i class="bi bi-x-lg"></i> Cancelar
+                    </a>
+                    <a href="{% url 'administracion:editar_usuario' usuario.id %}" class="btn btn-admin-secondary">
+                        <i class="bi bi-pencil"></i> Editar Datos
+                    </a>
+                    <button type="submit" class="btn btn-admin-primary">
+                        <i class="bi bi-check-lg"></i> Guardar Roles
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
