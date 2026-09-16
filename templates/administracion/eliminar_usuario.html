@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block titulo %}Eliminar Usuario - {{ usuario.username }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <a href="{% url 'administracion:listar_usuarios' %}" class="btn-back">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h1><i class="bi bi-trash"></i> Eliminar Usuario</h1>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header card-header-danger">
+            <h2><i class="bi bi-exclamation-triangle"></i> Confirmar Eliminación</h2>
+        </div>
+        <div class="card-body">
+            <div class="delete-warning">
+                <div class="warning-icon">
+                    <i class="bi bi-trash-fill"></i>
+                </div>
+                <div class="warning-content">
+                    <h3>¿Estás seguro de eliminar este usuario?</h3>
+                    <p>Esta acción no se puede deshacer. El usuario <strong>{{ usuario.username }}</strong> será eliminado permanentemente del sistema.</p>
+                    
+                    <div class="user-info-box">
+                        <div class="info-row">
+                            <span class="info-label">Usuario:</span>
+                            <span class="info-value">{{ usuario.username }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Nombre:</span>
+                            <span class="info-value">{{ usuario.first_name }} {{ usuario.last_name }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Email:</span>
+                            <span class="info-value">{{ usuario.email|default:"No especificado" }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Roles:</span>
+                            <span class="info-value">
+                                {% for grupo in usuario.groups.all %}
+                                    {{ grupo.name }}{% if not forloop.last %}, {% endif %}
+                                {% empty %}
+                                    Sin roles
+                                {% endfor %}
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Creado:</span>
+                            <span class="info-value">{{ usuario.date_joined|date:"d/m/Y H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="delete-form">
+                {% csrf_token %}
+                <div class="form-actions">
+                    <a href="{% url 'administracion:listar_usuarios' %}" class="btn btn-admin-cancel">
+                        <i class="bi bi-x-lg"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-admin-danger">
+                        <i class="bi bi-trash"></i> Sí, Eliminar Usuario
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

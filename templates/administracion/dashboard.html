@@ -1,26 +1,136 @@
 {% extends "base.html" %}
-{% block titulo %}Panel Administrador{% endblock %}
+{% block titulo %}Panel de Administración{% endblock %}
 {% block contenido %}
-<div class="placeholder-page">
-    <div class="page-header">
-        <div class="placeholder-icon"><i class="bi bi-gear"></i></div>
-        <h2>Panel de Administración</h2>
-        <p class="page-subtitle">
-            Acceso exclusivo del rol <strong>Administrador</strong>. Un usuario Cajero
-            que intente entrar acá recibe "Acceso denegado".
-        </p>
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-speedometer2"></i> Panel de Administración</h1>
+            <p class="admin-subtitle">Centro de control del Sistema Kiosco</p>
+        </div>
     </div>
 
-    <div class="kiosco-alert kiosco-alert-info">
-        <i class="bi bi-info-circle-fill"></i>
-        Sprint 1: cáscara protegida. La gestión de stock, precios de costo y
-        reportes de cierre de caja se implementan en próximos sprints.
+    <!-- Tarjetas de estadísticas -->
+    <div class="stats-grid">
+        <div class="stat-card stat-total">
+            <div class="stat-icon">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_usuarios }}</h3>
+                <p>Total Usuarios</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-active">
+            <div class="stat-icon">
+                <i class="bi bi-person-check"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ usuarios_activos }}</h3>
+                <p>Usuarios Activos</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-inactive">
+            <div class="stat-icon">
+                <i class="bi bi-person-x"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ usuarios_inactivos }}</h3>
+                <p>Usuarios Inactivos</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-admin">
+            <div class="stat-icon">
+                <i class="bi bi-shield-fill"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ admins }}</h3>
+                <p>Administradores</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-cashier">
+            <div class="stat-icon">
+                <i class="bi bi-receipt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ cajeros }}</h3>
+                <p>Cajeros</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-warning">
+            <div class="stat-icon">
+                <i class="bi bi-exclamation-triangle"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ sin_rol }}</h3>
+                <p>Sin Rol Asignado</p>
+            </div>
+        </div>
     </div>
 
-    <div class="mt-3">
-        <a href="{% url 'ventas:pantalla_cobro' %}" class="btn btn-kiosco-outline">
-            <i class="bi bi-receipt"></i> Ir a pantalla de cobro
-        </a>
+    <!-- Accesos rápidos -->
+    <div class="quick-actions">
+        <h2><i class="bi bi-lightning"></i> Accesos Rápidos</h2>
+        <div class="actions-grid">
+            <a href="{% url 'administracion:listar_usuarios' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <h3>Gestionar Usuarios</h3>
+                <p>Crear, editar, eliminar y asignar roles</p>
+            </a>
+
+            <a href="{% url 'administracion:crear_usuario' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="bi bi-person-plus"></i>
+                </div>
+                <h3>Nuevo Usuario</h3>
+                <p>Crear una nueva cuenta de usuario</p>
+            </a>
+
+            <a href="{% url 'ventas:pantalla_cobro' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="bi bi-receipt"></i>
+                </div>
+                <h3>Pantalla de Cobro</h3>
+                <p>Acceder al punto de venta</p>
+            </a>
+
+            <a href="/admin/" class="action-card">
+                <div class="action-icon">
+                    <i class="bi bi-gear"></i>
+                </div>
+                <h3>Admin Django</h3>
+                <p>Panel avanzado de Django</p>
+            </a>
+        </div>
+    </div>
+
+    <!-- Información del sistema -->
+    <div class="system-info">
+        <h2><i class="bi bi-info-circle"></i> Información del Sistema</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Versión:</span>
+                <span class="info-value">1.0.0 - Sprint 1</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Django:</span>
+                <span class="info-value">6.1.1</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Base de Datos:</span>
+                <span class="info-value">SQLite (Desarrollo)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Roles:</span>
+                <span class="info-value">Administrador, Cajero</span>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
