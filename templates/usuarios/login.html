@@ -1,34 +1,44 @@
 {% extends "base.html" %}
 {% block titulo %}Ingresar{% endblock %}
 {% block contenido %}
-<div class="login-wrapper">
-    <div class="login-card">
-        <div class="login-brand">
-            <div class="login-brand-icon"><i class="bi bi-shop text-dark"></i></div>
-            <h1>Sistema Kiosco</h1>
-            <p>Ingresá con tu usuario y contraseña</p>
+<div class="login-split">
+    <button type="button" class="btn-tema login-estilo" id="estiloToggle" title="Cambiar el estilo visual" aria-label="Cambiar el estilo visual">
+        <i class="bi bi-palette-fill" aria-hidden="true"></i>
+        <span class="estilo-nombre">Cartelera</span>
+    </button>
+    <section class="login-toldo">
+        <p class="toldo-wordmark">Kiosco</p>
+        <p class="toldo-bajada">Sistema de gestión para el kiosco de barrio: cobro, stock y caja.</p>
+        <div class="barcode barcode--toldo" aria-hidden="true"></div>
+        <span class="sticker">Acceso solo para el personal</span>
+    </section>
+
+    <section class="login-panel">
+        <div class="login-caja">
+            <h1>Ingresá al sistema</h1>
+            <p class="login-bajada">Usá tu usuario y contraseña.</p>
+
+            {% if form.errors %}
+                <div class="kiosco-alert kiosco-alert-danger mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                    <span>Usuario o contraseña incorrectos.</span>
+                </div>
+            {% endif %}
+
+            <form method="post" class="login-form">
+                {% csrf_token %}
+                <div class="form-group">
+                    <label class="kiosco-label" for="{{ form.username.id_for_label }}">Usuario</label>
+                    {{ form.username }}
+                </div>
+                <div class="form-group">
+                    <label class="kiosco-label" for="{{ form.password.id_for_label }}">Contraseña</label>
+                    {{ form.password }}
+                </div>
+                <input type="hidden" name="next" value="{{ next }}">
+                <button type="submit" class="btn btn-kiosco btn-submit">Ingresar</button>
+            </form>
         </div>
-
-        {% if form.errors %}
-            <div class="kiosco-alert kiosco-alert-danger mb-3">
-                <i class="bi bi-exclamation-triangle-fill"></i>
-                Usuario o contraseña incorrectos.
-            </div>
-        {% endif %}
-
-        <form method="post" class="login-form">
-            {% csrf_token %}
-            <div class="form-group">
-                <label class="kiosco-label">Usuario</label>
-                {{ form.username }}
-            </div>
-            <div class="form-group">
-                <label class="kiosco-label">Contraseña</label>
-                {{ form.password }}
-            </div>
-            <input type="hidden" name="next" value="{{ next }}">
-            <button type="submit" class="btn btn-kiosco login-form btn-submit">Ingresar</button>
-        </form>
-    </div>
+    </section>
 </div>
 {% endblock %}

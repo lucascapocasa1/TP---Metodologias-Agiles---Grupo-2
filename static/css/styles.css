@@ -1,374 +1,680 @@
 /* ============================================================
-   Sistema Kiosco — Custom Styles
-   Sprint 1: Identidad visual + Login + Layout base
-   ============================================================ */
+   Sistema Kiosco — Identidad "toldo de barrio"
+   Rotulación de kiosco argentino: toldo con gotones, etiquetas
+   de precio adhesivas, contorno de tinta + sombra dura, código
+   de barras como gráfico temático.
 
-/* --- Google Fonts (DM Sans) --- */
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&display=swap');
+   Tipografía: Alfa Slab One (display) + Archivo (interfaz)
+   ============================================================ */
 
 /* --- Design Tokens --- */
 :root {
-  --kiosco-yellow: #F5A623;
-  --kiosco-amber: #D4891A;
-  --kiosco-yellow-light: #FEF3CD;
-  --surface: #FFFDF7;
-  --bg: #F0EDE5;
-  --navy: #1A1A2E;
-  --navy-light: #2D2D44;
-  --text-primary: #1A1A2E;
-  --text-muted: #6B7280;
-  --green: #22C55E;
-  --green-dark: #16A34A;
-  --red: #EF4444;
-  --red-dark: #DC2626;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --shadow-sm: 0 1px 3px rgba(26, 26, 46, 0.06);
-  --shadow-md: 0 4px 12px rgba(26, 26, 46, 0.08);
-  --shadow-lg: 0 8px 24px rgba(26, 26, 46, 0.12);
-  --transition: 200ms ease;
+  /* Color */
+  --ink-solid: #17130E;
+  --papel: #F7F1E3;
+  --superficie: #FFFDF7;
+  --texto: #17130E;
+  --texto-suave: #6A6154;
+  --contorno: #17130E;
+  --sombra: #17130E;
+  --linea-azulejo: rgba(23, 19, 14, 0.055);
+  --sol: #FFC400;
+  --sol-vivo: #FFD23F;
+  --caramelo: #D7263D;
+  --caramelo-hondo: #B01B30;
+  --celeste: #1C6EA4;
+  --verde: #177245;
+  --crema: #F6EEDD;
+
+  /* Tipografía (cambiáveis por tema) */
+  --font-display: 'Alfa Slab One', Georgia, 'Times New Roman', serif;
+  --font-ui: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+
+  /* Alertas */
+  --alert-danger-bg: #FCE7E9;
+  --alert-danger-fg: #7F1018;
+  --alert-warn-bg: #FFF3CF;
+  --alert-warn-fg: #6E4B00;
+  --alert-info-bg: #E5F0F9;
+  --alert-info-fg: #12456B;
+  --alert-ok-bg: #E3F2E8;
+  --alert-ok-fg: #0F5132;
+
+  /* Forma */
+  --radio: 8px;
+  --radio-chico: 5px;
+  --borde: 2px solid var(--contorno);
+  --dureza: 4px 4px 0 var(--sombra);
+  --dureza-chica: 3px 3px 0 var(--sombra);
+  --transicion: 160ms ease;
 }
 
-/* --- Base Reset & Typography --- */
+[data-theme="dark"] {
+  --ink-solid: #0C0906;
+  --papel: #14100C;
+  --superficie: #1F1913;
+  --texto: #F1E7D6;
+  --texto-suave: #A99C8A;
+  --contorno: rgba(241, 231, 214, 0.30);
+  --sombra: #000000;
+  --linea-azulejo: rgba(241, 231, 214, 0.045);
+  --sol: #FFC400;
+  --sol-vivo: #FFD23F;
+  --caramelo: #FF5A6E;
+  --caramelo-hondo: #E23F55;
+  --celeste: #5AA9DF;
+  --verde: #4CBE84;
+  --crema: #F1E7D6;
+
+  --alert-danger-bg: rgba(255, 90, 110, 0.14);
+  --alert-danger-fg: #FFA3AF;
+  --alert-warn-bg: rgba(255, 196, 0, 0.13);
+  --alert-warn-fg: #FFDE80;
+  --alert-info-bg: rgba(90, 169, 223, 0.15);
+  --alert-info-fg: #A8D3F0;
+  --alert-ok-bg: rgba(76, 190, 132, 0.15);
+  --alert-ok-fg: #8FE0B6;
+}
+
+/* --- Base --- */
 *,
 *::before,
 *::after {
   box-sizing: border-box;
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
-  font-family: 'DM Sans', system-ui, -apple-system, sans-serif;
-  background-color: var(--bg);
-  color: var(--text-primary);
-  line-height: 1.6;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  line-height: 1.55;
+  color: var(--texto);
+  background-color: var(--papel);
+  /* Azulejos del mostrador: grilla tenue */
+  background-image:
+    linear-gradient(var(--linea-azulejo) 1px, transparent 1px),
+    linear-gradient(90deg, var(--linea-azulejo) 1px, transparent 1px);
+  background-size: 34px 34px;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-h1, h2, h3, h4, h5, h6 {
-  font-weight: 600;
-  line-height: 1.3;
+h1, h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  line-height: 1.15;
+  letter-spacing: -0.005em;
+  color: var(--texto);
 }
 
-/* --- Navbar --- */
-.kiosco-navbar {
-  background-color: var(--navy) !important;
-  padding: 0.6rem 1.25rem;
-  box-shadow: 0 2px 8px rgba(26, 26, 46, 0.15);
-}
-
-.kiosco-navbar .navbar-brand {
+h3, h4, h5, h6 {
+  font-family: var(--font-ui);
   font-weight: 700;
-  font-size: 1.25rem;
-  color: var(--kiosco-yellow) !important;
-  letter-spacing: -0.02em;
+  line-height: 1.3;
+  color: var(--texto);
+}
+
+a {
+  color: var(--texto);
+  text-decoration-color: var(--sol);
+  text-decoration-thickness: 3px;
+  text-underline-offset: 3px;
+}
+
+strong {
+  font-weight: 700;
+}
+
+.text-muted {
+  color: var(--texto-suave) !important;
+}
+
+/* ============================================================
+   Navbar + toldo
+   ============================================================ */
+.kiosco-navbar {
+  background-color: var(--ink-solid);
+  padding: 0.7rem 1.25rem 0.85rem;
+}
+
+.kiosco-navbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.55rem;
+  text-decoration: none;
+  color: var(--sol);
+}
+
+.brand-icon {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.brand-text {
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  letter-spacing: -0.01em;
+  color: var(--sol);
+}
+
+.nav-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.user-info {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-.kiosco-navbar .navbar-brand .brand-icon {
-  font-size: 1.4rem;
-}
-
-.kiosco-navbar .navbar-brand .brand-text {
-  position: relative;
-}
-
-.kiosco-navbar .navbar-brand .brand-text::after {
-  content: '';
-  position: absolute;
-  bottom: -2px;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: var(--kiosco-yellow);
-  border-radius: 1px;
-  opacity: 0.4;
-}
-
-.kiosco-navbar .user-info {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
-}
-
-.kiosco-navbar .user-name {
-  color: rgba(255, 255, 255, 0.85);
-  font-size: 0.875rem;
+.user-name {
+  color: rgba(246, 238, 221, 0.85);
+  font-size: 0.9rem;
   font-weight: 500;
 }
 
-.kiosco-navbar .badge-rol {
-  background-color: rgba(245, 166, 35, 0.15);
-  color: var(--kiosco-yellow);
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.25em 0.6em;
-  border-radius: 6px;
-  letter-spacing: 0.02em;
-  text-transform: uppercase;
+/* Etiqueta de precio (muesca a la derecha) */
+.badge-rol,
+.badge-superuser {
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.4;
+  padding: 0.2em 1em 0.2em 0.55em;
+  clip-path: polygon(0 0, calc(100% - 7px) 0, 100% 50%, calc(100% - 7px) 100%, 0 100%);
 }
 
-.kiosco-navbar .badge-superuser {
-  background-color: rgba(34, 197, 94, 0.15);
-  color: var(--green);
-  font-size: 0.7rem;
-  font-weight: 600;
-  padding: 0.25em 0.6em;
-  border-radius: 6px;
+.badge-rol {
+  background-color: var(--sol);
+  color: #17130E;
 }
 
-.kiosco-navbar .btn-salir {
+.badge-superuser {
+  background-color: var(--caramelo);
+  color: #fff;
+}
+
+.btn-salir,
+.btn-tema {
   background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 0.8rem;
-  font-weight: 500;
-  padding: 0.35em 0.85em;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition);
-  cursor: pointer;
-}
-
-.kiosco-navbar .btn-salir:hover {
-  background: rgba(239, 68, 68, 0.15);
-  border-color: rgba(239, 68, 68, 0.3);
-  color: #EF4444;
-}
-
-/* --- Cards --- */
-.kiosco-card {
-  background: var(--surface);
-  border: 1px solid rgba(26, 26, 46, 0.06);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-sm);
-  transition: box-shadow var(--transition);
-}
-
-.kiosco-card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.kiosco-card-header {
-  padding: 1.25rem 1.5rem;
-  border-bottom: 1px solid rgba(26, 26, 46, 0.06);
-}
-
-.kiosco-card-body {
-  padding: 1.5rem;
-}
-
-/* --- Buttons --- */
-.btn-kiosco {
-  background-color: var(--kiosco-yellow);
-  border-color: var(--kiosco-yellow);
-  color: var(--navy);
+  border: 1.5px solid rgba(246, 238, 221, 0.35);
+  color: rgba(246, 238, 221, 0.85);
+  font-family: inherit;
+  font-size: 0.85rem;
   font-weight: 600;
+  padding: 0.35em 0.85em;
+  border-radius: var(--radio-chico);
+  transition: background var(--transicion), border-color var(--transicion), color var(--transicion);
+  cursor: pointer;
+  line-height: 1.4;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+}
+
+.btn-tema {
+  padding: 0.35em 0.55em;
   font-size: 0.95rem;
-  padding: 0.6em 1.5em;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition);
-  letter-spacing: -0.01em;
+}
+
+.btn-salir:hover,
+.btn-tema:hover {
+  background: var(--caramelo);
+  border-color: var(--caramelo);
+  color: #fff;
+}
+
+.btn-salir:focus-visible,
+.btn-tema:focus-visible,
+.brand:focus-visible {
+  outline: 3px solid var(--sol);
+  outline-offset: 2px;
+}
+
+/* Filete de gotones del toldo */
+.toldo-filete {
+  height: 9px;
+  background-color: var(--sol);
+  -webkit-mask-image: radial-gradient(circle 8.5px at 9px 0, #000 99%, transparent 100%);
+  mask-image: radial-gradient(circle 8.5px at 9px 0, #000 99%, transparent 100%);
+  -webkit-mask-size: 18px 9px;
+  mask-size: 18px 9px;
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+}
+
+/* ============================================================
+   Contenido
+   ============================================================ */
+.kiosco-main {
+  width: min(1100px, 100% - 2.5rem);
+  margin-inline: auto;
+  padding-block: 2.25rem 4rem;
+}
+
+.page-header {
+  margin-bottom: 1.75rem;
+}
+
+.page-header h2 {
+  font-size: clamp(1.6rem, 3.5vw, 2.1rem);
+  margin-bottom: 0.4rem;
+}
+
+.page-subtitle {
+  color: var(--texto-suave);
+  font-size: 1rem;
+  max-width: 54ch;
+  margin: 0;
+}
+
+.page-subtitle strong {
+  color: var(--texto);
+}
+
+/* --- Sello de acceso (dashboard) --- */
+.sello {
+  display: inline-block;
+  flex-shrink: 0;
+  font-family: var(--font-display);
+  font-size: 1.05rem;
+  color: var(--caramelo);
+  border: 3px double var(--caramelo);
+  border-radius: var(--radio);
+  padding: 0.35em 0.9em;
+  transform: rotate(-5deg);
+  opacity: 0.9;
+  user-select: none;
+}
+
+/* ============================================================
+   Botones
+   ============================================================ */
+.btn-kiosco,
+.btn-kiosco-outline {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  padding: 0.6em 1.4em;
+  border-radius: var(--radio-chico);
+  border: var(--borde);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5em;
+  text-decoration: none;
+  transition: transform var(--transicion), box-shadow var(--transicion), background var(--transicion);
+}
+
+.btn-kiosco {
+  background-color: var(--sol);
+  color: #17130E;
+  box-shadow: var(--dureza);
 }
 
 .btn-kiosco:hover,
 .btn-kiosco:focus {
-  background-color: var(--kiosco-amber);
-  border-color: var(--kiosco-amber);
-  color: var(--navy);
-  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.3);
-  transform: translateY(-1px);
+  background-color: var(--sol-vivo);
+  color: #17130E;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--sombra);
 }
 
 .btn-kiosco:active {
-  transform: translateY(0);
-  box-shadow: none;
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--sombra);
 }
 
-.btn-kiosco:focus-visible {
-  outline: 3px solid rgba(245, 166, 35, 0.4);
+.btn-kiosco:focus-visible,
+.btn-kiosco-outline:focus-visible {
+  outline: 3px solid var(--celeste);
   outline-offset: 2px;
 }
 
 .btn-kiosco-outline {
-  background: transparent;
-  border: 1.5px solid var(--navy);
-  color: var(--navy);
-  font-weight: 600;
-  font-size: 0.875rem;
-  padding: 0.5em 1.25em;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition);
+  background: var(--superficie);
+  color: var(--texto);
+  box-shadow: var(--dureza);
 }
 
-.btn-kiosco-outline:hover {
-  background: var(--navy);
-  color: #fff;
+.btn-kiosco-outline:hover,
+.btn-kiosco-outline:focus {
+  background: var(--sol);
+  color: #17130E;
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--sombra);
 }
 
-/* --- Forms --- */
+.btn-kiosco-outline:active {
+  transform: translate(3px, 3px);
+  box-shadow: 1px 1px 0 var(--sombra);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.85rem;
+  margin-top: 1.5rem;
+}
+
+/* ============================================================
+   Formularios
+   ============================================================ */
 .kiosco-input {
-  background: #fff;
-  border: 1.5px solid rgba(26, 26, 46, 0.12);
-  border-radius: var(--radius-sm);
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio-chico);
+  box-shadow: var(--dureza-chica);
   padding: 0.65rem 0.9rem;
-  font-size: 0.95rem;
+  font-size: 1rem;
   font-family: inherit;
-  color: var(--text-primary);
-  transition: border-color var(--transition), box-shadow var(--transition);
+  color: var(--texto);
+  transition: box-shadow var(--transicion), transform var(--transicion);
   width: 100%;
 }
 
 .kiosco-input:focus {
   outline: none;
-  border-color: var(--kiosco-yellow);
-  box-shadow: 0 0 0 3px rgba(245, 166, 35, 0.15);
+  box-shadow: var(--dureza-chica), 0 0 0 3px var(--celeste);
 }
 
 .kiosco-input::placeholder {
-  color: var(--text-muted);
+  color: var(--texto-suave);
 }
 
 .kiosco-label {
-  font-size: 0.85rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 0.35rem;
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--texto);
+  margin-bottom: 0.4rem;
   display: block;
 }
 
-/* --- Alerts --- */
+/* ============================================================
+   Alertas (etiquetas adhesivas)
+   ============================================================ */
 .kiosco-alert {
-  border-radius: var(--radius-md);
-  font-size: 0.9rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  font-size: 0.92rem;
   font-weight: 500;
-  border: none;
-  padding: 0.85rem 1.1rem;
+  line-height: 1.5;
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza-chica);
+  padding: 0.85rem 1.05rem;
+}
+
+.kiosco-alert i {
+  flex-shrink: 0;
+  margin-top: 0.15em;
 }
 
 .kiosco-alert-danger {
-  background: #FEF2F2;
-  color: #991B1B;
-  border-left: 3px solid var(--red);
+  background: var(--alert-danger-bg);
+  color: var(--alert-danger-fg);
 }
 
 .kiosco-alert-warning {
-  background: #FFFBEB;
-  color: #92400E;
-  border-left: 3px solid #F59E0B;
+  background: var(--alert-warn-bg);
+  color: var(--alert-warn-fg);
 }
 
 .kiosco-alert-info {
-  background: #EFF6FF;
-  color: #1E40AF;
-  border-left: 3px solid #3B82F6;
+  background: var(--alert-info-bg);
+  color: var(--alert-info-fg);
 }
 
 .kiosco-alert-success {
-  background: #F0FDF4;
-  color: #166534;
-  border-left: 3px solid var(--green);
+  background: var(--alert-ok-bg);
+  color: var(--alert-ok-fg);
 }
 
-/* --- Page Sections --- */
-.page-header {
-  margin-bottom: 1.5rem;
+.kiosco-alert strong {
+  color: inherit;
 }
 
-.page-header h2 {
-  font-size: 1.5rem;
+/* ============================================================
+   Cards / paneles
+   ============================================================ */
+.kiosco-card {
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+}
+
+.kiosco-card-header {
+  padding: 1.1rem 1.35rem;
+  border-bottom: var(--borde);
+}
+
+.kiosco-card-body {
+  padding: 1.35rem;
+}
+
+/* Zona "próximamente": punteado = todavía no existe */
+.viene {
+  border: 2px dashed var(--contorno);
+  border-radius: var(--radio);
+  padding: 1.35rem 1.5rem;
+  background: transparent;
+  margin-top: 1.5rem;
+}
+
+.viene-titulo {
+  font-size: 0.85rem;
   font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-  letter-spacing: -0.02em;
+  color: var(--texto-suave);
+  margin: 0 0 0.85rem;
 }
 
-.page-header .page-subtitle {
-  color: var(--text-muted);
-  font-size: 0.9rem;
+.viene ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.viene li {
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: var(--superficie);
+  border: 1.5px solid var(--contorno);
+  border-radius: 999px;
+  padding: 0.25em 0.85em;
+}
+
+/* ============================================================
+   Código de barras (elemento temático)
+   ============================================================ */
+.barcode {
+  height: 52px;
+  width: 100%;
+  max-width: 340px;
+  background-color: var(--superficie);
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--texto) 0 3px,
+    transparent 3px 6px,
+    var(--texto) 6px 11px,
+    transparent 11px 14px,
+    var(--texto) 14px 16px,
+    transparent 16px 22px,
+    var(--texto) 22px 28px,
+    transparent 28px 31px
+  );
+  border: 2px solid var(--contorno);
+  border-radius: var(--radio-chico);
+}
+
+.barcode--toldo {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--sol) 0 3px,
+    transparent 3px 6px,
+    var(--sol) 6px 11px,
+    transparent 11px 14px,
+    var(--sol) 14px 16px,
+    transparent 16px 22px,
+    var(--sol) 22px 28px,
+    transparent 28px 31px
+  );
+  border-color: rgba(255, 196, 0, 0.45);
+}
+
+/* ============================================================
+   Páginas placeholder (cobro / dashboard)
+   ============================================================ */
+.placeholder-page {
+  max-width: 720px;
+}
+
+.escaner-mock {
+  margin-top: 1.5rem;
+}
+
+.escaner-mock .barcode {
+  max-width: none;
+  height: 72px;
+}
+
+.escaner-nota {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+  margin: 0.6rem 0 0;
+}
+
+/* ============================================================
+   Login: split toldo + formulario
+   ============================================================ */
+.login-split {
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr);
+  position: relative;
+}
+
+/* Gotones del toldo en el borde superior de la página */
+.login-split::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  z-index: 3;
+  background-color: var(--sol);
+  -webkit-mask-image: radial-gradient(circle 9.5px at 10px 0, #000 99%, transparent 100%);
+  mask-image: radial-gradient(circle 9.5px at 10px 0, #000 99%, transparent 100%);
+  -webkit-mask-size: 20px 10px;
+  mask-size: 20px 10px;
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+  pointer-events: none;
+}
+
+/* Selector de estilo: chip flotante sobre la portada (no participa del grid) */
+.login-estilo {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 6;
+}
+
+.login-toldo {
+  background-color: var(--ink-solid);
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 30px,
+    rgba(255, 196, 0, 0.04) 30px 60px
+  );
+  color: var(--crema);
+  padding: clamp(3rem, 6vw, 5rem) clamp(1.75rem, 5vw, 4.5rem);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.35rem;
+  overflow: hidden;
+  position: relative;
+}
+
+.toldo-wordmark {
+  font-family: var(--font-display);
+  font-size: clamp(3.2rem, 6.5vw, 5rem);
+  line-height: 0.95;
+  color: var(--sol);
   margin: 0;
 }
 
-/* --- Login Page --- */
-.login-wrapper {
-  min-height: 100vh;
+.toldo-bajada {
+  font-size: 1.05rem;
+  line-height: 1.5;
+  color: rgba(246, 238, 221, 0.8);
+  max-width: 34ch;
+  margin: 0;
+}
+
+.sticker {
+  display: inline-block;
+  align-self: flex-start;
+  background: var(--caramelo);
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.4;
+  padding: 0.5em 1em;
+  border: 2px solid var(--sol);
+  border-radius: var(--radio-chico);
+  box-shadow: 4px 4px 0 rgba(0, 0, 0, 0.45);
+  transform: rotate(-2.5deg);
+}
+
+.login-toldo .barcode {
+  max-width: 280px;
+  margin-top: 0.35rem;
+}
+
+.login-panel {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: var(--bg);
-  padding: 1rem;
-  position: relative;
-  overflow: hidden;
+  padding: clamp(3.5rem, 8vw, 5rem) clamp(1.25rem, 4vw, 3rem);
 }
 
-.login-wrapper::before {
-  content: '';
-  position: absolute;
-  top: -30%;
-  right: -20%;
-  width: 500px;
-  height: 500px;
-  background: radial-gradient(circle, rgba(245, 166, 35, 0.08) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.login-wrapper::after {
-  content: '';
-  position: absolute;
-  bottom: -20%;
-  left: -15%;
-  width: 400px;
-  height: 400px;
-  background: radial-gradient(circle, rgba(26, 26, 46, 0.04) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.login-card {
+.login-caja {
   width: 100%;
-  max-width: 400px;
-  background: var(--surface);
-  border: 1px solid rgba(26, 26, 46, 0.06);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
-  padding: 2.5rem 2rem;
-  position: relative;
-  z-index: 1;
+  max-width: 380px;
 }
 
-.login-brand {
-  text-align: center;
-  margin-bottom: 1.75rem;
+.login-caja h1 {
+  font-size: clamp(1.7rem, 3vw, 2.1rem);
+  margin-bottom: 0.4rem;
 }
 
-.login-brand-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 64px;
-  height: 64px;
-  background: linear-gradient(135deg, var(--kiosco-yellow), var(--kiosco-amber));
-  border-radius: 16px;
-  font-size: 1.75rem;
-  margin-bottom: 1rem;
-  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.25);
-}
-
-.login-brand h1 {
-  font-size: 1.5rem;
-  font-weight: 700;
-  color: var(--text-primary);
-  margin-bottom: 0.25rem;
-  letter-spacing: -0.03em;
-}
-
-.login-brand p {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  margin: 0;
+.login-caja .login-bajada {
+  color: var(--texto-suave);
+  font-size: 0.98rem;
+  margin: 0 0 1.6rem;
 }
 
 .login-form .form-group {
@@ -377,12 +683,15 @@ h1, h2, h3, h4, h5, h6 {
 
 .login-form .btn-submit {
   width: 100%;
-  padding: 0.75rem;
+  justify-content: center;
+  padding: 0.75rem 1.4em;
   font-size: 1rem;
-  margin-top: 0.5rem;
+  margin-top: 0.6rem;
 }
 
-/* --- Error Page (403) --- */
+/* ============================================================
+   Páginas de error y aviso
+   ============================================================ */
 .error-page {
   min-height: 70vh;
   display: flex;
@@ -390,252 +699,97 @@ h1, h2, h3, h4, h5, h6 {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 2rem;
+  padding: 2rem 1rem;
 }
 
-.error-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 88px;
-  height: 88px;
-  background: #FEF2F2;
-  border-radius: 24px;
-  font-size: 2.5rem;
-  margin-bottom: 1.25rem;
+.error-code {
+  font-family: var(--font-display);
+  font-size: clamp(4.5rem, 14vw, 7.5rem);
+  line-height: 1;
+  color: var(--sol);
+  -webkit-text-stroke: 2.5px var(--contorno);
+  text-shadow: 6px 6px 0 var(--sombra);
+  margin: 0 0 1rem;
 }
 
 .error-page h2 {
-  font-size: 1.5rem;
-  font-weight: 700;
+  font-size: clamp(1.5rem, 4vw, 2rem);
   margin-bottom: 0.5rem;
 }
 
-.error-page p {
-  color: var(--text-muted);
-  max-width: 360px;
-  margin-bottom: 1.5rem;
+.error-page .error-msg {
+  color: var(--texto-suave);
+  max-width: 38ch;
+  margin-bottom: 1.75rem;
 }
 
-/* --- Warning Page (sin_rol) --- */
 .warning-page {
   min-height: 60vh;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 2rem;
+  padding: 2rem 1rem;
 }
 
 .warning-card {
-  max-width: 480px;
+  max-width: 500px;
   width: 100%;
-  background: var(--surface);
-  border: 1px solid rgba(26, 26, 46, 0.06);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-md);
-  padding: 2rem;
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+  padding: 2.25rem 2rem;
   text-align: center;
+  position: relative;
+}
+
+.warning-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 10px;
+  background-color: var(--sol);
+  -webkit-mask-image: radial-gradient(circle 9.5px at 10px 0, #000 99%, transparent 100%);
+  mask-image: radial-gradient(circle 9.5px at 10px 0, #000 99%, transparent 100%);
+  -webkit-mask-size: 20px 10px;
+  mask-size: 20px 10px;
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+  border-radius: var(--radio) var(--radio) 0 0;
 }
 
 .warning-icon {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 64px;
-  height: 64px;
-  background: #FFFBEB;
-  border-radius: 16px;
-  font-size: 1.75rem;
-  margin-bottom: 1rem;
+  width: 60px;
+  height: 60px;
+  background: var(--sol);
+  color: #17130E;
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza-chica);
+  font-size: 1.7rem;
+  margin-bottom: 1.1rem;
 }
 
-/* --- Placeholder Pages (cobro, dashboard) --- */
-.placeholder-page {
-  max-width: 640px;
+.warning-card h3 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 1.4rem;
+  margin-bottom: 0.6rem;
 }
 
-.placeholder-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 56px;
-  height: 56px;
-  background: linear-gradient(135deg, var(--kiosco-yellow-light), rgba(245, 166, 35, 0.1));
-  border-radius: 14px;
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
+.warning-card p {
+  color: var(--texto-suave);
+  margin-bottom: 1.5rem;
 }
 
-.placeholder-page h2 {
-  font-size: 1.35rem;
-}
-
-/* --- Utility Classes --- */
-.text-kiosco {
-  color: var(--kiosco-yellow) !important;
-}
-
-.bg-kiosco {
-  background-color: var(--kiosco-yellow) !important;
-}
-
-.focus-ring-kiosco:focus-visible {
-  outline: 3px solid rgba(245, 166, 35, 0.4);
-  outline-offset: 2px;
-}
-
-/* --- Responsive --- */
-@media (max-width: 576px) {
-  .login-card {
-    padding: 2rem 1.5rem;
-  }
-
-  .kiosco-navbar .user-name {
-    display: none;
-  }
-
-  .kiosco-navbar .badge-rol {
-    font-size: 0.65rem;
-  }
-
-  .page-header h2 {
-    font-size: 1.25rem;
-  }
-}
-
-/* --- Reduced Motion --- */
-@media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-
-/* --- Scrollbar (subtle) --- */
-::-webkit-scrollbar {
-  width: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(26, 26, 46, 0.15);
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(26, 26, 46, 0.25);
-}
-
-/* --- Dark Mode --- */
-[data-theme="dark"] {
-  --surface: #1E1E2E;
-  --bg: #11111B;
-  --text-primary: #CDD6F4;
-  --text-muted: #A6ADC8;
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.5);
-}
-
-[data-theme="dark"] .kiosco-navbar {
-  background-color: #181825 !important;
-}
-
-[data-theme="dark"] .kiosco-card {
-  border-color: rgba(205, 214, 244, 0.08);
-}
-
-[data-theme="dark"] .kiosco-input {
-  background: #1E1E2E;
-  border-color: rgba(205, 214, 244, 0.15);
-  color: var(--text-primary);
-}
-
-[data-theme="dark"] .kiosco-alert-danger {
-  background: #45242B;
-  color: #F38BA8;
-}
-
-[data-theme="dark"] .kiosco-alert-warning {
-  background: #3D3426;
-  color: #F9E2AF;
-}
-
-[data-theme="dark"] .kiosco-alert-info {
-  background: #1E2D44;
-  color: #89B4FA;
-}
-
-[data-theme="dark"] .kiosco-alert-success {
-  background: #1D3329;
-  color: #A6E3A1;
-}
-
-[data-theme="dark"] .login-card {
-  background: #1E1E2E;
-  border-color: rgba(205, 214, 244, 0.08);
-}
-
-[data-theme="dark"] .warning-card {
-  background: #1E1E2E;
-  border-color: rgba(205, 214, 244, 0.08);
-}
-
-[data-theme="dark"] .error-icon {
-  background: #45242B;
-}
-
-[data-theme="dark"] .warning-icon {
-  background: #3D3426;
-}
-
-[data-theme="dark"] .placeholder-icon {
-  background: linear-gradient(135deg, rgba(245, 166, 35, 0.15), rgba(245, 166, 35, 0.05));
-}
-
-[data-theme="dark"] .login-brand-icon {
-  box-shadow: 0 4px 12px rgba(245, 166, 35, 0.15);
-}
-
-[data-theme="dark"] .btn-kiosco {
-  color: #1A1A2E;
-}
-
-[data-theme="dark"] .btn-kiosco-outline {
-  border-color: var(--text-primary);
-  color: var(--text-primary);
-}
-
-[data-theme="dark"] .btn-kiosco-outline:hover {
-  background: var(--text-primary);
-  color: #11111B;
-}
-
-/* Dark mode toggle button */
-.btn-dark-toggle {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.7);
-  font-size: 1rem;
-  padding: 0.3em 0.5em;
-  border-radius: var(--radius-sm);
-  transition: all var(--transition);
-  cursor: pointer;
-  line-height: 1;
-}
-
-.btn-dark-toggle:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
-}
-
-/* --- Pagination --- */
+/* ============================================================
+   Paginación
+   ============================================================ */
 .kiosco-pagination {
   display: flex;
   align-items: center;
@@ -645,35 +799,41 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .kiosco-pagination .page-link {
-  color: var(--text-primary);
-  border: 1px solid rgba(26, 26, 46, 0.12);
-  border-radius: var(--radius-sm);
-  padding: 0.4em 0.75em;
+  color: var(--texto);
+  background: var(--superficie);
+  border: 1.5px solid var(--contorno);
+  border-radius: var(--radio-chico);
+  box-shadow: 2px 2px 0 var(--sombra);
+  padding: 0.35em 0.7em;
   font-size: 0.875rem;
-  font-weight: 500;
-  transition: all var(--transition);
+  font-weight: 600;
+  transition: transform var(--transicion), box-shadow var(--transicion), background var(--transicion);
 }
 
 .kiosco-pagination .page-link:hover {
-  background: var(--kiosco-yellow);
-  border-color: var(--kiosco-yellow);
-  color: var(--navy);
+  background: var(--sol);
+  color: #17130E;
+  transform: translate(-1px, -1px);
+  box-shadow: 3px 3px 0 var(--sombra);
 }
 
 .kiosco-pagination .page-item.active .page-link {
-  background: var(--kiosco-yellow);
-  border-color: var(--kiosco-yellow);
-  color: var(--navy);
-  font-weight: 600;
+  background: var(--sol);
+  border-color: var(--contorno);
+  color: #17130E;
+  font-weight: 700;
 }
 
 .kiosco-pagination .page-item.disabled .page-link {
-  color: var(--text-muted);
-  border-color: transparent;
+  color: var(--texto-suave);
   background: transparent;
+  box-shadow: none;
+  border-color: transparent;
 }
 
-/* --- Search Box --- */
+/* ============================================================
+   Buscador
+   ============================================================ */
 .kiosco-search {
   position: relative;
   max-width: 400px;
@@ -685,10 +845,625 @@ h1, h2, h3, h4, h5, h6 {
 
 .kiosco-search-icon {
   position: absolute;
-  left: 0.75rem;
+  left: 0.85rem;
   top: 50%;
   transform: translateY(-50%);
-  color: var(--text-muted);
+  color: var(--texto-suave);
   font-size: 0.9rem;
   pointer-events: none;
+}
+
+/* ============================================================
+   Utilidades
+   ============================================================ */
+.text-kiosco {
+  color: var(--caramelo) !important;
+}
+
+.bg-kiosco {
+  background-color: var(--sol) !important;
+}
+
+.focus-ring-kiosco:focus-visible {
+  outline: 3px solid var(--celeste);
+  outline-offset: 2px;
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--contorno);
+  border-radius: 5px;
+  border: 3px solid var(--papel);
+}
+
+/* ============================================================
+   Responsive
+   ============================================================ */
+@media (max-width: 860px) {
+  .login-split {
+    grid-template-columns: 1fr;
+  }
+
+  .login-toldo {
+    padding: 3.25rem 1.75rem 2.5rem;
+    gap: 1rem;
+    min-height: 0;
+  }
+
+  .toldo-wordmark {
+    font-size: clamp(2.8rem, 13vw, 4rem);
+  }
+
+  .login-toldo .barcode {
+    display: none;
+  }
+
+  .login-panel {
+    padding: 2.5rem 1.25rem 3.5rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .kiosco-main {
+    width: min(1100px, 100% - 1.75rem);
+    padding-block: 1.75rem 3rem;
+  }
+
+  .user-name {
+    display: none;
+  }
+
+  .badge-rol,
+  .badge-superuser {
+    font-size: 0.68rem;
+  }
+
+  .page-header h2 {
+    font-size: 1.5rem;
+  }
+
+  .kiosco-alert {
+    font-size: 0.88rem;
+  }
+
+  .warning-card {
+    padding: 2rem 1.35rem;
+  }
+}
+
+/* ============================================================
+   Reduced motion
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* ============================================================
+   Tema "Cartelera"
+   El letrero de funciones del cine de barrio: tablero negro
+   de letras, surcos horizontales, focos de marquesina y
+   rojo de cortina. Bebas Neue (títulos) + Archivo.
+   Se activa con data-tema="cartelera" en <html>.
+   ============================================================ */
+[data-tema="cartelera"] {
+  --ink-solid: #0D0D0F;
+  --papel: #121214;
+  --superficie: #1C1C1F;
+  --texto: #F5F0E6;
+  --texto-suave: #B9B3A6;
+  --contorno: #3A3A3E;
+  --sombra: #000000;
+  --linea-azulejo: rgba(245, 240, 230, 0.05);
+  --sol: #E23D28;
+  --sol-vivo: #FF5A46;
+  --caramelo: #D9483B;
+  --caramelo-hondo: #B23327;
+  --celeste: #FFD54F;
+  --verde: #7ED9A0;
+  --crema: #F5F0E6;
+
+  --alert-danger-bg: rgba(217, 72, 59, 0.16);
+  --alert-danger-fg: #F3A99F;
+  --alert-warn-bg: rgba(255, 213, 79, 0.13);
+  --alert-warn-fg: #FFE59A;
+  --alert-info-bg: rgba(126, 217, 160, 0.13);
+  --alert-info-fg: #A8EBC4;
+  --alert-ok-bg: rgba(126, 217, 160, 0.13);
+  --alert-ok-fg: #A8EBC4;
+
+  --radio: 6px;
+  --radio-chico: 4px;
+
+  --font-display: 'Bebas Neue', 'Archivo Narrow', Impact, sans-serif;
+  --font-ui: 'Archivo', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Tablero de letras: surcos horizontales */
+[data-tema="cartelera"] body {
+  background-color: var(--papel);
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(245, 240, 230, 0.055) 0 1px,
+    transparent 1px 9px
+  );
+  background-size: auto;
+}
+
+/* Marca en coral brillante (legible sobre negro) */
+[data-tema="cartelera"] .brand,
+[data-tema="cartelera"] .brand-text {
+  color: #FF5A46;
+}
+
+[data-tema="cartelera"] .badge-rol {
+  background-color: #E23D28;
+  color: #FFFFFF;
+}
+
+[data-tema="cartelera"] .badge-superuser {
+  background-color: #7ED9A0;
+  color: #0D0D0F;
+}
+
+[data-tema="cartelera"] .btn-kiosco {
+  color: #FFFFFF;
+}
+
+[data-tema="cartelera"] .btn-kiosco:hover,
+[data-tema="cartelera"] .btn-kiosco:focus {
+  color: #0D0D0F;
+}
+
+[data-tema="cartelera"] .btn-kiosco-outline:hover,
+[data-tema="cartelera"] .btn-kiosco-outline:focus {
+  color: #FFFFFF;
+}
+
+[data-tema="cartelera"] .kiosco-pagination .page-link:hover,
+[data-tema="cartelera"] .kiosco-pagination .page-item.active .page-link {
+  color: #FFFFFF;
+}
+
+[data-tema="cartelera"] .warning-icon {
+  color: #FFFFFF;
+}
+
+/* Sello a foco amarillo (título de la semana) */
+[data-tema="cartelera"] .sello {
+  color: #FFD54F;
+  border-color: #FFD54F;
+}
+
+/* Salir: rojo de cortina */
+[data-tema="cartelera"] .btn-salir:hover,
+[data-tema="cartelera"] .btn-tema:hover {
+  background: #D9483B;
+  border-color: #D9483B;
+  color: #fff;
+}
+
+/* Filetes: hilera de focos de marquesina */
+[data-tema="cartelera"] .toldo-filete,
+[data-tema="cartelera"] .login-split::before,
+[data-tema="cartelera"] .warning-card::before {
+  background-color: transparent;
+  background-image: radial-gradient(circle, #FFD54F 0 3.5px, transparent 4.2px);
+  background-size: 18px 100%;
+  background-repeat: repeat-x;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Portada de login: tablero de letras */
+[data-tema="cartelera"] .login-toldo {
+  background-color: #0D0D0F;
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(245, 240, 230, 0.07) 0 1px,
+    transparent 1px 9px
+  );
+  color: #F5F0E6;
+}
+
+[data-tema="cartelera"] .toldo-wordmark {
+  color: var(--sol);
+}
+
+[data-tema="cartelera"] .toldo-bajada {
+  color: rgba(245, 240, 230, 0.8);
+}
+
+[data-tema="cartelera"] .sticker {
+  background: #D9483B;
+  color: #fff;
+  border-color: var(--sol);
+}
+
+[data-tema="cartelera"] .barcode--toldo {
+  border-color: rgba(226, 61, 40, 0.55);
+}
+
+/* Letras plásticas: contorno negro de tablero */
+[data-tema="cartelera"] .error-code {
+  -webkit-text-stroke: 2.5px #0D0D0F;
+  text-shadow: 6px 6px 0 #000000;
+}
+
+/* Cartelera + modo oscuro: hall a oscuras */
+[data-tema="cartelera"][data-theme="dark"] {
+  --ink-solid: #050506;
+  --papel: #08080A;
+  --superficie: #141416;
+  --texto: #F7F3EA;
+  --texto-suave: #A9A497;
+  --contorno: rgba(247, 243, 234, 0.30);
+  --linea-azulejo: rgba(247, 243, 234, 0.045);
+  --crema: #F7F3EA;
+}
+
+/* ============================================================
+   Tema "Ticket"
+   Comprobante térmico: papel casi blanco, tinta negra,
+   perforaciones, cero redondeos y todo en monoespaciada
+   (IBM Plex Mono). Sello de anulación en rojo.
+   Se activa con data-tema="ticket" en <html>.
+   ============================================================ */
+[data-tema="ticket"] {
+  --ink-solid: #0A0A0A;
+  --papel: #F7F7F4;
+  --superficie: #FFFFFF;
+  --texto: #101010;
+  --texto-suave: #5C5C58;
+  --contorno: #101010;
+  --sombra: rgba(0, 0, 0, 0.28);
+  --linea-azulejo: rgba(0, 0, 0, 0.05);
+  --sol: #C8372D;
+  --sol-vivo: #A62B22;
+  --caramelo: #C8372D;
+  --caramelo-hondo: #A62B22;
+  --celeste: #101010;
+  --verde: #2E7D4F;
+  --crema: #F7F7F4;
+
+  --alert-danger-bg: rgba(200, 55, 45, 0.10);
+  --alert-danger-fg: #A62B22;
+  --alert-warn-bg: rgba(0, 0, 0, 0.06);
+  --alert-warn-fg: #333330;
+  --alert-info-bg: rgba(0, 0, 0, 0.06);
+  --alert-info-fg: #333330;
+  --alert-ok-bg: rgba(46, 125, 79, 0.12);
+  --alert-ok-fg: #226B45;
+
+  --radio: 0px;
+  --radio-chico: 0px;
+
+  --font-display: 'IBM Plex Mono', 'Courier New', monospace;
+  --font-ui: 'IBM Plex Mono', 'Courier New', monospace;
+}
+
+/* Papel térmico: líneas de avance de la impresora */
+[data-tema="ticket"] body {
+  background-color: var(--papel);
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.045) 0 1px,
+    transparent 1px 30px
+  );
+  background-size: auto;
+}
+
+/* Impresión en negrita de la boleta */
+[data-tema="ticket"] h1,
+[data-tema="ticket"] h2,
+[data-tema="ticket"] .brand-text,
+[data-tema="ticket"] .toldo-wordmark,
+[data-tema="ticket"] .error-code,
+[data-tema="ticket"] .sello {
+  font-weight: 600;
+}
+
+/* Marca a papel sobre tinta */
+[data-tema="ticket"] .brand {
+  color: #F7F7F4;
+}
+
+[data-tema="ticket"] .brand-icon {
+  color: #C8372D;
+}
+
+[data-tema="ticket"] .brand-text {
+  color: #F7F7F4;
+}
+
+/* Etiqueta blanca de rol (muesca de recibo) */
+[data-tema="ticket"] .badge-rol {
+  background-color: #FFFFFF;
+  color: #101010;
+}
+
+[data-tema="ticket"] .badge-superuser {
+  background-color: #2E7D4F;
+  color: #FFFFFF;
+}
+
+/* Botón principal: tinta negra, hover = sello rojo */
+[data-tema="ticket"] .btn-kiosco {
+  background-color: #101010;
+  color: #F7F7F4;
+}
+
+[data-tema="ticket"] .btn-kiosco:hover,
+[data-tema="ticket"] .btn-kiosco:focus {
+  background-color: #C8372D;
+  color: #F7F7F4;
+}
+
+[data-tema="ticket"] .btn-kiosco-outline:hover,
+[data-tema="ticket"] .btn-kiosco-outline:focus,
+[data-tema="ticket"] .kiosco-pagination .page-link:hover,
+[data-tema="ticket"] .kiosco-pagination .page-item.active .page-link,
+[data-tema="ticket"] .warning-icon {
+  color: #F7F7F4;
+}
+
+[data-tema="ticket"] .btn-salir:hover,
+[data-tema="ticket"] .btn-tema:hover {
+  background: #C8372D;
+  border-color: #C8372D;
+  color: #fff;
+}
+
+/* Sello de anulación rojo */
+[data-tema="ticket"] .sello {
+  color: var(--caramelo);
+  border-color: var(--caramelo);
+}
+
+/* Filetes: perforación de descarque */
+[data-tema="ticket"] .toldo-filete,
+[data-tema="ticket"] .login-split::before,
+[data-tema="ticket"] .warning-card::before {
+  background-color: transparent;
+  background-image: repeating-linear-gradient(90deg, #8A8A86 0 7px, transparent 7px 14px);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Portada de login: bobina térmica sobre matriz de puntos */
+[data-tema="ticket"] .login-toldo {
+  background-color: #0A0A0A;
+  background-image: radial-gradient(rgba(247, 247, 244, 0.10) 1px, transparent 1.5px);
+  background-size: 7px 7px;
+  color: #F7F7F4;
+}
+
+[data-tema="ticket"] .toldo-wordmark {
+  color: var(--sol);
+}
+
+[data-tema="ticket"] .toldo-bajada {
+  color: rgba(247, 247, 244, 0.78);
+}
+
+[data-tema="ticket"] .sticker {
+  background: #FFFFFF;
+  color: #101010;
+  border-color: #101010;
+  border-style: dashed;
+}
+
+[data-tema="ticket"] .barcode--toldo {
+  border-color: rgba(200, 55, 45, 0.55);
+}
+
+/* Ítems y chips cuadrados, como renglones de boleta */
+[data-tema="ticket"] .viene li {
+  border-radius: 0;
+}
+
+/* Ticket + modo oscuro: lectura negativa */
+[data-tema="ticket"][data-theme="dark"] {
+  --ink-solid: #050505;
+  --papel: #141412;
+  --superficie: #1C1C1A;
+  --texto: #ECECE6;
+  --texto-suave: #9A9A94;
+  --contorno: rgba(236, 236, 230, 0.45);
+  --sombra: #000000;
+  --linea-azulejo: rgba(236, 236, 230, 0.05);
+  --celeste: #ECECE6;
+  --crema: #ECECE6;
+
+  --alert-danger-bg: rgba(255, 90, 110, 0.14);
+  --alert-danger-fg: #FFA3AF;
+  --alert-warn-bg: rgba(236, 236, 230, 0.10);
+  --alert-warn-fg: #D9D9D2;
+  --alert-info-bg: rgba(236, 236, 230, 0.10);
+  --alert-info-fg: #D9D9D2;
+  --alert-ok-bg: rgba(76, 190, 132, 0.15);
+  --alert-ok-fg: #8FE0B6;
+}
+
+[data-tema="ticket"][data-theme="dark"] body {
+  background-image: repeating-linear-gradient(
+    0deg,
+    rgba(236, 236, 230, 0.05) 0 1px,
+    transparent 1px 30px
+  );
+}
+
+/* ============================================================
+   Tema "Neón"
+   Cartel de neón sobre la noche sintetizador: tubos rosa
+   magenta y cian, resplandor (glow) y grilla de piso.
+   Righteous (títulos) + Space Grotesk.
+   Se activa con data-tema="neon" en <html>.
+   ============================================================ */
+[data-tema="neon"] {
+  --ink-solid: #0A0612;
+  --papel: #120B1F;
+  --superficie: #1A1226;
+  --texto: #EAE6F5;
+  --texto-suave: #A79FC4;
+  --contorno: #7A6AAE;
+  --sombra: rgba(255, 46, 154, 0.35);
+  --linea-azulejo: rgba(255, 46, 154, 0.06);
+  --sol: #FF2E9A;
+  --sol-vivo: #FF63B8;
+  --caramelo: #00E5FF;
+  --caramelo-hondo: #00B8CC;
+  --celeste: #00E5FF;
+  --verde: #39FF88;
+  --crema: #EAE6F5;
+
+  --alert-danger-bg: rgba(255, 46, 154, 0.14);
+  --alert-danger-fg: #FF9BD0;
+  --alert-warn-bg: rgba(255, 179, 71, 0.13);
+  --alert-warn-fg: #FFCF8A;
+  --alert-info-bg: rgba(0, 229, 255, 0.12);
+  --alert-info-fg: #8DF2FF;
+  --alert-ok-bg: rgba(57, 255, 136, 0.12);
+  --alert-ok-fg: #9BFFC6;
+
+  --radio: 10px;
+  --radio-chico: 6px;
+
+  --font-display: 'Righteous', 'Segoe UI', system-ui, sans-serif;
+  --font-ui: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* Piso sintetizador: grilla rosa */
+[data-tema="neon"] body {
+  background-color: var(--papel);
+}
+
+/* Títulos encendidos: resplandor rosa */
+[data-tema="neon"] h1,
+[data-tema="neon"] h2,
+[data-tema="neon"] .brand-text,
+[data-tema="neon"] .toldo-wordmark {
+  text-shadow: 0 0 8px rgba(255, 46, 154, 0.55), 0 0 24px rgba(255, 46, 154, 0.28);
+}
+
+/* Marca: tubo rosa encendido (legible sin override) */
+[data-tema="neon"] .brand-icon {
+  color: var(--sol);
+}
+
+/* Superusuario: tubo cian (texto oscuro sobre cian) */
+[data-tema="neon"] .badge-superuser {
+  background-color: #00E5FF;
+  color: #0A0612;
+}
+
+/* Salir: encender/apagar cian */
+[data-tema="neon"] .btn-salir:hover,
+[data-tema="neon"] .btn-tema:hover {
+  background: #00E5FF;
+  border-color: #00E5FF;
+  color: #0A0612;
+}
+
+/* Botón principal: brillo de neón en vez de sombra dura */
+[data-tema="neon"] .btn-kiosco {
+  box-shadow: 0 0 14px rgba(255, 46, 154, 0.45);
+}
+
+[data-tema="neon"] .btn-kiosco:hover,
+[data-tema="neon"] .btn-kiosco:focus {
+  box-shadow: 0 0 24px rgba(255, 46, 154, 0.75);
+}
+
+/* Sello y sticker: tubos encendidos */
+[data-tema="neon"] .sello {
+  color: var(--caramelo);
+  border-color: var(--caramelo);
+  text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+}
+
+[data-tema="neon"] .sticker {
+  background: #00E5FF;
+  color: #0A0612;
+  border-color: var(--sol);
+  box-shadow: 0 0 16px rgba(0, 229, 255, 0.55);
+}
+
+[data-tema="neon"] .barcode--toldo {
+  border-color: rgba(0, 229, 255, 0.5);
+}
+
+/* Foco del input: halo cian */
+[data-tema="neon"] .kiosco-input:focus {
+  box-shadow: var(--dureza-chica), 0 0 14px rgba(0, 229, 255, 0.5), 0 0 0 3px var(--celeste);
+}
+
+/* Filetes: tubo de neón cian encendido */
+[data-tema="neon"] .toldo-filete,
+[data-tema="neon"] .login-split::before,
+[data-tema="neon"] .warning-card::before {
+  background-color: transparent;
+  background-image: linear-gradient(
+    180deg,
+    rgba(0, 229, 255, 0) 0%,
+    #00E5FF 35%,
+    #FFFFFF 50%,
+    #00E5FF 65%,
+    rgba(0, 229, 255, 0) 100%
+  );
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.75);
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+
+/* Portada de login: noche con resplandores rosa y cian */
+[data-tema="neon"] .login-toldo {
+  background-color: #0A0612;
+  background-image:
+    radial-gradient(ellipse 45% 40% at 70% 25%, rgba(0, 229, 255, 0.13), transparent 60%),
+    radial-gradient(ellipse 50% 45% at 25% 75%, rgba(255, 46, 154, 0.15), transparent 60%);
+  color: #EAE6F5;
+}
+
+[data-tema="neon"] .toldo-wordmark {
+  color: var(--sol);
+}
+
+[data-tema="neon"] .toldo-bajada {
+  color: rgba(234, 230, 245, 0.8);
+}
+
+/* Código de error: tubo rosa encendido */
+[data-tema="neon"] .error-code {
+  color: #FF2E9A;
+  -webkit-text-stroke: 2.5px #1A0611;
+  text-shadow: 0 0 14px rgba(255, 46, 154, 0.8), 0 0 44px rgba(255, 46, 154, 0.4);
+}
+
+/* Neón + modo oscuro: noche profunda */
+[data-tema="neon"][data-theme="dark"] {
+  --ink-solid: #060310;
+  --papel: #0B0614;
+  --superficie: #16101F;
+  --texto: #F2EEFA;
+  --texto-suave: #B3AAC9;
+  --contorno: rgba(242, 238, 250, 0.32);
+  --sombra: rgba(0, 0, 0, 0.75);
+  --linea-azulejo: rgba(255, 46, 154, 0.05);
+  --crema: #F2EEFA;
 }
