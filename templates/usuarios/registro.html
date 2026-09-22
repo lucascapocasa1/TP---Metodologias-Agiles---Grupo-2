@@ -72,4 +72,18 @@
         </div>
     </div>
 </div>
+<script>
+// C: estado de confirmación + corte de doble submit
+(function() {
+    var f = document.querySelector('.auth-form');
+    if (!f) return;
+    f.addEventListener('submit', function() {
+        var b = f.querySelector('.btn-submit');
+        if (!b || b.disabled) return;
+        b.disabled = true;
+        b.classList.add('btn-ok');
+        b.textContent = '✓ Creando cuenta…';
+    });
+})();
+</script>
 {% endblock %}

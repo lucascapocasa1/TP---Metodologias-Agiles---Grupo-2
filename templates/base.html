@@ -113,6 +113,8 @@
                 localStorage.setItem(KEY, 'oscuro');
                 icon.className = 'bi bi-sun-fill';
             }
+            icon.classList.add('gira');
+            setTimeout(function() { icon.classList.remove('gira'); }, 500);
         });
     })();
     </script>
@@ -141,6 +143,21 @@
             actual = ORDEN[(i + 1) % ORDEN.length];
             localStorage.setItem('kiosco-estilo', actual);
             aplicar(actual);
+
+            // Re-impresión de la página + vuelta del ícono de paleta
+            var doc = document.documentElement;
+            doc.classList.remove('re-impresion');
+            void doc.offsetWidth;
+            doc.classList.add('re-impresion');
+            setTimeout(function() { doc.classList.remove('re-impresion'); }, 600);
+
+            var ic = btn.querySelector('i');
+            if (ic) {
+                ic.classList.remove('gira');
+                void ic.offsetWidth;
+                ic.classList.add('gira');
+                setTimeout(function() { ic.classList.remove('gira'); }, 500);
+            }
         });
     })();
     </script>

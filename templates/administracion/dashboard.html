@@ -116,7 +116,7 @@
         <div class="info-grid">
             <div class="info-item">
                 <span class="info-label">Versión:</span>
-                <span class="info-value">1.0.0 - Sprint 1</span>
+                <span class="info-value">2.0.0 - Sprint 2</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Django:</span>
@@ -124,7 +124,7 @@
             </div>
             <div class="info-item">
                 <span class="info-label">Base de Datos:</span>
-                <span class="info-value">SQLite (Desarrollo)</span>
+                <span class="info-value">PostgreSQL (db_kiosco)</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Roles:</span>
@@ -133,4 +133,26 @@
         </div>
     </div>
 </div>
+<script>
+// A: los números de las fichas suben como caja registradora,
+// sincronizados con el stagger de sale-rollo (0, 70, 140… ms).
+(function() {
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    var nums = document.querySelectorAll('.stat-card .stat-content h3');
+    Array.prototype.forEach.call(nums, function(el, i) {
+        var fin = parseInt(el.textContent, 10);
+        if (isNaN(fin) || fin <= 0) return;
+        var dur = 650, t0 = null;
+        el.textContent = '0';
+        function paso(t) {
+            if (t0 === null) t0 = t;
+            var p = Math.min((t - t0) / dur, 1);
+            var eased = 1 - Math.pow(1 - p, 3);
+            el.textContent = Math.round(fin * eased);
+            if (p < 1) requestAnimationFrame(paso);
+        }
+        setTimeout(function() { requestAnimationFrame(paso); }, i * 70);
+    });
+})();
+</script>
 {% endblock %}

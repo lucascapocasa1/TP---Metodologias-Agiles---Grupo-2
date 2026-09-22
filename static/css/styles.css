@@ -2897,3 +2897,252 @@ strong {
     grid-template-columns: 1fr;
   }
 }
+
+/* ============================================================
+   Animaciones — vocabulario físico del toldo
+   Estampar (tinta), salir del rollo (ticket), prender (neón),
+   barrer (escáner). Una secuencia de carga por página y
+   respuesta a acciones del usuario; el resto queda quieto.
+   ============================================================ */
+
+@keyframes letra-toldo {
+  from { opacity: 0; transform: translateY(-16px) scale(1.05); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes papel-entra {
+  from { opacity: 0; transform: translateY(20px) rotate(-0.7deg); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes sube-suave {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes aparece {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes estampada {
+  0%   { opacity: 0; transform: scale(1.5) rotate(-6deg); }
+  55%  { opacity: 1; transform: scale(0.95) rotate(1.5deg); }
+  100% { opacity: 1; transform: scale(1) rotate(0deg); }
+}
+
+@keyframes choque {
+  0%   { opacity: 0; transform: scale(0.4); }
+  70%  { opacity: 1; transform: scale(1.12); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes sale-rollo {
+  from { opacity: 0; translate: 0 -14px; }
+  to   { opacity: 1; translate: 0 0; }
+}
+
+@keyframes alerta-baja {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes rayo-escaner {
+  from { background-position-x: -35%; }
+  to   { background-position-x: 135%; }
+}
+
+@keyframes rebote-icono {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+/* Re-impresión al cambiar de estilo: cada estilo imprime distinto */
+@keyframes re-estampada {
+  from { opacity: 0.5; transform: scale(0.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes re-rollo {
+  from { opacity: 0.35; transform: translateY(-12px); }
+  to   { opacity: 1; transform: none; }
+}
+
+@keyframes re-neon {
+  0%   { opacity: 0.2; }
+  25%  { opacity: 1; }
+  40%  { opacity: 0.45; }
+  55%  { opacity: 1; }
+  75%  { opacity: 0.7; }
+  100% { opacity: 1; }
+}
+
+/* --- Login: el toldo estampa su nombre, el código se escanea,
+       el formulario se pega sobre la mesa --- */
+.toldo-wordmark {
+  animation: letra-toldo 0.5s cubic-bezier(0.25, 1.15, 0.35, 1) 0.05s backwards;
+}
+
+.toldo-bajada {
+  animation: sube-suave 0.45s ease-out 0.25s backwards;
+}
+
+.login-caja {
+  animation: papel-entra 0.5s cubic-bezier(0.2, 0.95, 0.3, 1.04) 0.35s backwards;
+}
+
+.login-estilo {
+  animation: aparece 0.4s ease-out 0.7s backwards;
+}
+
+.barcode--toldo {
+  position: relative;
+}
+
+.barcode--toldo::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(90deg, transparent, rgba(255, 196, 0, 0.5) 40%, #fff 50%, rgba(255, 196, 0, 0.5) 60%, transparent);
+  background-size: 34% 100%;
+  background-repeat: no-repeat;
+  background-position-x: -40%;
+  animation: rayo-escaner 0.9s cubic-bezier(0.4, 0, 0.6, 1) 0.6s forwards;
+}
+
+/* --- Dashboard: las fichas salen del rollo, una tras otra --- */
+.stat-card {
+  animation: sale-rollo 0.4s cubic-bezier(0.2, 0.85, 0.3, 1.06) backwards;
+  transition: transform var(--transicion), box-shadow var(--transicion),
+              border-color var(--transicion), background-color var(--transicion);
+}
+
+.stat-card:nth-child(2) { animation-delay: 0.07s; }
+.stat-card:nth-child(3) { animation-delay: 0.14s; }
+.stat-card:nth-child(4) { animation-delay: 0.21s; }
+.stat-card:nth-child(5) { animation-delay: 0.28s; }
+.stat-card:nth-child(6) { animation-delay: 0.35s; }
+
+/* --- Páginas de error: el número cae estampado --- */
+.error-code {
+  animation: estampada 0.55s cubic-bezier(0.3, 1.2, 0.4, 1) backwards;
+}
+
+/* --- Sin rol: el ícono de choque --- */
+.warning-icon {
+  animation: choque 0.5s cubic-bezier(0.3, 1.4, 0.5, 1) 0.1s backwards;
+}
+
+/* --- Avisos (messages, errores de formulario): bajan pegados --- */
+.kiosco-alert {
+  animation: alerta-baja 0.35s ease-out backwards;
+}
+
+/* --- Escáner mock (cobro): rayo lento esperando el lector --- */
+.escaner-mock .barcode {
+  position: relative;
+}
+
+.escaner-mock .barcode::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: linear-gradient(90deg, transparent, rgba(255, 196, 0, 0.5) 40%, #fff 50%, rgba(255, 196, 0, 0.5) 60%, transparent);
+  background-size: 30% 100%;
+  background-repeat: no-repeat;
+  background-position-x: -35%;
+  animation: rayo-escaner 2.4s linear 0.8s infinite;
+}
+
+/* --- Cambio de estilo: la página se re-imprime según el estilo --- */
+[data-tema="cartelera"].re-impresion main {
+  animation: re-estampada 0.3s cubic-bezier(0.25, 1.3, 0.4, 1);
+}
+
+[data-tema="ticket"].re-impresion main {
+  animation: re-rollo 0.34s cubic-bezier(0.3, 0.95, 0.3, 1);
+}
+
+[data-tema="neon"].re-impresion main {
+  animation: re-neon 0.45s linear;
+}
+
+/* --- Iconos de los botones de tema: vuelta completa al tocar --- */
+.gira {
+  display: inline-block;
+  animation: rebote-icono 0.45s cubic-bezier(0.35, 0.7, 0.35, 1);
+}
+
+/* --- Marca del navbar: se despega un milímetro --- */
+.brand {
+  transition: transform 0.18s ease;
+}
+
+.brand:hover {
+  transform: translateY(-1px);
+}
+
+/* ============================================================
+   Animaciones — tanda 2 (A–F)
+   ============================================================ */
+
+/* B: los avisos de éxito caen como sello de goma */
+@keyframes sello-goma {
+  0%   { opacity: 0; transform: scale(1.45) rotate(-6deg); }
+  55%  { opacity: 1; transform: scale(0.97) rotate(1.5deg); }
+  100% { opacity: 1; transform: none; }
+}
+
+.kiosco-alert.kiosco-alert-success {
+  animation: sello-goma 0.5s cubic-bezier(0.25, 1.35, 0.4, 1) backwards;
+}
+
+/* D: el filete de gotones hace una ola al re-imprimir la página */
+@keyframes ola-filete {
+  0%   { translate: 0 0; scale: 1 1; }
+  30%  { translate: 0 5px; scale: 1 2; }
+  55%  { translate: 0 1px; scale: 1 0.7; }
+  75%  { translate: 0 3px; scale: 1 1.4; }
+  100% { translate: 0 0; scale: 1 1; }
+}
+
+.re-impresion .toldo-filete,
+.re-impresion .login-split::before {
+  animation: ola-filete 0.55s cubic-bezier(0.3, 0.9, 0.3, 1);
+}
+
+/* E: al pasar el mouse por el código del cobro, el rayo va y viene rápido */
+@keyframes rayo-rapido {
+  from { background-position-x: -35%; }
+  to   { background-position-x: 135%; }
+}
+
+.escaner-mock .barcode:hover::after {
+  animation: rayo-rapido 0.7s linear;
+}
+
+/* F: el sticker del login se sacude cuando termina la carga */
+@keyframes wiggle {
+  0%   { rotate: 0deg; }
+  25%  { rotate: -8deg; }
+  50%  { rotate: 6deg; }
+  75%  { rotate: -4deg; }
+  100% { rotate: 0deg; }
+}
+
+.sticker {
+  animation: wiggle 0.6s ease-in-out 1.35s;
+}
+
+/* C: confirmación del botón de envío */
+@keyframes rebote-ok {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+
+.btn-submit.btn-ok {
+  animation: rebote-ok 0.3s ease-out;
+  opacity: 0.92;
+}
+
