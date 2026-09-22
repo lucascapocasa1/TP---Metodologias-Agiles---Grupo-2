@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block titulo %}Gestión de Usuarios{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-people-fill"></i> Gestión de Usuarios</h1>
+            <p class="admin-subtitle">Administrar cuentas, roles y accesos del sistema</p>
+        </div>
+        <a href="{% url 'administracion:crear_usuario' %}" class="btn btn-admin-primary">
+            <i class="bi bi-person-plus"></i> Nuevo Usuario
+        </a>
+    </div>
+
+    <!-- Filtros y búsqueda -->
+    <div class="admin-filters">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" name="buscar" value="{{ busqueda }}" placeholder="Buscar por nombre, usuario o email..." class="admin-input">
+                </div>
+            </div>
+            <div class="filter-group">
+                <select name="estado" class="admin-select">
+                    <option value="">Todos los estados</option>
+                    <option value="activos" {% if filtro_estado == 'activos' %}selected{% endif %}>Activos</option>
+                    <option value="inactivos" {% if filtro_estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select name="rol" class="admin-select">
+                    <option value="">Todos los roles</option>
+                    <option value="Administrador" {% if filtro_rol == 'Administrador' %}selected{% endif %}>Administrador</option>
+                    <option value="Cajero" {% if filtro_rol == 'Cajero' %}selected{% endif %}>Cajero</option>
+                </select>
+            </div>
+            <button type="submit" class="btn btn-admin-filter">
+                <i class="bi bi-funnel"></i> Filtrar
+            </button>
+            {% if busqueda or filtro_estado or filtro_rol %}
+                <a href="{% url 'administracion:listar_usuarios' %}" class="btn btn-admin-clear">
+                    <i class="bi bi-x-lg"></i> Limpiar
+                </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Tabla de usuarios -->
+    <div class="admin-table-container">
+        {% if usuarios %}
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Usuario</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th>Roles</th>
+                    <th>Estado</th>
+                    <th>Creado</th>
+                    <th class="actions-col">Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in usuarios %}
+                <tr class="{% if not u.is_active %}row-inactive{% endif %}">
+                    <td>
+                        <div class="user-cell">
+                            <div class="user-avatar">
+                                {% if u.is_superuser %}
+                                    <i class="bi bi-shield-fill"></i>
+                                {% else %}
+                                    {{ u.username|first|upper }}
+                                {% endif %}
+                            </div>
+                            <span class="user-username">{{ u.username }}</span>
+                        </div>
+                    </td>
+                    <td>{{ u.first_name }} {{ u.last_name }}</td>
+                    <td>{{ u.email|default:"-" }}</td>
+                    <td>
+                        <div class="role-badges">
+                            {% for grupo in u.groups.all %}
+                                <span class="badge-role badge-{{ grupo.name|lower }}">{{ grupo.name }}</span>
+                            {% empty %}
+                                <span class="badge-role badge-none">Sin rol</span>
+                            {% endfor %}
+                            {% if u.is_superuser %}
+                                <span class="badge-role badge-superuser">Superuser</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        {% if u.is_active %}
+                            <span class="status-badge status-active">
+                                <i class="bi bi-check-circle-fill"></i> Activo
+                            </span>
+                        {% else %}
+                            <span class="status-badge status-inactive">
+                                <i class="bi bi-x-circle-fill"></i> Inactivo
+                            </span>
+                        {% endif %}
+                    </td>
+                    <td>{{ u.date_joined|date:"d/m/Y" }}</td>
+                    <td class="actions-cell">
+                        <div class="action-buttons">
+                            <a href="{% url 'administracion:editar_usuario' u.id %}" class="btn-action btn-edit" title="Editar">
+                                <i class="bi bi-pencil"></i>
+                            </a>
+                            <a href="{% url 'administracion:asignar_roles' u.id %}" class="btn-action btn-roles" title="Asignar roles">
+                                <i class="bi bi-person-gear"></i>
+                            </a>
+                            <a href="{% url 'administracion:toggle_usuario' u.id %}" class="btn-action btn-toggle {% if u.is_active %}btn-deactivate{% else %}btn-activate{% endif %}" title="{% if u.is_active %}Desactivar{% else %}Activar{% endif %}">
+                                <i class="bi {% if u.is_active %}bi-person-dash{% else %}bi-person-check{% endif %}"></i>
+                            </a>
+                            {% if not u.is_superuser and u != request.user %}
+                            <a href="{% url 'administracion:eliminar_usuario' u.id %}" class="btn-action btn-delete" title="Eliminar">
+                                <i class="bi bi-trash"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="admin-empty">
+            <div class="empty-icon"><i class="bi bi-people"></i></div>
+            <h3>No se encontraron usuarios</h3>
+            <p>{% if busqueda or filtro_estado or filtro_rol %}Intenta con otros filtros de búsqueda{% else %}Comienza creando tu primer usuario{% endif %}</p>
+            {% if not busqueda and not filtro_estado and not filtro_rol %}
+            <a href="{% url 'administracion:crear_usuario' %}" class="btn btn-admin-primary">
+                <i class="bi bi-person-plus"></i> Crear primer usuario
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
