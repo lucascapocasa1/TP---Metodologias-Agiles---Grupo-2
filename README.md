@@ -2,11 +2,70 @@
 
 Trabajo práctico de Metodologías Ágiles. Sistema web de gestión para un kiosco de barrio.
 
+**Estado al 22-09-2026:** Sprint 1 completo · Sprint 2 en progreso · Frontend rediseñado con
+3 estilos visuales conmutables · 35 tests en verde.
+
+---
+
+## Estado actual del trabajo
+
+### Seguridad y roles (Sprint 1) — completo
+
+- Login/logout con Django Authentication, roles vía Django Groups
+  (`Administrador`, `Cajero`) y restricción server-side con `@rol_requerido` (403).
+- Redirección post-login por rol (`post_login`) y aviso `sin_rol` para usuarios sin grupo.
+- Registro público de cuentas en `/usuarios/registro/`: nace **sin rol** y cae en
+  `sin_rol` hasta que un administrador le asigne uno.
+- Auditoría automática de login/logout con IP (`auditoria/`).
+
+### Productos y catálogo (Sprint 2) — en progreso
+
+- Modelos **Categoria**, **Producto**, **Venta** y **DetalleVenta** creados y migrados
+  (`ventas/migrations/0001_initial.py`), registrados en el admin de Django
+  (Venta con inline de detalles).
+- Vistas y URLs de **lista de productos con búsqueda** (GET por nombre/descripción) y
+  **alta de productos** con categoría nueva.
+- **Pendiente bloqueante:** faltan los templates `ventas/lista_productos.html` y
+  `ventas/agregar_producto.html` — por eso `/ventas/productos/` y
+  `/ventas/productos/agregar/` devuelven **500 (TemplateDoesNotExist)**. Las views,
+  urls y modelos sí están; hay que crear esos dos templates.
+- **Pendiente vs HU-04/05/06:** código de barras, precio de costo y precio de venta
+  separados, stock mínimo, marca de stock ≤ 5, y búsqueda en tiempo real con HTMX
+  (hoy la búsqueda recarga la página).
+
+### Gestión de usuarios — completo
+
+- CRUD de usuarios para el administrador: listar (búsqueda por nombre/usuario, filtro
+  por rol, paginación), crear, editar, eliminar, activar/desactivar y asignar roles,
+  con protecciones (no puede desactivar/eliminar superusuarios ni su propia cuenta).
+- 22 tests de `administracion` cubren todo el flujo.
+
+### Pantalla de cobro (Sprint 3) — pendiente
+
+- Sigue siendo placeholder, ahora con un mock de escáner de código de barras
+  reservado para el Sprint 3. Los modelos `Venta`/`DetalleVenta` ya existen como base.
+
+### Frontend — rediseño completo
+
+- Identidad visual "toldo de barrio" y **3 estilos conmutables**: **Cartelera**
+  (por defecto), **Ticket** y **Neón**, más modo oscuro. Detalle en
+  [Decisiones técnicas → Frontend](#frontend) y
+  [Selector de estilos visuales](#selector-de-estilos-visuales).
+
+### Tests
+
+- **35 tests OK** (`python manage.py test`): `usuarios` 9, `ventas` 4,
+  `administracion` 22.
+
+---
+
 ## Alcance de Sprint 1 — Seguridad y roles (Entrega 24-09)
 
 > "Necesito poder entrar al sistema con mi usuario y contraseña, y que los
 > empleados (los cajeros) solo puedan usar la pantalla de cobro y no entren
 > a tocar la parte de administración o precios."
+
+**Estado:** completo.
 
 ### Historias de usuario
 
@@ -37,7 +96,7 @@ remota).
 - Restricción server-side por decorador (`usuarios/decorators.py`): el cajero
   que escribe la URL a mano recibe 403, no solo se le oculta el botón.
 - Redirección post-login por rol: cajero va directo a cobro, admin al dashboard.
-- Pantallas placeholder para cobro y administración (protegidas por login/roles).
+- Pantallas protegidas por login/roles para cobro y administración.
 
 ---
 
@@ -46,6 +105,8 @@ remota).
 > "Poder cargar los productos nuevos uno tras otro rápido, poniéndoles el
 > nombre, el código de barras, cuánto me costó, a cuánto lo vendo y cuántos
 > tengo. Si el código ya existe, avísame."
+
+**Estado:** en progreso (ver [Estado actual](#estado-actual-del-trabajo)).
 
 ### Historias de usuario
 
@@ -66,11 +127,15 @@ Como administrador, quiero que el sistema me marque en color los productos
 que se están quedando sin stock, para saber qué tengo que salir a reponer.
 - Criterio de aceptación: productos con stock ≤ 5 se muestran marcados.
 
-### Modelos
+### Modelos (implementados)
 
-- **Producto**: nombre, código de barras (único), precio costo, precio venta,
-  stock, stock mínimo.
-- **Categoría**: para agrupar productos (golosinas, bebidas, etc.).
+- **Categoria**: nombre, descripción.
+- **Producto**: nombre, descripción, precio (único por ahora), stock,
+  categoría (FK), activo. *Todavía sin código de barras, precio de costo /
+  venta separados ni stock mínimo (pendientes de las HU).*
+- **Venta**: fecha/hora, total, finalizada. Base para el Sprint 3.
+- **DetalleVenta**: venta, producto, cantidad, precio unitario, `subtotal()`.
+  Base para el Sprint 3.
 
 ---
 
@@ -79,6 +144,9 @@ que se están quedando sin stock, para saber qué tengo que salir a reponer.
 > "Cuando esté en la pantalla del cajero, quiero pasar el lector de código de
 > barras o tipear el código, apretar Enter y que el producto se cargue al
 > toque en el carrito sin tener que usar el mouse."
+
+**Estado:** pendiente. Los modelos `Venta` y `DetalleVenta` ya existen como
+base; la pantalla de cobro tiene el lugar reservado para el lector.
 
 ### Historias de usuario
 
@@ -99,10 +167,12 @@ ingresar el monto entregado y que el sistema calcule el vuelto exacto.
 - Criterio de aceptación: el stock se descuenta automáticamente al
   confirmar la venta.
 
-### Modelos
+### Modelos (ya creados como base)
 
-- **Venta**: fecha/hora, usuario cajero, total, método de pago (efectivo/tarjeta).
-- **DetalleVenta**: venta, producto, cantidad, precio unitario al momento de la venta.
+- **Venta**: fecha/hora, total, finalizada. *Falta método de pago
+  (efectivo/tarjeta) y usuario cajero.*
+- **DetalleVenta**: venta, producto, cantidad, precio unitario al momento
+  de la venta.
 
 ---
 
@@ -110,6 +180,8 @@ ingresar el monto entregado y que el sistema calcule el vuelto exacto.
 
 > "Cuando termina el turno o el día, quiero apretar un botón y que me tire
 > el total de plata que entró en efectivo, en tarjeta y cuántas ventas hice."
+
+**Estado:** pendiente.
 
 ### Historias de usuario
 
@@ -160,30 +232,41 @@ para que el cajero pueda asociar una venta a un cliente cuando lo solicite
   usuario cae directo en su pantalla (cajero → cobro, admin → dashboard),
   para no exponer un menú con opciones que no le corresponden.
 
+- **Auditoría con señales**: `user_logged_in` / `user_logged_out` crean un
+  `RegistroAuditoria` (usuario, acción, fecha, IP) sin tocar las vistas de
+  login.
+
 ### Frontend
 
-- **Bootstrap 5.3.3** vía CDN como framework de utilidades.
-- **CSS custom** (`static/css/styles.css`) con design tokens via CSS
-  custom properties para mantener consistencia visual y facilitar cambios
-  futuros. La paleta, tipografía y espaciados se definen una vez en
-  `:root` y se reutilizan en todas las páginas.
-- **Tipografía DM Sans** (Google Fonts): familia redondeada y amigable
-  que refleja la naturaleza de un kiosco de barrio — no corporativa ni
-  genérica.
-- **Paleta cálida**: amarillo dorado (`#F5A623`) como color primario
-  (evoca la señalética de kioscos argentinos), navy profundo (`#1A1A2E`)
-  para la barra de navegación, y superficies cálidas (`#FFFDF7`) en
-  lugar del gris clínico de Bootstrap.
-- **Componentes custom**: botones con feedback táctil (hover + sombra),
-  alertas con borde lateral de color, cards con sombras sutiles, inputs
-  con focus amarillo. Todo construido sobre las utilidades de Bootstrap
-  pero con identidad propia.
-- **Accesibilidad**: contraste WCAG AA, focus-visible para navegación
-  por teclado, `prefers-reduced-motion` respetado.
-- **Responsive**: el navbar se adapta a mobile ocultando el nombre de
-  usuario y manteniendo los badges y el botón de salida.
-- **HTMX** entra en el Sprint 3 para el carrito de cobro (agregar productos
-  sin recargar la página).
+<a id="frontend"></a>
+
+- **Bootstrap 5.3.3 + Bootstrap Icons** vía CDN como framework de utilidades.
+- **CSS custom** (`static/css/styles.css`, ~2.900 líneas) con design tokens vía
+  CSS custom properties (`:root` + variantes). La paleta, tipografía, radios y
+  sombras se definen una vez y se reutilizan en todas las páginas.
+- **Identidad "toldo de barrio"**: rotulación de kiosco argentino — contorno
+  de tinta + sombra dura, etiquetas de precio adhesivas, código de barras como
+  gráfico temático, códigos de error grandes (403/404) y filete de toldo en el
+  navbar. Tipografía display **Alfa Slab One** + interfaz **Archivo**.
+- **3 estilos visuales conmutables** (ver sección siguiente): **Cartelera**
+  (por defecto), **Ticket** (estética de comprobante impreso) y **Neón**
+  (cartelería nocturna). Cada estilo define su propia paleta, tipografía y
+  radios.
+- **Modo oscuro** persistente (`data-theme="dark"`), con los tres estilos
+  también disponibles en su variante oscura.
+- **Componentes custom**: `kiosco-navbar`, badges de rol, `btn-kiosco`,
+  `kiosco-input`, `kiosco-alert`, `placeholder-page`, `error-page`,
+  `warning-page`, mock de escáner en cobro, `sello` y banner `viene`.
+- **CSS heredado del equipo**: al hacer el merge con `main` se integraron los
+  bloques *Auth pages* (login/registro) y *Admin Panel* (dashboard y gestión
+  de usuarios) con un shim de aliases (`--surface`, `--radius-*`,
+  `--kiosco-yellow`, …) para que usen los tokens del rediseño.
+- **Accesibilidad**: contraste AA, `focus-visible` para teclado,
+  `prefers-reduced-motion` respetado, `aria-label` en los botones de tema.
+- **Responsive**: en mobile el navbar oculta el nombre de usuario y mantiene
+  badges y salida; el login pasa a panel único bajo 900px.
+- **HTMX** sigue quedando para el Sprint 3 (carrito de cobro); la búsqueda de
+  productos hoy es un GET con recarga.
 
 ---
 
@@ -192,7 +275,8 @@ para que el cajero pueda asociar una venta a un cliente cuando lo solicite
 ### Requisitos previos
 
 - Python 3.10+
-- PostgreSQL instalado y corriendo
+- PostgreSQL instalado y corriendo (**opcional**: sin `DATABASE_URL` el
+  proyecto usa SQLite automáticamente)
 
 ### Instalación
 
@@ -212,11 +296,11 @@ python -m venv venv
 # 4. Instalar las dependencias (una sola vez)
 pip install -r requirements.txt
 
-# 5. Crear la base de datos en PostgreSQL
+# 5. Crear la base de datos en PostgreSQL (solo si vas a usar PostgreSQL)
 #    Abrí psql (o pgAdmin) y ejecutá:
 #    CREATE DATABASE db_kiosco;
 
-# 6. Configurar la conexión en el archivo .env (ver sección 3.1)
+# 6. Configurar la conexión en el archivo .env (ver sección siguiente)
 
 # 7. Crear las tablas de la base de datos (una sola vez)
 python manage.py migrate
@@ -237,9 +321,8 @@ Abrí `http://127.0.0.1:8000/` en el navegador.
 ### Archivo .env
 
 El proyecto usa `django-environ` para leer la configuración de base de datos
-desde un archivo `.env` en la raíz del proyecto.
-
-Copiá el archivo `.env.example` como `.env` y completá con tus datos:
+desde un archivo `.env` en la raíz del proyecto (no hay `.env.example` en el
+repo: crealo a mano).
 
 ```
 DATABASE_URL=postgresql://postgres:1234@localhost:5432/db_kiosco
@@ -266,199 +349,130 @@ Con el entorno virtual activado:
 python manage.py test
 ```
 
-Se incluyen tests que cubren:
-- **`usuarios/tests.py`**: login correcto e incorrecto, acceso anónimo
+**35 tests** actualmente:
+
+- **`usuarios/tests.py` (9)**: login correcto e incorrecto, acceso anónimo
   bloqueado, cajero bloqueado en administración, administrador con acceso
   total, y la redirección post-login según rol.
-- **`ventas/tests.py`**: pantalla de cobro accesible solo con login,
-  respuestas HTTP correctas.
-- **`administracion/tests.py`**: dashboard accesible solo para
-  administradores, cajero bloqueado, Superuser con acceso total.
+- **`ventas/tests.py` (4)**: pantalla de cobro accesible solo con login,
+  cajero y admin acceden, template correcto.
+- **`administracion/tests.py` (22)**: dashboard (login, admin, 403 cajero,
+  403 sin grupo, estadísticas) y CRUD de usuarios (listar con búsqueda y
+  filtro por rol, crear, editar, eliminar con protección de superusuarios,
+  activar/desactivar, asignar/quitar roles).
 
 ## Estructura del proyecto
 
 ```
 kiosco_sprint1/
 │
-├── manage.py                         # Punto de entrada de Django. Arranca el
-│                                     # servidor de desarrollo, corre migraciones,
-│                                     # tests y management commands.
+├── manage.py                         # Punto de entrada de Django.
+├── requirements.txt                  # Django 6.1.1, psycopg2-binary,
+│                                     # django-environ.
+├── README.md                         # Este archivo.
+├── AGENTS.md                         # Instrucciones para agentes IA.
+├── .env                              # DATABASE_URL (no se sube al repo).
+├── .gitignore                        # __pycache__, venv/, db.sqlite3, .env…
 │
-├── requirements.txt                  # Dependencias del proyecto: Django, psycopg2
-│                                     # (driver de PostgreSQL) y django-environ
-│                                     # (lectura de variables de entorno).
+├── config/                           # Configuración del proyecto Django.
+│   ├── settings.py                   # BD (PostgreSQL via .env con fallback a
+│   │                                 # SQLite), apps, LOGIN_URL, es-ar,
+│   │                                 # America/Argentina/Buenos_Aires.
+│   ├── urls.py                       # Raíz: admin/, / → post_login, includes
+│   │                                 # de usuarios/ventas/administracion,
+│   │                                 # handler404.
+│   ├── wsgi.py / asgi.py             # Puntos de entrada WSGI/ASGI.
 │
-├── .env                              # Variables de entorno (DATABASE_URL para
-│                                     # PostgreSQL). No se sube al repo (.gitignore).
+├── usuarios/                         # Autenticación y control de acceso.
+│   ├── views.py                      # LoginKioscoView, registro_usuario
+│   │                                 # (cuenta sin rol), post_login (según
+│   │                                 # rol), sin_rol.
+│   ├── urls.py                       # 5 rutas: login/, logout/, post-login/,
+│   │                                 # sin-rol/, registro/.
+│   ├── forms.py                      # LoginKioscoForm y RegistroUsuarioForm
+│   │                                 # (widgets kiosco-input).
+│   ├── decorators.py                 # @rol_requerido, RolRequeridoMixin,
+│   │                                 # es_administrador(), es_cajero().
+│   ├── tests.py                      # 9 tests.
+│   ├── templatetags/
+│   │   └── pagination_tags.py        # {% paginacion %} (inclusion tag) y
+│   │                                 # {% param %} (preserva query params).
+│   └── management/commands/
+│       └── setup_inicial.py          # Crea grupos + usuarios de prueba.
+│                                     # Idempotente.
 │
-├── .env.example                      # Plantilla del .env para que cada integrante
-│                                     # del grupo copie y complete con sus datos.
+├── ventas/                           # Productos y pantalla de cobro (POS).
+│   ├── models.py                     # Categoria, Producto, Venta,
+│   │                                 # DetalleVenta (migración 0001).
+│   ├── views.py                      # pantalla_cobro (placeholder con mock
+│   │                                 # de escáner), lista_productos (búsqueda
+│   │                                 # GET), agregar_producto (alta con
+│   │                                 # categoría nueva).
+│   ├── urls.py                       # 3 rutas: cobro/, productos/,
+│   │                                 # productos/agregar/.
+│   ├── admin.py                      # Venta (inline DetalleVenta), Producto,
+│   │                                 # Categoria.
+│   ├── tests.py                      # 4 tests.
+│   └── migrations/0001_initial.py    # Tablas de catálogo y ventas.
+│   ⚠ Faltan: templates/ventas/lista_productos.html y
+│     templates/ventas/agregar_producto.html (las dos URLs dan 500).
 │
-├── .gitignore                        # Archivos que Git ignora: __pycache__,
-│                                     # venv/, db.sqlite3, .env, .agents/
+├── administracion/                   # Panel del dueño.
+│   ├── views.py                      # dashboard (stats de usuarios) + CRUD:
+│   │                                 # listar, crear, editar, eliminar,
+│   │                                 # asignar_roles, toggle_usuario.
+│   ├── urls.py                       # 7 rutas bajo /administracion/.
+│   ├── forms.py                      # UsuarioForm (alta/edición con
+│   │                                 # contraseña opcional al editar) y
+│   │                                 # AsignarRolForm (checkboxes de grupos).
+│   ├── tests.py                      # 22 tests.
+│   └── templates → ../templates/administracion/ (7 templates).
 │
-├── db.sqlite3                        # Base de datos SQLite local (fallback si no
-│                                     # hay DATABASE_URL configurado).
+├── auditoria/                        # Logs de auditoría.
+│   ├── models.py                     # RegistroAuditoria: usuario, acción,
+│   │                                 # detalle, fecha, IP.
+│   ├── signals.py                    # user_logged_in/out → crea registro.
+│   ├── utils.py                      # registrar_login/logout/accion(),
+│   │                                 # _obtener_ip().
+│   ├── admin.py                      # Solo lectura en el admin de Django.
+│   └── migrations/0001_initial.py
 │
-│
-├── config/                           # Paquete de configuración del proyecto Django.
-│   ├── __init__.py
-│   ├── settings.py                   # Configuración principal: base de datos
-│   │                                 # (PostgreSQL via .env con fallback a SQLite),
-│   │                                 # apps instaladas, middleware, autenticación
-│   │                                 # (LOGIN_URL, LOGIN_REDIRECT_URL), idioma
-│   │                                 # (es-ar), zona horaria, archivos estáticos.
-│   ├── urls.py                       # URLs raíz: incluye las URLs de cada app
-│   │                                 # (usuarios, ventas, administracion), el admin
-│   │                                 # de Django y el handler404 para páginas no
-│   │                                 # encontradas.
-│   ├── wsgi.py                       # Punto de entrada WSGI para producción
-│   │                                 # (gunicorn, uwsgi, etc.).
-│   └── asgi.py                       # Punto de entrada ASGI (si se usa en el futuro
-│                                     # con canales/websockets).
-│
-│
-├── usuarios/                         # App de autenticación y control de acceso.
-│   │                                 # Es la app más completa del Sprint 1.
-│   ├── apps.py                       # Configuración de la app (UsuariosConfig).
-│   ├── models.py                     # Vacío — no modela nada propio, usa
-│   │                                 # django.contrib.auth.models.User y Group.
-│   ├── views.py                      # LoginKioscoView (login con formulario
-│   │                                 # Bootstrap), post_login (redirige según rol:
-│   │                                 # admin→dashboard, cajero→cobro), sin_rol
-│   │                                 # (aviso si el usuario no tiene grupo).
-│   ├── urls.py                       # 4 rutas: login/, logout/, post-login/,
-│   │                                 # sin-rol/ (app_name = "usuarios").
-│   ├── forms.py                      # LoginKioscoForm: extiende AuthenticationForm
-│   │                                 # con clases CSS del kiosco (kiosco-input,
-│   │                                 # autofocus, placeholders).
-│   ├── decorators.py                 # Rol_requerido (decorador para vistas de
-│   │                                 # función), RolRequeridoMixin (para CBVs),
-│   │                                 # es_administrador() y es_cajero() (helpers).
-│   │                                 # Siempre chequea grupo + superuser bypass.
-│   ├── admin.py                      # Vacío — no registra modelos propios.
-│   ├── tests.py                      # 9 tests: login éxito/fallo, 403 cajero→admin,
-│   │                                 # 200 admin→admin, admin→cobro, redirecciones
-│   │                                 # post-login por rol.
-│   ├── migrations/                   # Migraciones de Django (vacío, no hay modelos).
-│   ├── templatetags/                 # Tags de template reutilizables.
-│   │   ├── __init__.py
-│   │   ├── pagination_tags.py        # {% paginacion %} y {% param %}: componentes
-│   │   │                             # de paginación y preservación de query params.
-│   │   └── (tags.py)                 # Tag para preservar parámetros GET al paginar.
-│   └── management/                   # Comandos personalizados de Django.
-│       ├── __init__.py
-│       └── commands/
-│           ├── __init__.py
-│           └── setup_inicial.py      # "python manage.py setup_inicial": crea los
-│                                     # grupos Administrador y Cajero, y los usuarios
-│                                     # de prueba admin/kiosco2024 y cajero1/kiosco2024.
-│                                     # Idempotente: no duplica si ya existen.
-│
-│
-├── ventas/                           # App de pantalla de cobro (POS).
-│   ├── apps.py                       # Configuración de la app (VentasConfig).
-│   ├── models.py                     # Vacío — se completa en Sprint 3 con Venta,
-│   │                                 # DetalleVenta.
-│   ├── views.py                      # pantalla_cobro: vista protegida por
-│   │                                 # @login_required. Renderiza un placeholder
-│   │                                 # que Sprint 3 convertirá en el carrito real.
-│   ├── urls.py                       # 1 ruta: cobro/ (app_name = "ventas").
-│   ├── admin.py                      # Vacío.
-│   ├── tests.py                      # 4 tests: login requerido, cajero accede,
-│   │                                 # admin accede, template correcto.
-│   └── migrations/                   # Vacío.
-│
-│
-├── administracion/                   # App del panel de administración (dueño).
-│   ├── apps.py                       # Configuración de la app (AdministracionConfig).
-│   ├── models.py                     # Vacío — se completa en Sprint 2 con Producto,
-│   │                                 # Categoría.
-│   ├── views.py                      # dashboard: vista protegida por
-│   │                                 # @rol_requerido("Administrador"). Renderiza
-│   │                                 # placeholder que Sprint 2-4 completará.
-│   ├── urls.py                       # 1 ruta: dashboard/ (app_name = "administracion").
-│   ├── admin.py                      # Vacío.
-│   ├── tests.py                      # 6 tests: login requerido, admin accede,
-│   │                                 # cajero recibe 403, superuser accede, template
-│   │                                 # correcto, usuario sin grupo recibe 403.
-│   └── migrations/                   # Vacío.
-│
-│
-├── auditoria/                        # App de logs de auditoría.
-│   ├── apps.py                       # AuditoriaConfig: carga signals.py en ready()
-│   │                                 # para que se registren login/logout auto.
-│   ├── models.py                     # RegistroAuditoria: campos usuario (FK),
-│   │                                 # accion (str), detalle (text), fecha
-│   │                                 # (auto_now_add), ip (GenericIPAddress).
-│   ├── signals.py                    # Escucha user_logged_in y user_logged_out
-│   │                                 # de Django. Al recibir la señal, crea un
-│   │                                 # RegistroAuditoria automáticamente.
-│   ├── utils.py                      # Funciones utilitarias: registrar_login(),
-│   │                                 # registrar_logout(), registrar_accion()
-│   │                                 # (para logear acciones custom), _obtener_ip()
-│   │                                 # (extrae IP real del request, respeta proxy).
-│   ├── admin.py                      # RegistroAuditoriaAdmin: solo lectura en el
-│   │                                 # admin de Django (list_display, filtros,
-│   │                                 # búsqueda). No permite agregar/editar/borrar.
-│   ├── views.py                      # Vacío.
-│   ├── tests.py                      # Vacío.
-│   └── migrations/
-│       └── 0001_initial.py           # Crea la tabla auditoria_registroauditoria.
-│
-│
-├── templates/                        # Templates HTML (Django Template Language).
-│   ├── base.html                     # Layout base: carga Bootstrap 5.3.3 + Bootstrap
-│   │                                 # Icons (CDN), CSS custom, favicon SVG. Navbar
-│   │                                 # condicional (solo si está autenticado): marca,
-│   │                                 # nombre de usuario, badge de rol, toggle de
-│   │                                 # modo oscuro, botón salir. Script en <head>
-│   │                                 # para modo oscuro sin flash. Script al final
-│   │                                 # para el toggle del tema.
-│   ├── 403.html                      # Página de "Acceso denegado" (extend base).
-│   │                                 # Ícono bi-lock, mensaje, botón volver.
-│   ├── 404.html                      # Página de "Página no encontrada" (extend base).
-│   │                                 # Ícono bi-question-circle, mensaje, botón volver.
+├── templates/                        # Django Template Language.
+│   ├── base.html                     # Layout: Google Fonts + Bootstrap CDN,
+│   │                                 # navbar (marca, usuario, badges, botón
+│   │                                 # de estilo, botón oscuro, salir),
+│   │                                 # bloque de messages, scripts de tema y
+│   │                                 # de estilo sin flash.
+│   ├── 403.html / 404.html           # error-page con código grande.
 │   ├── usuarios/
-│   │   ├── login.html                # Formulario de login: card centrada con ícono
-│   │   │                             # de marca (bi-shop), campos usuario/contraseña
-│   │   │                             # con clases kiosco-input, alerta de error si
-│   │   │                             # form.errors, botón "Ingresar".
-│   │   └── sin_rol.html              # Aviso para usuarios sin grupo asignado.
-│   │                                 # Ícono bi-explanation-triangle, instrucciones,
-│   │                                 # botón volver al login.
+│   │   ├── login.html                # login-split: toldo a la izquierda +
+│   │   │                             # panel de ingreso a la derecha, botón
+│   │   │                             # de estilo flotante.
+│   │   ├── registro.html             # auth-card de alta de cuenta.
+│   │   ├── sin_rol.html              # warning-page sin grupo asignado.
+│   │   └── tags/                     # Partiales de paginación y buscador.
 │   ├── ventas/
-│   │   └── pantalla_cobro.html       # Placeholder de cobro: ícono bi-receipt,
-│   │                                 # título, alerta informativa del Sprint 1,
-│   │                                 # link a administración (solo visible para admin).
-│   └── administracion/
-│       └── dashboard.html            # Placeholder de admin: ícono bi-gear,
-│                                     # título, alerta informativa, link a cobro.
+│   │   └── pantalla_cobro.html       # Placeholder con mock de escáner.
+│   └── administracion/               # Panel del equipo:
+│       ├── dashboard.html            # stats de usuarios + accesos rápidos.
+│       ├── listar_usuarios.html      # tabla con búsqueda/filtros.
+│       ├── crear_usuario.html / editar_usuario.html
+│       ├── eliminar_usuario.html     # confirmación con advertencia.
+│       └── asignar_roles.html        # checkboxes de grupos.
 │
+├── static/
+│   ├── css/styles.css                # ~2.900 líneas: tokens del toldo, 3
+│   │                                 # estilos (cartelera/ticket/neon) con
+│   │                                 # dark variant, componentes base,
+│   │                                 # bloques auth/admin del equipo con
+│   │                                 # aliases de tokens, responsive,
+│   │                                 # reduced-motion.
+│   └── img/favicon.svg               # Tira amarilla + "K" sobre tinta
+│                                     # (#17130E / #FFC400).
 │
-├── static/                           # Archivos estáticos (CSS, imágenes).
-│   ├── css/
-│   │   └── styles.css                # Estilos custom (~700 líneas). Design tokens
-│   │                                 # en :root (colores, radios, sombras, transición).
-│   │                                 # Componentes: kiosco-navbar, kiosco-card,
-│   │                                 # btn-kiosco, kiosco-input, kiosco-alert,
-│   │                                 # login-wrapper, error-page, warning-page,
-│   │                                 # placeholder-page. Dark mode via [data-theme="dark"]
-│   │                                 # (colores Catppuccin-inspired). Paginación y
-│   │                                 # search box. Responsive (mobile ≤576px).
-│   │                                 # Accesibilidad: prefers-reduced-motion.
-│   └── img/
-│       └── favicon.svg               # Favicon: "K" amarilla (#F5A623) sobre fondo
-│                                     # navy (#1A1A2E), bordes redondeados.
-│
-│
-├── venv/                             # Entorno virtual Python (no se sube al repo).
-│                                     # Contiene Django 6.1.1, psycopg2-binary,
-│                                     # django-environ y todas las dependencias.
-│
-└── .agents/                          # Configuración de agentes IA (no relevante
-    └── skills/                       # para el proyecto en sí).
-        └── frontend-design/
+├── venv/                             # Entorno virtual (no se sube).
+└── .agents/skills/frontend-design/   # Skill de diseño usada para el
+                                      # rediseño.
 ```
 
 ### Flujo de autenticación (cómo funciona login → pantalla)
@@ -466,11 +480,13 @@ kiosco_sprint1/
 1. El usuario visita `http://127.0.0.1:8000/` → redirige a `usuarios:post_login`.
 2. Si no está autenticado, Django lo manda a `usuarios:login` (configurado en `LOGIN_URL`).
 3. El formulario (`LoginKioscoForm`) valida credenciales contra `auth.User`.
-4. Al loguearse, `post_login` chequea el grupo:
+4. **Registro:** cualquiera puede crear cuenta en `/usuarios/registro/`; el usuario
+   nace sin grupo y, hasta que un administrador le asigne rol, cae en `sin_rol`.
+5. Al loguearse, `post_login` chequea el grupo:
    - `es_administrador(user)` → redirige a `administracion:dashboard`.
-   - `es_cajero(user)` → redirige a `ventas:pantalla_cobro`.
+    - `es_cajero(user)` → redirige a `ventas:pantalla_cobro`.
    - Sin grupo → redirige a `usuarios:sin_rol`.
-5. Si el usuario escribe una URL protegida a mano, el decorador `rol_requerido`
+6. Si el usuario escribe una URL protegida a mano, el decorador `rol_requerido`
    lanza `PermissionDenied` (403) que se renderiza con `templates/403.html`.
 
 ### Flujo de auditoría
@@ -482,20 +498,46 @@ kiosco_sprint1/
 
 ### Modo oscuro
 
-- Un script inline en `<head>` de `base.html` lee `localStorage` y aplica
-  `data-theme="dark"` en `<html>` antes del render (sin flash).
-- El botón toggle en el navbar cambia el atributo y guarda en `localStorage`.
-- Los estilos dark están en `styles.css` bajo selectores `[data-theme="dark"]`.
+- Un script inline en `<head>` de `base.html` lee `localStorage['kiosco-tema']`
+  y aplica `data-theme="dark"` en `<html>` antes del render (sin flash). Si no
+  hay nada guardado, respeta `prefers-color-scheme`.
+- El botón de luna/sol en el navbar cambia el atributo y guarda en `localStorage`.
+- Los estilos dark están en `styles.css` bajo selectores `[data-theme="dark"]`,
+  tanto para los componentes base como para los 3 estilos.
+
+### Selector de estilos visuales
+
+- Tres estilos, ciclados con el botón de paleta (navbar y login):
+  **Cartelera → Ticket → Neón → Cartelera…**
+- **Cartelera** (por defecto): Alfa Slab One + Archivo, negros `#0D0D0F`/
+  `#121214`, rojo `#E23D28`, focos amarillos, radios 6px.
+- **Ticket**: IBM Plex Mono en todo, papel `#F7F7F4` con tinta `#101010`,
+  navbar casi negra, radios 0px, perforación gris.
+- **Neón**: Righteous + Space Grotesk, noche `#120B1F`, rosa `#FF2E9A` con
+  glow y cian `#00E5FF`, radios 10px.
+- Persistencia en `localStorage['kiosco-estilo']` + atributo `data-tema` en
+  `<html>` (script en `<head>` para aplicarlo sin flash). Un valor inválido o
+  viejo en el storage se sanea a `cartelera`.
+- Cada estilo tiene su variante oscura (`data-theme="dark"` combinado con
+  `data-tema`).
 
 ## Backlog
 
-| Item | Sprint |
-|------|--------|
-| Módulo de stock y precios (Producto, CRUD, precio de costo oculto para Cajero) | Sprint 2 |
-| Alerta de stock bajo con marcas de color | Sprint 2 |
-| Carrito de cobro rápido con lector de código de barras (HTMX) | Sprint 3 |
-| Calculadora de vuelto con botones de billetes comunes y "pago exacto" | Sprint 3 |
-| Descuento automático de stock al confirmar venta | Sprint 3 |
-| Cierre de turno: totales por efectivo/tarjeta, cantidad de operaciones, usuario responsable | Sprint 4 |
-| Reporte de productos más vendidos | Sprint 4 |
-| Alta/búsqueda de clientes por CUIT/DNI para facturación opcional | Sprint 4 |
+| Item | Sprint | Estado |
+|------|--------|--------|
+| Login + roles + 403 server-side + post-login por rol | 1 | Hecho |
+| Auditoría de login/logout con IP | transversal | Hecho |
+| Registro de cuentas públicas (sin rol) | transversal | Hecho |
+| CRUD de usuarios + búsqueda + filtro por roles + paginación | 2 | Hecho |
+| Modelos Categoria, Producto, Venta, DetalleVenta + admin Django | 2 | Hecho |
+| Views/urls de lista y alta de productos | 2 | Parcial (faltan 2 templates → 500) |
+| Código de barras + precio costo/venta + stock mínimo (HU-04) | 2 | Pendiente |
+| Búsqueda de productos en tiempo real con HTMX (HU-05) | 2 | Pendiente |
+| Alerta de stock ≤ 5 con marca de color (HU-06) | 2 | Pendiente |
+| Carrito de cobro con lector de código de barras (HU-07/08) | 3 | Pendiente |
+| Cobro efectivo/tarjeta con vuelto (HU-09) | 3 | Pendiente |
+| Descuento automático de stock al confirmar venta | 3 | Pendiente |
+| Cierre de turno: totales por método, operaciones, responsable (HU-10) | 4 | Pendiente |
+| Reporte top 10 de productos más vendidos (HU-11) | 4 | Pendiente |
+| Alta/búsqueda de clientes por CUIT/DNI (HU-12, opcional) | 4 | Pendiente |
+| Rediseño frontend: identidad toldo + 3 estilos + modo oscuro | transversal | Hecho |
