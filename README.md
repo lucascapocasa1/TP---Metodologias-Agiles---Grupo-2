@@ -7,6 +7,18 @@ Trabajo práctico de Metodologías Ágiles. Sistema web de gestión para un kios
 
 ---
 
+## Documentación
+
+| Documento | Contenido |
+|---|---|
+| [docs/PRD.md](docs/PRD.md) | Documento de Requerimientos de Producto: alcance, personas, requerimientos funcionales (RF-01…RF-40) y no funcionales, historias de usuario con criterios de aceptación, riesgos y métricas. |
+| [docs/ARD.md](docs/ARD.md) | Arquitectura y Requerimientos Técnicos: stack, diagramas (flujo y modelo de datos), endpoints, autorización, auditoría, mini-ADRs y calidad. |
+
+Ambos documentos describen el estado del producto al **Sprint 2** (fecha de
+versión 24-09-2026) y son el entregable de documentación del trabajo práctico.
+
+---
+
 ## Estado actual del trabajo
 
 ### Seguridad y roles (Sprint 1) — completo
@@ -371,6 +383,9 @@ kiosco_sprint1/
 │                                     # django-environ.
 ├── README.md                         # Este archivo.
 ├── AGENTS.md                         # Instrucciones para agentes IA.
+├── docs/
+│   ├── PRD.md                        # Requerimientos de producto (alcance S1+S2).
+│   └── ARD.md                        # Arquitectura y requerimientos técnicos.
 ├── .env                              # DATABASE_URL (no se sube al repo).
 ├── .gitignore                        # __pycache__, venv/, db.sqlite3, .env…
 │
