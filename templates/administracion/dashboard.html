@@ -72,7 +72,7 @@
         </div>
     </div>
 
-    <!-- Accesos rápidos -->
+
     <div class="quick-actions">
         <h2><i class="bi bi-lightning"></i> Accesos Rápidos</h2>
         <div class="actions-grid">
@@ -84,6 +84,14 @@
                 <p>Crear, editar, eliminar y asignar roles</p>
             </a>
 
+                <a href="{% url 'ventas:lista_productos' %}" class="action-card">
+                <div class="action-icon">
+                    <i class="bi bi-person-plus"></i>
+                </div>
+                <h3>gestionar productos</h3>
+                <p>Crear un pruducto</p>
+            </a>
+
             <a href="{% url 'administracion:crear_usuario' %}" class="action-card">
                 <div class="action-icon">
                     <i class="bi bi-person-plus"></i>
@@ -92,7 +100,7 @@
                 <p>Crear una nueva cuenta de usuario</p>
             </a>
 
-            <a href="{% url 'ventas:pantalla_cobro' %}" class="action-card">
+           <a href="{% url 'ventas:cobro' %}" class="action-card">
                 <div class="action-icon">
                     <i class="bi bi-receipt"></i>
                 </div>
@@ -155,4 +163,7 @@
     });
 })();
 </script>
+
+   
+
 {% endblock %}
