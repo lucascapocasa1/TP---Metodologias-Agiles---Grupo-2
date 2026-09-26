@@ -42,8 +42,8 @@ def cobro(request):
          
          elif 'cobrar' in request.POST:
              # Finalizar venta
-             if not carrito:
-                 return redirect('cobro')
+             ##if not carrito:
+               ##  return redirect('cobro')
              
              monto_recibido = Decimal(request.POST.get('monto_recibido', 0))
              total = sum(Decimal(item['precio']) * item['cantidad'] for item in carrito)

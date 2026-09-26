@@ -51,7 +51,7 @@ def post_login(request):
     if es_administrador(user):
         return redirect("administracion:dashboard")
     if es_cajero(user):
-        return redirect("ventas:pantalla_cobro")
+        return redirect("ventas:cobro")
 
     # Usuario logueado pero sin rol asignado todavía (caso de borde:
     # el admin creó el usuario pero se olvidó de meterlo en un grupo).

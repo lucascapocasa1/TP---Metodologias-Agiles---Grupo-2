@@ -19,11 +19,12 @@ from .forms import AsignarRolForm, UsuarioForm
 @login_required
 def dashboard(request):
     # Si el usuario tiene perfil de cajero → va directo a cobro
-   #### if hasattr(request.user, 'perfil_cajero') and request.user.perfil_cajero.activo:
-       ## return redirect('ventas:cobro')
+   if hasattr(request.user, 'perfil_cajero') and request.user.perfil_cajero.activo:
+        return redirect('ventas:pantalla_cobro')
     
-    # Si no es cajero → ve el panel del dueño
-    return render(request, 'administracion/dashboard.html')
+    # Si no es cajero → ve el panel del dueño 
+   else:
+       return render(request, 'administracion/dashboard.html')
 
 @rol_requerido("Administrador")
 def dashboard(request):
@@ -218,5 +219,4 @@ def toggle_usuario(request, user_id):
     )
     messages.success(request, f"Usuario '{user.username}' {estado} exitosamente.")
     return redirect("administracion:listar_usuarios")
-
 
