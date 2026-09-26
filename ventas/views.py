@@ -1,62 +1,123 @@
-from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect, get_object_or_404
-from .models import Producto, Categoria
-from django.db.models import Q
+from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from .models import Producto, Venta, DetalleVenta
+from decimal import Decimal
 @login_required
-def pantalla_cobro(request):
-     """
-     Pantalla de cobro (POS). En este Sprint 1 es solo la cáscara protegida
-     por login: el flujo real de "escanear código → vuela al carrito",
-     el vuelto rápido con billetes y el cierre de caja son de sprints
-     siguientes.
-     """
-     return render(request, "ventas/pantalla_cobro.html")
- # ========== LISTA DE PRODUCTOS ==========
+def cobro(request):
+     # Obtener o crear carrito en la sesión
+     carrito = request.session.get('carrito', [])
+     
+     if request.method == 'POST':
+         if 'agregar_producto' in request.POST:
+             # Agregar producto por código o búsqueda
+             codigo = request.POST.get('codigo_barras', '').strip()
+             nombre_busqueda = request.POST.get('nombre_producto', '').strip()
+             
+             producto = None
+             if codigo:
+                 producto = Producto.objects.filter(codigo_barras=codigo).first()
+             elif nombre_busqueda:
+                 producto = Producto.objects.filter(nombre__icontains=nombre_busqueda).first()
+             
+             if producto:
+                 # Agregar al carrito
+                 carrito.append({
+                     'id': producto.id,
+                     'nombre': producto.nombre,
+                     'precio': float(producto.precio),
+                     'cantidad': 1
+                 })
+                 request.session['carrito'] = carrito
+         
+         elif 'quitar_item' in request.POST:
+             indice = int(request.POST.get('indice', 0))
+             if 0 <= indice < len(carrito):
+                 carrito.pop(indice)
+                 request.session['carrito'] = carrito
+         
+         elif 'limpiar_carrito' in request.POST:
+             request.session['carrito'] = []
+             carrito = []
+         
+         elif 'cobrar' in request.POST:
+             # Finalizar venta
+             ##if not carrito:
+               ##  return redirect('cobro')
+             
+             monto_recibido = Decimal(request.POST.get('monto_recibido', 0))
+             total = sum(Decimal(item['precio']) * item['cantidad'] for item in carrito)
+             
+             if monto_recibido < total:
+                 return render(request, 'ventas/pantalla_cobro.html', {
+                     'carrito': carrito,
+                     'total': total,
+                     'error': 'El monto recibido es menor al total'
+                 })
+             
+             vuelto = monto_recibido - total
+             
+             # Guardar venta en la base de datos
+             venta = Venta.objects.create(
+                 usuario=request.user,
+                 total=total
+             )
+             
+             for item in carrito:
+                 producto = Producto.objects.get(id=item['id'])
+                 DetalleVenta.objects.create(
+                     venta=venta,
+                     producto=producto,
+                     cantidad=item['cantidad'],
+                     subtotal=Decimal(item['precio']) * item['cantidad']
+                 )
+             
+             # Limpiar carrito
+             request.session['carrito'] = []
+             
+             return render(request, 'ventas/confirmacion.html', {
+                 'venta': venta,
+                 'total': total,
+                 'monto_recibido': monto_recibido,
+                 'vuelto': vuelto
+             })
+     
+     total = sum(Decimal(item['precio']) * item['cantidad'] for item in carrito)
+     
+     return render(request, 'ventas/pantalla_cobro.html', {
+         'carrito': carrito,
+         'total': total
+     })
 @login_required
 def lista_productos(request):
-     busqueda = request.GET.get('buscar', '')
-     if busqueda:
-         productos = Producto.objects.filter(
-             Q(nombre__icontains=busqueda) |
-             Q(descripcion__icontains=busqueda)
-         )
-     else:
-         productos = Producto.objects.all()
-     
-     return render(request, 'ventas/lista_productos.html', {
-         'productos': productos,
-         'busqueda': busqueda
-     })
- # ========== AGREGAR PRODUCTO (con opción de categoría nueva) ==========
+     productos = Producto.objects.all()
+     return render(request, 'ventas/lista_productos.html', {'productos': productos})
 @login_required
 def agregar_producto(request):
      if request.method == 'POST':
          nombre = request.POST.get('nombre')
-         descripcion = request.POST.get('descripcion', '')
          precio = request.POST.get('precio')
-         stock = request.POST.get('stock')
          categoria_id = request.POST.get('categoria')
-         nueva_categoria = request.POST.get('nueva_categoria', '')
+         stock = request.POST.get('stock', 0)
+         codigo = request.POST.get('codigo_barras', '')
          
-         # Si escribieron categoría nueva, la creamos
-         if nueva_categoria:
-             categoria = Categoria.objects.create(nombre=nueva_categoria)
-         else:
-             categoria = get_object_or_404(Categoria, id=categoria_id)
+         from .models import Categoria
+         categoria = get_object_or_404(Categoria, id=categoria_id)
          
          Producto.objects.create(
              nombre=nombre,
-             descripcion=descripcion,
              precio=precio,
+             categoria=categoria,
              stock=stock,
-             categoria=categoria
+             codigo_barras=codigo
          )
-         return redirect('ventas:lista_productos')
+         return redirect('lista_productos')
      
+     from .models import Categoria
      categorias = Categoria.objects.all()
-     return render(request, 'ventas/agregar_producto.html', {
-         'categorias': categorias
-     })
+     return render(request, 'ventas/agregar_producto.html', {'categorias': categorias})
+def inicio(request):
+     return render(request, 'ventas/inicio.html')
 
 
 

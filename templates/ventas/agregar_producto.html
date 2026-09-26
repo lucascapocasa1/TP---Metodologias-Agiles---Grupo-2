@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+ <html>
+ <head>
+     <title>Agregar Producto - Kiosco</title>
+     <meta charset="utf-8">
+ </head>
+ <body>
+     <h1>➕ Agregar Nuevo Producto 📦</h1>
+     
+     <form method="POST">
+         {% csrf_token %}
+         
+         <label>Nombre:</label><br>
+         <input type="text" name="nombre" required><br><br>
+         
+         <label>Descripción:</label><br>
+         <textarea name="descripcion" rows="3"></textarea><br><br>
+
+         <label>Codigo de barras:</label><br>
+         <input type="text" name="codigo_barras" placeholder="Ej:77900000000000000"><br><br>
+         
+         <label>Precio:</label><br>
+         <input type="number" name="precio" step="0.01" required><br><br>
+         
+         <label>Stock:</label><br>
+         <input type="number" name="stock" required><br><br>
+
+         <label>Categoría existente:</label><br>
+<select name="categoria">
+     {% for cat in categorias %}
+     <option value="{{ cat.id }}">{{ cat.nombre }}</option>
+     {% empty %}
+     <option value="" selected>No hay categorías todavía</option>
+     {% endfor %}
+ </select>
+ <br><br>
+ <label>O crear categoría nueva:</label><br>
+ <input type="text" name="nueva_categoria" placeholder="Escribí el nombre acá"><br>
+ <small>Dejá el de arriba vacío si vas a crear una nueva</small><br><br>
+         
+         
+         </select><br><br>
+        
+         <button type="submit">✅ Guardar Producto 📦</button>
+         <a href="{% url 'ventas:lista_productos' %}">✅ Cancelar </a>
+     </form>
+ </body>
+ </html>

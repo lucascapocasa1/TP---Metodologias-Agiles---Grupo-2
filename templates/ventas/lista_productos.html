@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+ <html>
+ <head>
+     <title>Productos - Kiosco</title>
+     <meta charset="utf-8">
+ </head>
+ <body>
+     <h1>📦 Lista de Productos</h1>
+     
+     <form method="GET">
+         <input type="text" name="buscar" placeholder="Buscar producto..." value="{{ busqueda }}">
+         <button type="submit">🔍 Buscar</button>
+     </form>
+     
+     <br>
+     <a href="{% url 'ventas:agregar_producto' %}">➕ Agregar nuevo producto</a>
+      <a href="{% url 'ventas:cobro' %}"> ➕ volver al inicio</a>
+     <br><br>
+     <table border="1" cellpadding="8">
+         <tr>
+             <th>Nombre</th>
+             <th>Precio</th>
+             <th>Stock</th>
+             <th>Categoría</th>
+         </tr>
+         {% for producto in productos %}
+         <tr>
+             <td>{{ producto.nombre }}</td>
+             <td>${{ producto.precio }}</td>
+             <td>{{ producto.stock }}</td>
+             <td>{{ producto.categoria.nombre }}</td>
+
+         </tr>
+        
+         {% empty %}
+         <tr>
+             <td colspan="4">No se encontraron productos</td>
+         </tr>
+         {% endfor %}
+     </table>
+ </body>
+ </html>

@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+ <html>
+ <head>
+     <title>Venta Confirmada</title>
+     <style>
+         body { font-family: sans-serif; padding: 20px; text-align: center; max-width: 600px; margin: 0 auto; }
+         .exito { color: #27ae60; font-size: 2em; }
+         .dato { font-size: 1.2em; margin: 10px 0; }
+         .vuelto { color: #2980b9; font-weight: bold; font-size: 1.4em; }
+         button { padding: 12px 25px; font-size: 1em; background: #27ae60; color: white; border: none; border-radius: 5px; cursor: pointer; margin-top: 20px; }
+     </style>
+ </head>
+ <body>
+     <h1 class="exito">✅ Venta Registrada</h1>
+     <p class="dato"><strong>N° Venta:</strong> {{ venta.id }}</p>
+     <p class="dato"><strong>Total:</strong> ${{ total|floatformat:2 }}</p>
+     <p class="dato"><strong>Recibido:</strong> ${{ monto_recibido|floatformat:2 }}</p>
+     <p class="dato vuelto">Vuelto: ${{ vuelto|floatformat:2 }}</p>
+     
+     <form action="{% url 'ventas:cobro' %}">
+         <button>✅ Nueva Venta</button>
+     </form>
+     <br>
+     <a href="{% url 'administracion:dashboard' %}" style="display:inline-block; padding:10px 20px; background:#95a5a6; color:white; text-decoration:none; border-radius:5px;">← Volver al inicio</a>
+ </body>
+ </html>

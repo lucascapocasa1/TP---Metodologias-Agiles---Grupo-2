@@ -1,12 +1,30 @@
+
 from django.contrib import messages
 from django.contrib.auth.models import Group, User
 from django.shortcuts import get_object_or_404, redirect, render
 
+from django.shortcuts import render, redirect
+
+
 from auditoria.utils import registrar_accion
 from usuarios.decorators import rol_requerido
+from .models import  Bitacora
+from django.shortcuts import redirect
+from django.contrib.auth.decorators import login_required
+
 
 from .forms import AsignarRolForm, UsuarioForm
 
+
+@login_required
+def dashboard(request):
+    # Si el usuario tiene perfil de cajero → va directo a cobro
+   if hasattr(request.user, 'perfil_cajero') and request.user.perfil_cajero.activo:
+        return redirect('ventas:pantalla_cobro')
+    
+    # Si no es cajero → ve el panel del dueño 
+   else:
+       return render(request, 'administracion/dashboard.html')
 
 @rol_requerido("Administrador")
 def dashboard(request):
@@ -17,7 +35,6 @@ def dashboard(request):
     admins = User.objects.filter(groups__name="Administrador").distinct().count()
     cajeros = User.objects.filter(groups__name="Cajero").distinct().count()
     sin_rol = User.objects.filter(groups__isnull=True, is_active=True).count()
-
     context = {
         "total_usuarios": total_usuarios,
         "usuarios_activos": usuarios_activos,
@@ -202,3 +219,4 @@ def toggle_usuario(request, user_id):
     )
     messages.success(request, f"Usuario '{user.username}' {estado} exitosamente.")
     return redirect("administracion:listar_usuarios")
+
