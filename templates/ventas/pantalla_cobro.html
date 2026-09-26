@@ -1,38 +1,4 @@
-<<<<<<< Updated upstream
-{% extends "base.html" %}
-{% block titulo %}Cobro{% endblock %}
-{% block contenido %}
-<div class="placeholder-page">
-    <div class="page-header">
-        <h2>Pantalla de cobro</h2>
-        <p class="page-subtitle">
-            El mostrador del cajero: escaneo por código de barras, carrito
-            rápido y cálculo de vuelto con billetes.
-        </p>
-    </div>
 
-    <div class="escaner-mock">
-        <div class="barcode" aria-hidden="true"></div>
-        <p class="escaner-nota">Espacio reservado para el lector de códigos (Sprint 3).</p>
-    </div>
-
-    <div class="kiosco-alert kiosco-alert-info mt-4" role="note">
-        <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
-        <span><strong>Sprint 1:</strong> esta pantalla demuestra que el acceso
-        está protegido por login y disponible tanto para <strong>Cajero</strong>
-        como para <strong>Administrador</strong>.</span>
-    </div>
-
-    {% if request.user.groups.first.name == "Administrador" or request.user.is_superuser %}
-    <div class="acciones">
-        <a href="{% url 'administracion:dashboard' %}" class="btn btn-kiosco-outline">
-            <i class="bi bi-gear" aria-hidden="true"></i> Ir al panel de administración
-        </a>
-    </div>
-    {% endif %}
-</div>
-{% endblock %}
-=======
 <!DOCTYPE html>
  <html>
  <head>
@@ -90,4 +56,3 @@
      <a href="{% url 'administracion:dashboard' %}" class="volver">← Volver al inicio</a>
  </body>
  </html>
->>>>>>> Stashed changes
