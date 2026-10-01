@@ -1,0 +1,109 @@
+{% extends "base.html" %}
+{% block titulo %}Editar Producto{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <a href="{% url 'ventas:lista_productos' %}" class="btn-back" title="Volver a productos">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+
+    <div class="admin-card">
+        <div class="card-header">
+            <h2><i class="bi bi-pencil-square"></i> Editar Producto</h2>
+        </div>
+        <div class="card-body">
+            {% if errores %}
+            <div class="admin-alert admin-alert-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <ul class="mb-0">
+                    {% for error in errores %}
+                    <li>{{ error }}</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <form method="post" class="admin-form">
+                {% csrf_token %}
+
+                <div class="form-group">
+                    <label for="nombre" class="admin-label">Nombre *</label>
+                    <input type="text" id="nombre" name="nombre" required
+                           class="kiosco-input"
+                           value="{{ nombre|default:producto.nombre }}"
+                           placeholder="Ej.: Galletitas Chocolate">
+                </div>
+
+                <div class="form-group">
+                    <label for="descripcion" class="admin-label">Descripción</label>
+                    <textarea id="descripcion" name="descripcion" rows="3"
+                              class="kiosco-input"
+                              placeholder="Descripción del producto">{{ descripcion|default:producto.descripcion }}</textarea>
+                    <span class="help-text">Opcional</span>
+                </div>
+
+                <div class="form-row-2">
+                    <div class="form-group">
+                        <label for="precio" class="admin-label">Precio ($) *</label>
+                        <input type="number" id="precio" name="precio" required
+                               step="0.01" min="0"
+                               class="kiosco-input"
+                               value="{{ precio|default:producto.precio }}"
+                               placeholder="0.00">
+                    </div>
+                    <div class="form-group">
+                        <label for="stock" class="admin-label">Stock *</label>
+                        <input type="number" id="stock" name="stock" required
+                               min="0"
+                               class="kiosco-input"
+                               value="{{ stock|default:producto.stock }}"
+                               placeholder="0">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="categoria" class="admin-label">Categoría *</label>
+                    <select id="categoria" name="categoria" class="admin-select">
+                        <option value="">-- Seleccionar categoría --</option>
+                        {% for categoria in categorias %}
+                        <option value="{{ categoria.id }}"
+                                {% if categoria_id|stringformat:"s" == categoria.id|stringformat:"s" or producto.categoria.id == categoria.id and not categoria_id %}selected{% endif %}>
+                            {{ categoria.nombre }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <span class="help-text">O crear una nueva categoría a continuación</span>
+                </div>
+
+                <div class="form-group">
+                    <label for="nueva_categoria" class="admin-label">Nueva Categoría</label>
+                    <input type="text" id="nueva_categoria" name="nueva_categoria"
+                           class="kiosco-input"
+                           value="{{ nueva_categoria|default:'' }}"
+                           placeholder="Ej.: Bebidas, Snacks, Golosinas">
+                    <span class="help-text">Se prioriza la nueva categoría si se completa este campo</span>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        <input type="checkbox" id="activo" name="activo" class="form-check-input"
+                               {% if activo or producto.activo and not errores %}checked{% endif %}>
+                        <label for="activo" class="admin-label checkbox-label">
+                            Producto activo
+                        </label>
+                    </div>
+                    <span class="help-text">Los productos inactivos no se muestran en el listado</span>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'ventas:lista_productos' %}" class="btn-admin-cancel">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn-admin-primary">
+                        <i class="bi bi-check-circle"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

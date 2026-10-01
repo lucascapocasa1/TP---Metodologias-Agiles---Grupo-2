@@ -1,0 +1,16 @@
+Hola {{ user.get_full_name|default:user.get_username }},
+
+Recibimos un pedido para recuperar el acceso a tu cuenta del Sistema Kiosco.
+
+Para elegir una contraseña nueva, entrá a este link:
+
+{{ protocol }}://{{ domain }}{% url 'usuarios:resetear_clave' uidb64=uid token=token %}
+
+El link vence en unas horas. Si no lo usás, tu contraseña actual sigue
+sin cambios y podés pedir otro cuando quieras.
+
+Si no fuiste vos, no te preocupes: ignorá este mensaje y avisale al
+administrador del kiosco.
+
+--
+Sistema Kiosco

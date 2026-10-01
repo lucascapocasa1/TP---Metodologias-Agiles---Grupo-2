@@ -38,6 +38,14 @@
                 <input type="hidden" name="next" value="{{ next }}">
                 <button type="submit" class="btn btn-kiosco btn-submit">Ingresar</button>
             </form>
+
+            <div class="login-ayuda">
+                <p class="login-ayuda-titulo">¿Tenés problemas para ingresar?</p>
+                <a href="{% url 'usuarios:recuperar_clave' %}" class="login-ayuda-link">
+                    <i class="bi bi-key-fill" aria-hidden="true"></i>
+                    <span>Recuperar usuario o contraseña</span>
+                </a>
+            </div>
         </div>
     </section>
 </div>

@@ -4,6 +4,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from auditoria.utils import registrar_accion
 from usuarios.decorators import rol_requerido
+from ventas.models import Producto
 
 from .forms import AsignarRolForm, UsuarioForm
 
@@ -18,6 +19,9 @@ def dashboard(request):
     cajeros = User.objects.filter(groups__name="Cajero").distinct().count()
     sin_rol = User.objects.filter(groups__isnull=True, is_active=True).count()
 
+    total_productos = Producto.objects.filter(activo=True).count()
+    productos_sin_stock = Producto.objects.filter(activo=True, stock=0).count()
+
     context = {
         "total_usuarios": total_usuarios,
         "usuarios_activos": usuarios_activos,
@@ -25,6 +29,8 @@ def dashboard(request):
         "admins": admins,
         "cajeros": cajeros,
         "sin_rol": sin_rol,
+        "total_productos": total_productos,
+        "productos_sin_stock": productos_sin_stock,
     }
     return render(request, "administracion/dashboard.html", context)
 

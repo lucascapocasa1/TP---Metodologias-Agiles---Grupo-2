@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block titulo %}Elegir nueva contraseña{% endblock %}
+{% block contenido %}
+<div class="auth-wrapper">
+    <div class="auth-card auth-card--slide-in">
+        <div class="auth-brand">
+            <div class="auth-brand-icon"><i class="bi bi-shield-lock"></i></div>
+            <h1>Elegí tu nueva contraseña</h1>
+            <p>Confirmá que sos vos y poné una contraseña nueva.</p>
+        </div>
+
+        {% if form.errors %}
+        <div class="kiosco-alert kiosco-alert-danger mb-3" role="alert">
+            <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+            Revisá los campos marcados.
+        </div>
+        {% endif %}
+
+        {% if validlink %}
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+
+            {% for field in form %}
+            <div class="form-group">
+                <label class="kiosco-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
+                {{ field }}
+                {% if field.errors %}
+                    <span class="field-error">{{ field.errors.0 }}</span>
+                {% endif %}
+            </div>
+            {% endfor %}
+
+            <button type="submit" class="btn btn-kiosco btn-submit">
+                <i class="bi bi-check-lg"></i> Guardar contraseña
+            </button>
+        </form>
+        {% else %}
+        <div class="kiosco-alert kiosco-alert-warning" role="alert">
+            <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+            <div>
+                <p class="mb-1">Este link no es válido o ya venció.</p>
+                <p class="mb-0">Pedí uno nuevo desde la pantalla de recuperación.</p>
+            </div>
+        </div>
+        <div class="auth-footer">
+            <a href="{% url 'usuarios:recuperar_clave' %}" class="btn btn-kiosco">
+                <i class="bi bi-arrow-repeat"></i> Pedir un link nuevo
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

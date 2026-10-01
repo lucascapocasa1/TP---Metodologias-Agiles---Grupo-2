@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block titulo %}Link enviado{% endblock %}
+{% block contenido %}
+<div class="auth-wrapper">
+    <div class="auth-card auth-card--slide-in">
+        <div class="auth-brand">
+            <div class="auth-brand-icon"><i class="bi bi-envelope-check"></i></div>
+            <h1>Revisá tu email</h1>
+        </div>
+
+        <div class="kiosco-alert kiosco-alert-info" role="status">
+            <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+            <div>
+                <p class="mb-1">
+                    Si hay una cuenta con ese email, te enviamos un link para
+                    elegir una nueva contraseña.
+                </p>
+                <p class="mb-0">
+                    Mirá también la carpeta de spam. El link vence en unas horas.
+                </p>
+            </div>
+        </div>
+
+        <div class="auth-footer">
+            <p>¿No llegó? Volvé a intentarlo o pedile al administrador
+               que revise el email de tu cuenta.</p>
+            <div class="auth-footer-acciones">
+                <a href="{% url 'usuarios:recuperar_clave' %}" class="btn btn-kiosco-outline">
+                    <i class="bi bi-arrow-repeat"></i> Reenviar
+                </a>
+                <a href="{% url 'usuarios:login' %}" class="btn btn-kiosco">
+                    <i class="bi bi-box-arrow-in-right"></i> Volver al login
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

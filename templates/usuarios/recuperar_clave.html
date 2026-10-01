@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block titulo %}Recuperar acceso{% endblock %}
+{% block contenido %}
+<div class="auth-wrapper">
+    <div class="auth-card auth-card--slide-in">
+        <div class="auth-brand">
+            <div class="auth-brand-icon"><i class="bi bi-key"></i></div>
+            <h1>Recuperar acceso</h1>
+            <p>Escribí el email de tu cuenta y te mandamos el link para
+               volver a entrar. También podés recuperar tu usuario.</p>
+        </div>
+
+        <form method="post" class="auth-form">
+            {% csrf_token %}
+
+            {% if form.non_field_errors %}
+            <div class="kiosco-alert kiosco-alert-danger mb-3" role="alert">
+                <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                {{ form.non_field_errors.0 }}
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label class="kiosco-label" for="{{ form.email.id_for_label }}">Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                    <span class="field-error">{{ form.email.errors.0 }}</span>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-kiosco btn-submit">
+                <i class="bi bi-send"></i> Enviar link
+            </button>
+        </form>
+
+        <div class="auth-footer">
+            <p>¿Te acordás la contraseña?</p>
+            <a href="{% url 'usuarios:login' %}" class="btn btn-kiosco-outline">
+                <i class="bi bi-box-arrow-in-right"></i> Iniciar sesión
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
