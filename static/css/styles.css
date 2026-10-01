@@ -1310,36 +1310,42 @@ strong {
 
 /* ============================================================
    Tema "Neón"
-   Cartel de neón sobre la noche sintetizador: tubos rosa
-   magenta y cian, resplandor (glow) y grilla de piso.
+   Cartel de neón sobre la noche sintetizador: tubo cian
+   como luz principal y un azul profundo de apoyo, con
+   resplandor (glow) contenido y grilla de piso.
    Righteous (títulos) + Space Grotesk.
    Se activa con data-tema="neon" en <html>.
    ============================================================ */
 [data-tema="neon"] {
-  --ink-solid: #0A0612;
-  --papel: #120B1F;
-  --superficie: #1A1226;
-  --texto: #EAE6F5;
-  --texto-suave: #A79FC4;
-  --contorno: #7A6AAE;
-  --sombra: rgba(255, 46, 154, 0.35);
-  --linea-azulejo: rgba(255, 46, 154, 0.06);
-  --sol: #FF2E9A;
-  --sol-vivo: #FF63B8;
-  --caramelo: #00E5FF;
-  --caramelo-hondo: #00B8CC;
-  --celeste: #00E5FF;
-  --verde: #39FF88;
-  --crema: #EAE6F5;
+  --ink-solid: #05121A;
+  --papel: #081822;
+  --superficie: #0E2431;
+  --texto: #E2F1F6;
+  --texto-suave: #9FB6C2;
+  --contorno: #5A7E8E;
+  --sombra: rgba(0, 190, 224, 0.28);
+  --linea-azulejo: rgba(0, 190, 224, 0.06);
+  --sol: #00C8E0;
+  --sol-vivo: #5FE6F5;
+  --caramelo: #5FE6F5;
+  --caramelo-hondo: #0E9CB4;
+  --celeste: #00C8E0;
+  --verde: #3FD98C;
+  --crema: #E2F1F6;
 
-  --alert-danger-bg: rgba(255, 46, 154, 0.14);
-  --alert-danger-fg: #FF9BD0;
+  /* Avisos y carteles: ámbar complementario al cian para que
+     "Acceso solo para el personal" y el sello se lean aparte */
+  --aviso: #FFB020;
+  --aviso-vivo: #FFD166;
+
+  --alert-danger-bg: rgba(232, 90, 122, 0.14);
+  --alert-danger-fg: #F5AFC0;
   --alert-warn-bg: rgba(255, 179, 71, 0.13);
   --alert-warn-fg: #FFCF8A;
-  --alert-info-bg: rgba(0, 229, 255, 0.12);
-  --alert-info-fg: #8DF2FF;
-  --alert-ok-bg: rgba(57, 255, 136, 0.12);
-  --alert-ok-fg: #9BFFC6;
+  --alert-info-bg: rgba(0, 200, 224, 0.12);
+  --alert-info-fg: #9AEBF6;
+  --alert-ok-bg: rgba(63, 217, 140, 0.12);
+  --alert-ok-fg: #A6E9C4;
 
   --radio: 10px;
   --radio-chico: 6px;
@@ -1348,96 +1354,121 @@ strong {
   --font-ui: 'Space Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
-/* Piso sintetizador: grilla rosa */
+/* Piso sintetizador: grilla cian */
 [data-tema="neon"] body {
   background-color: var(--papel);
 }
 
-/* Títulos encendidos: resplandor rosa */
+/* Títulos encendidos: resplandor cian contenido */
 [data-tema="neon"] h1,
 [data-tema="neon"] h2,
 [data-tema="neon"] .brand-text,
 [data-tema="neon"] .toldo-wordmark {
-  text-shadow: 0 0 8px rgba(255, 46, 154, 0.55), 0 0 24px rgba(255, 46, 154, 0.28);
+  text-shadow: 0 0 8px rgba(0, 200, 224, 0.42), 0 0 24px rgba(0, 200, 224, 0.18);
 }
 
-/* Marca: tubo rosa encendido (legible sin override) */
+/* Marca: tubo cian encendido (legible sin override) */
 [data-tema="neon"] .brand-icon {
   color: var(--sol);
 }
 
 /* Superusuario: tubo cian (texto oscuro sobre cian) */
 [data-tema="neon"] .badge-superuser {
-  background-color: #00E5FF;
-  color: #0A0612;
+  background-color: var(--sol);
+  color: var(--ink-solid);
 }
 
 /* Salir: encender/apagar cian */
 [data-tema="neon"] .btn-salir:hover,
 [data-tema="neon"] .btn-tema:hover {
-  background: #00E5FF;
-  border-color: #00E5FF;
-  color: #0A0612;
+  background: var(--sol);
+  border-color: var(--sol);
+  color: var(--ink-solid);
 }
 
-/* Botón principal: brillo de neón en vez de sombra dura */
+/* Botón principal: tubo ámbar contrastado (igual que el sticker) */
 [data-tema="neon"] .btn-kiosco {
-  box-shadow: 0 0 14px rgba(255, 46, 154, 0.45);
+  background-color: var(--aviso);
+  color: var(--ink-solid);
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.4);
 }
 
 [data-tema="neon"] .btn-kiosco:hover,
 [data-tema="neon"] .btn-kiosco:focus {
-  box-shadow: 0 0 24px rgba(255, 46, 154, 0.75);
+  background-color: var(--aviso-vivo);
+  color: var(--ink-solid);
+  box-shadow: 0 0 24px rgba(255, 176, 32, 0.6);
 }
 
-/* Sello y sticker: tubos encendidos */
+/* Botón contorno: al pasar, enciende ámbar */
+[data-tema="neon"] .btn-kiosco-outline:hover,
+[data-tema="neon"] .btn-kiosco-outline:focus {
+  background-color: var(--aviso);
+  color: var(--ink-solid);
+  box-shadow: 0 0 20px rgba(255, 176, 32, 0.5);
+}
+
+/* Sello y sticker: tubos ámbar, aparte del cian de la interfaz */
 [data-tema="neon"] .sello {
-  color: var(--caramelo);
-  border-color: var(--caramelo);
-  text-shadow: 0 0 8px rgba(0, 229, 255, 0.6);
+  color: var(--aviso);
+  border-color: var(--aviso);
+  text-shadow: 0 0 8px rgba(255, 176, 32, 0.5);
 }
 
 [data-tema="neon"] .sticker {
-  background: #00E5FF;
-  color: #0A0612;
-  border-color: var(--sol);
-  box-shadow: 0 0 16px rgba(0, 229, 255, 0.55);
+  background: var(--aviso);
+  color: var(--ink-solid);
+  border-color: var(--aviso-vivo);
+  box-shadow: 0 0 16px rgba(255, 176, 32, 0.45);
+}
+
+/* Tarjeta de aviso: ícono ámbar sobre la noche */
+[data-tema="neon"] .warning-icon {
+  background: var(--aviso);
+  color: var(--ink-solid);
+  border-color: var(--aviso-vivo);
+  box-shadow: 0 0 18px rgba(255, 176, 32, 0.4);
 }
 
 [data-tema="neon"] .barcode--toldo {
-  border-color: rgba(0, 229, 255, 0.5);
+  border-color: rgba(0, 200, 224, 0.45);
 }
 
 /* Foco del input: halo cian */
 [data-tema="neon"] .kiosco-input:focus {
-  box-shadow: var(--dureza-chica), 0 0 14px rgba(0, 229, 255, 0.5), 0 0 0 3px var(--celeste);
+  box-shadow: var(--dureza-chica), 0 0 14px rgba(0, 200, 224, 0.4), 0 0 0 3px var(--celeste);
 }
 
 /* Filetes: tubo de neón cian encendido */
 [data-tema="neon"] .toldo-filete,
-[data-tema="neon"] .login-split::before,
-[data-tema="neon"] .warning-card::before {
+[data-tema="neon"] .login-split::before {
   background-color: transparent;
   background-image: linear-gradient(
     180deg,
-    rgba(0, 229, 255, 0) 0%,
-    #00E5FF 35%,
+    rgba(95, 230, 245, 0) 0%,
+    #5FE6F5 35%,
     #FFFFFF 50%,
-    #00E5FF 65%,
-    rgba(0, 229, 255, 0) 100%
+    #5FE6F5 65%,
+    rgba(95, 230, 245, 0) 100%
   );
-  box-shadow: 0 0 14px rgba(0, 229, 255, 0.75);
+  box-shadow: 0 0 14px rgba(0, 200, 224, 0.55);
   -webkit-mask-image: none;
   mask-image: none;
 }
 
-/* Portada de login: noche con resplandores rosa y cian */
+/* Avisos: banda perforada ámbar sobre la tarjeta */
+[data-tema="neon"] .warning-card::before {
+  background: var(--aviso);
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.5);
+}
+
+/* Portada de login: noche con resplandores cian y azul */
 [data-tema="neon"] .login-toldo {
-  background-color: #0A0612;
+  background-color: var(--ink-solid);
   background-image:
-    radial-gradient(ellipse 45% 40% at 70% 25%, rgba(0, 229, 255, 0.13), transparent 60%),
-    radial-gradient(ellipse 50% 45% at 25% 75%, rgba(255, 46, 154, 0.15), transparent 60%);
-  color: #EAE6F5;
+    radial-gradient(ellipse 45% 40% at 70% 25%, rgba(0, 200, 224, 0.12), transparent 60%),
+    radial-gradient(ellipse 50% 45% at 25% 75%, rgba(56, 130, 246, 0.12), transparent 60%);
+  color: var(--crema);
 }
 
 [data-tema="neon"] .toldo-wordmark {
@@ -1445,27 +1476,27 @@ strong {
 }
 
 [data-tema="neon"] .toldo-bajada {
-  color: rgba(234, 230, 245, 0.8);
+  color: rgba(226, 241, 246, 0.8);
 }
 
-/* Código de error: tubo rosa encendido */
+/* Código de error: tubo cian encendido */
 [data-tema="neon"] .error-code {
-  color: #FF2E9A;
-  -webkit-text-stroke: 2.5px #1A0611;
-  text-shadow: 0 0 14px rgba(255, 46, 154, 0.8), 0 0 44px rgba(255, 46, 154, 0.4);
+  color: #5FE6F5;
+  -webkit-text-stroke: 2.5px #04141C;
+  text-shadow: 0 0 14px rgba(0, 200, 224, 0.6), 0 0 44px rgba(0, 200, 224, 0.3);
 }
 
 /* Neón + modo oscuro: noche profunda */
 [data-tema="neon"][data-theme="dark"] {
-  --ink-solid: #060310;
-  --papel: #0B0614;
-  --superficie: #16101F;
-  --texto: #F2EEFA;
-  --texto-suave: #B3AAC9;
-  --contorno: rgba(242, 238, 250, 0.32);
+  --ink-solid: #030F16;
+  --papel: #061219;
+  --superficie: #0C1F29;
+  --texto: #EAF5F9;
+  --texto-suave: #A6BEC9;
+  --contorno: rgba(234, 245, 249, 0.3);
   --sombra: rgba(0, 0, 0, 0.75);
-  --linea-azulejo: rgba(255, 46, 154, 0.05);
-  --crema: #F2EEFA;
+  --linea-azulejo: rgba(0, 200, 224, 0.05);
+  --crema: #EAF5F9;
 }
 
 /* ============================================================
@@ -1784,6 +1815,32 @@ strong {
   background: var(--bg);
   border-color: var(--kiosco-yellow);
   color: var(--kiosco-yellow);
+}
+
+/* Panel admin en neón: botones primarios ámbar sólido con glow
+   (el gradiente cian→ámbar los dejaba lavados) y secundarios
+   con contorno ámbar */
+[data-tema="neon"] .btn-admin-primary {
+  background: var(--aviso);
+  color: var(--ink-solid);
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.4);
+}
+
+[data-tema="neon"] .btn-admin-primary:hover {
+  background: var(--aviso-vivo);
+  color: var(--ink-solid);
+  box-shadow: 0 0 24px rgba(255, 176, 32, 0.6);
+}
+
+[data-tema="neon"] .btn-admin-secondary {
+  border-color: var(--aviso);
+  color: var(--aviso);
+}
+
+[data-tema="neon"] .btn-admin-secondary:hover {
+  background: var(--aviso);
+  color: var(--ink-solid);
+  border-color: var(--aviso-vivo);
 }
 
 .btn-admin-cancel {
