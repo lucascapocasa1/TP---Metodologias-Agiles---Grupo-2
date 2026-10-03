@@ -399,16 +399,15 @@ kiosco_sprint1/
 │   ├── wsgi.py / asgi.py             # Puntos de entrada WSGI/ASGI.
 │
 ├── usuarios/                         # Autenticación y control de acceso.
-│   ├── views.py                      # LoginKioscoView, registro_usuario
-│   │                                 # (cuenta sin rol), post_login (según
+│   ├── views.py                      # LoginKioscoView, post_login (según
 │   │                                 # rol), sin_rol.
-│   ├── urls.py                       # 5 rutas: login/, logout/, post-login/,
-│   │                                 # sin-rol/, registro/.
-│   ├── forms.py                      # LoginKioscoForm y RegistroUsuarioForm
+│   ├── urls.py                       # 8 rutas: login/, logout/, post-login/,
+│   │                                 # sin-rol/ y las 4 de recuperar/.
+│   ├── forms.py                      # LoginKioscoForm
 │   │                                 # (widgets kiosco-input).
 │   ├── decorators.py                 # @rol_requerido, RolRequeridoMixin,
 │   │                                 # es_administrador(), es_cajero().
-│   ├── tests.py                      # 9 tests.
+│   ├── tests.py                      # 15 tests.
 │   ├── templatetags/
 │   │   └── pagination_tags.py        # {% paginacion %} (inclusion tag) y
 │   │                                 # {% param %} (preserva query params).
@@ -463,11 +462,19 @@ kiosco_sprint1/
 │   │   ├── login.html                # login-split: toldo a la izquierda +
 │   │   │                             # panel de ingreso a la derecha, botón
 │   │   │                             # de estilo flotante.
-│   │   ├── registro.html             # auth-card de alta de cuenta.
+│   │   ├── recuperar_clave.html       # pide el email de la cuenta.
+│   │   ├── recuperacion_enviada.html  # "revisá tu email".
+│   │   ├── resetear_clave.html        # elige la contraseña nueva.
+│   │   ├── recuperacion_completada.html
 │   │   ├── sin_rol.html              # warning-page sin grupo asignado.
+│   │   ├── email_recuperacion.txt / email_recuperacion_subject.txt
 │   │   └── tags/                     # Partiales de paginación y buscador.
 │   ├── ventas/
-│   │   └── pantalla_cobro.html       # Placeholder con mock de escáner.
+│   │   ├── pantalla_cobro.html       # Placeholder con mock de escáner.
+│   │   ├── lista_productos.html      # tabla con búsqueda por
+│   │   │                             # nombre/descripción/categoría.
+│   │   ├── agregar_producto.html / editar_producto.html
+│   │   └── eliminar_producto.html    # confirmación con advertencia.
 │   └── administracion/               # Panel del equipo:
 │       ├── dashboard.html            # stats de usuarios + accesos rápidos.
 │       ├── listar_usuarios.html      # tabla con búsqueda/filtros.

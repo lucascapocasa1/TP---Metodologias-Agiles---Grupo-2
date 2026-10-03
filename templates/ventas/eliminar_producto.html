@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% block titulo %}Eliminar Producto{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <a href="{% url 'ventas:lista_productos' %}" class="btn-back" title="Volver a productos">
+        <i class="bi bi-arrow-left"></i>
+    </a>
+
+    <div class="admin-card">
+        <div class="card-header card-header-danger">
+            <h2><i class="bi bi-trash3"></i> Eliminar Producto</h2>
+        </div>
+        <div class="card-body">
+            <div class="delete-warning">
+                <div class="warning-icon">
+                    <i class="bi bi-exclamation-triangle-fill"></i>
+                </div>
+                <div class="warning-content">
+                    <p>¿Estás seguro que querés eliminar este producto? Esta acción no se puede deshacer.</p>
+                    <div class="user-info-box">
+                        <div class="info-row">
+                            <span class="info-label">Producto:</span>
+                            <span class="info-value">{{ producto.nombre }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Categoría:</span>
+                            <span class="info-value">{{ producto.categoria.nombre }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Precio:</span>
+                            <span class="info-value">$ {{ producto.precio }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Stock:</span>
+                            <span class="info-value">{{ producto.stock }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="delete-form">
+                {% csrf_token %}
+                <div class="form-actions">
+                    <a href="{% url 'ventas:lista_productos' %}" class="btn-admin-cancel">
+                        <i class="bi bi-x-circle"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn-admin-danger">
+                        <i class="bi bi-trash3"></i> Eliminar Producto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

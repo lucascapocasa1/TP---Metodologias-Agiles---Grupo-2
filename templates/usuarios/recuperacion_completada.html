@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block titulo %}Contraseña cambiada{% endblock %}
+{% block contenido %}
+<div class="auth-wrapper">
+    <div class="auth-card auth-card--slide-in">
+        <div class="auth-brand">
+            <div class="auth-brand-icon"><i class="bi bi-check-circle"></i></div>
+            <h1>¡Contraseña cambiada!</h1>
+        </div>
+
+        <div class="kiosco-alert kiosco-alert-success" role="status">
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <div>
+                <p class="mb-0">
+                    Tu contraseña nueva ya está activa. Ya podés ingresar
+                    al sistema con ella.
+                </p>
+            </div>
+        </div>
+
+        <div class="auth-footer">
+            <a href="{% url 'usuarios:login' %}" class="btn btn-kiosco">
+                <i class="bi bi-box-arrow-in-right"></i> Iniciar sesión
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}

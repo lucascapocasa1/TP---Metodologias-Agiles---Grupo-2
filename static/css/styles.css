@@ -689,6 +689,92 @@ strong {
   margin-top: 0.6rem;
 }
 
+/* Ayudas bajo el form de login: recuperar usuario o contraseña */
+.login-ayuda {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.7rem;
+  margin-top: 2rem;
+  padding-top: 1.6rem;
+  border-top: 1px dashed var(--contorno);
+}
+
+.login-ayuda-titulo {
+  margin: 0;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--texto-suave);
+  opacity: 0.75;
+  text-align: center;
+}
+
+.login-ayuda-link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.7rem;
+  width: 100%;
+  padding: 0.85rem 1rem;
+  font-size: 0.92rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--texto);
+  text-decoration: none;
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio-chico);
+  box-shadow: var(--dureza-chica);
+  transition: transform var(--transicion), box-shadow var(--transicion),
+    background-color var(--transicion);
+}
+
+.login-ayuda-link i {
+  display: grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1rem;
+  color: var(--superficie);
+  background: var(--caramelo-hondo);
+  border-radius: 50%;
+}
+
+.login-ayuda-link:hover,
+.login-ayuda-link:focus-visible {
+  color: var(--ink-solid);
+  background: var(--crema);
+  transform: translate(-2px, -2px);
+  box-shadow: var(--dureza);
+}
+
+.login-ayuda-link:hover i,
+.login-ayuda-link:focus-visible i {
+  transform: rotate(-8deg);
+}
+
+.login-ayuda-link:focus-visible {
+  outline: 3px solid var(--celeste);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .login-ayuda-link:hover i,
+  .login-ayuda-link:focus-visible i {
+    transform: none;
+  }
+}
+
+.auth-footer-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  justify-content: center;
+}
+
 /* ============================================================
    Páginas de error y aviso
    ============================================================ */
@@ -1560,7 +1646,7 @@ strong {
 
 .auth-card {
   width: 100%;
-  max-width: 420px;
+  max-width: 460px;
   background: var(--surface);
   border: 1px solid rgba(26, 26, 46, 0.06);
   border-radius: var(--radius-lg);

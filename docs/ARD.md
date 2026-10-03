@@ -192,7 +192,14 @@ Ruteo raíz (`config/urls.py`): `/admin/` → Django admin · `/` →
 | `/usuarios/logout/` | `usuarios:logout` | POST | Autenticado |
 | `/usuarios/post-login/` | `usuarios:post_login` | GET | `@login_required` + redirige por rol |
 | `/usuarios/sin-rol/` | `usuarios:sin_rol` | GET | `@login_required` |
-| `/usuarios/registro/` | `usuarios:registro` | GET/POST | Público (el usuario nace sin rol) |
+| `/usuarios/recuperar/` | `usuarios:recuperar_clave` | GET/POST | Público (pide email) |
+| `/usuarios/recuperar/enviada/` | `usuarios:recuperacion_enviada` | GET | Público |
+| `/usuarios/recuperar/<uidb64>/<token>/` | `usuarios:resetear_clave` | GET/POST | Token de un solo uso |
+| `/usuarios/recuperar/completada/` | `usuarios:recuperacion_completada` | GET | Público |
+
+No hay auto-registro: las cuentas las crea el Administrador desde
+`administracion:crear_usuario` (donde también se carga el email, necesario
+para la recuperación por email).
 
 ### 5.2 `administracion` (`/administracion/`) — todas con `@rol_requerido("Administrador")`
 
