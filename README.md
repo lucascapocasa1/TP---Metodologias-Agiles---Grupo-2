@@ -528,8 +528,8 @@ kiosco_sprint1/
   `#121214`, rojo `#E23D28`, focos amarillos, radios 6px.
 - **Ticket**: IBM Plex Mono en todo, papel `#F7F7F4` con tinta `#101010`,
   navbar casi negra, radios 0px, perforación gris.
-- **Neón**: Righteous + Space Grotesk, noche `#120B1F`, rosa `#FF2E9A` con
-  glow y cian `#00E5FF`, radios 10px.
+- **Neón**: Righteous + Space Grotesk, noche `#081822`, cian `#00C8E0` como
+  luz principal con glow contenido y un azul `#5FE6F5` de apoyo, radios 10px.
 - Persistencia en `localStorage['kiosco-estilo']` + atributo `data-tema` en
   `<html>` (script en `<head>` para aplicarlo sin flash). Un valor inválido o
   viejo en el storage se sanea a `cartelera`.
