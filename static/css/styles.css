@@ -2106,6 +2106,134 @@ strong {
   margin: 0;
 }
 
+/* --- Reportes: gráfico de ventas por día (barras CSS puras) --- */
+.admin-panel .admin-card {
+  margin-bottom: 1.25rem;
+}
+
+.admin-panel .admin-card h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0 0 1.1rem 0;
+  padding: 1.25rem 1.5rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.admin-panel .admin-card h2 i {
+  color: var(--kiosco-yellow);
+}
+
+.admin-panel .admin-card > .admin-table-container,
+.admin-panel .admin-card > .admin-empty,
+.admin-panel .admin-card > .info-grid,
+.admin-panel .admin-card > .text-muted,
+.admin-panel .admin-card > .admin-subtitle,
+.admin-panel .admin-card > .reporte-grafico,
+.admin-panel .admin-card > .reporte-leyenda,
+.admin-panel .admin-card > .reporte-nota {
+  margin-left: 1.5rem;
+  margin-right: 1.5rem;
+}
+
+.admin-panel .admin-card > :last-child {
+  margin-bottom: 1.5rem;
+}
+
+.reporte-grafico {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.4rem;
+  height: 180px;
+  padding-bottom: 0;
+  overflow-x: auto;
+}
+
+.reporte-dia {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  flex: 1 1 0;
+  min-width: 42px;
+}
+
+.reporte-dia-barras {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  width: 100%;
+  height: 130px;
+}
+
+/* Las barras crecen desde abajo: el 0% se pega al piso del gráfico */
+.reporte-dia-ingresos,
+.reporte-dia-ganancia {
+  width: 45%;
+  min-height: 2px;
+  border-radius: 3px 3px 0 0;
+  transition: height var(--transition);
+}
+
+.reporte-dia-ingresos {
+  background: linear-gradient(180deg, var(--kiosco-amber), var(--kiosco-yellow));
+}
+
+.reporte-dia-ganancia {
+  background: linear-gradient(180deg, #34D399, var(--green));
+}
+
+.reporte-dia-label {
+  font-size: 0.68rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.reporte-dia-valor {
+  font-size: 0.68rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.reporte-leyenda {
+  display: flex;
+  gap: 1.25rem;
+  margin-top: 1rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.reporte-leyenda-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.reporte-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  display: inline-block;
+}
+
+.reporte-swatch-ingresos {
+  background: linear-gradient(180deg, var(--kiosco-amber), var(--kiosco-yellow));
+}
+
+.reporte-swatch-ganancia {
+  background: linear-gradient(180deg, #34D399, var(--green));
+}
+
+.reporte-nota {
+  margin-top: 0.75rem;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
 /* --- System Info --- */
 .system-info {
   background: var(--surface);

@@ -1,0 +1,198 @@
+{% extends "base.html" %}
+{% block titulo %}Reporte de Stock{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-box-seam"></i> Reporte de Stock</h1>
+            <p class="admin-subtitle">Valorización del inventario, faltantes y márgenes</p>
+        </div>
+        <a href="{% url 'administracion:reportes_ventas' %}" class="btn btn-admin-secondary">
+            <i class="bi bi-graph-up"></i> Ver ventas
+        </a>
+    </div>
+
+    <div class="admin-filters">
+        <form method="get" class="filter-form">
+            <div class="filter-group form-check">
+                <input class="form-check-input" type="checkbox" name="activos" value="1" id="activos" {% if solo_activos %}checked{% endif %}>
+                <label class="form-check-label" for="activos">Contar solo productos activos</label>
+            </div>
+            <button type="submit" class="btn btn-admin-filter">
+                <i class="bi bi-funnel"></i> Aplicar
+            </button>
+        </form>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card stat-total">
+            <div class="stat-icon"><i class="bi bi-boxes"></i></div>
+            <div class="stat-content">
+                <h3>{{ stock.cantidad_productos }}</h3>
+                <p>Productos</p>
+            </div>
+        </div>
+        <div class="stat-card stat-cashier">
+            <div class="stat-icon"><i class="bi bi-stack"></i></div>
+            <div class="stat-content">
+                <h3>{{ stock.unidades }}</h3>
+                <p>Unidades en depósito</p>
+            </div>
+        </div>
+        <div class="stat-card stat-inactive">
+            <div class="stat-icon"><i class="bi bi-cash"></i></div>
+            <div class="stat-content">
+                <h3>${{ stock.valor_costo|floatformat:2 }}</h3>
+                <p>Invertido a costo</p>
+            </div>
+        </div>
+        <div class="stat-card stat-active">
+            <div class="stat-icon"><i class="bi bi-arrow-up-right"></i></div>
+            <div class="stat-content">
+                <h3>${{ stock.ganancia_potencial|floatformat:2 }}</h3>
+                <p>Ganancia si se vende todo</p>
+            </div>
+        </div>
+        <div class="stat-card stat-warning">
+            <div class="stat-icon"><i class="bi bi-exclamation-triangle"></i></div>
+            <div class="stat-content">
+                <h3>{{ stock.cantidad_stock_bajo }}</h3>
+                <p>Stock bajo (≤ {{ umbral_stock_bajo }})</p>
+            </div>
+        </div>
+        <div class="stat-card stat-admin">
+            <div class="stat-icon"><i class="bi bi-x-circle"></i></div>
+            <div class="stat-content">
+                <h3>{{ stock.sin_stock }}</h3>
+                <p>Productos sin stock</p>
+            </div>
+        </div>
+    </div>
+
+    {% if stock.sin_costo %}
+    <div class="kiosco-alert kiosco-alert-warning">
+        <i class="bi bi-info-circle-fill"></i>
+        <span>
+            {{ stock.sin_costo }} producto(s) no tienen precio de costo cargado,
+            así que la valorización a costo está subestimada. Cargá el costo
+            desde el catálogo para que los márgenes sean reales.
+        </span>
+    </div>
+    {% endif %}
+
+    <!-- Stock por categoría -->
+    <div class="admin-card">
+        <h2><i class="bi bi-diagram-3"></i> Valorización por categoría</h2>
+        {% if por_categoria %}
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Categoría</th>
+                        <th>Productos</th>
+                        <th>Unidades</th>
+                        <th>Invertido a costo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for fila in por_categoria %}
+                    <tr>
+                        <td>{{ fila.categoria__nombre }}</td>
+                        <td>{{ fila.productos }}</td>
+                        <td>{{ fila.unidades }}</td>
+                        <td>${{ fila.valor_costo|floatformat:2 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">Todavía no cargaste productos.</p>
+        {% endif %}
+    </div>
+
+    <!-- Stock bajo -->
+    <div class="admin-card">
+        <h2><i class="bi bi-exclamation-triangle"></i> Stock bajo o agotado</h2>
+        {% if stock.stock_bajo %}
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Stock</th>
+                        <th>Costo</th>
+                        <th>Precio</th>
+                        <th>Margen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in stock.stock_bajo %}
+                    <tr class="{% if p.stock == 0 %}row-inactive{% endif %}">
+                        <td>{{ p.nombre }}</td>
+                        <td>{{ p.categoria.nombre }}</td>
+                        <td>
+                            {% if p.stock == 0 %}
+                            <span class="status-badge status-inactive">Agotado</span>
+                            {% else %}
+                            <span class="status-badge status-active">{{ p.stock }}</span>
+                            {% endif %}
+                        </td>
+                        <td>${{ p.costo|floatformat:2 }}</td>
+                        <td>${{ p.precio|floatformat:2 }}</td>
+                        <td>{{ p.margen_porcentual|floatformat:1 }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="admin-empty">
+            <div class="empty-icon"><i class="bi bi-check-circle"></i></div>
+            <h3>Todo el stock está cubierto</h3>
+            <p>Ningún producto activo tiene stock igual o menor a {{ umbral_stock_bajo }} unidades.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Márgenes bajos -->
+    <div class="admin-card">
+        <h2><i class="bi bi-graph-down-arrow"></i> Productos con margen bajo</h2>
+        {% if bajo_margen %}
+        <p class="admin-subtitle">
+            Productos cuyo margen sobre el costo está por debajo del 20%.
+            Vale la pena revisar el precio de venta.
+        </p>
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Costo</th>
+                        <th>Precio</th>
+                        <th>Ganancia unitaria</th>
+                        <th>Margen</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in bajo_margen %}
+                    <tr>
+                        <td>{{ p.nombre }}</td>
+                        <td>${{ p.costo|floatformat:2 }}</td>
+                        <td>${{ p.precio|floatformat:2 }}</td>
+                        <td>${{ p.margen_unitario|floatformat:2 }}</td>
+                        <td>{{ p.margen_porcentual|floatformat:1 }}%</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="text-muted mb-0">
+            No hay productos con margen bajo, o todavía no cargaste sus costos.
+        </p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

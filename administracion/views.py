@@ -1,12 +1,107 @@
 from django.contrib import messages
 from django.contrib.auth.models import Group, User
+from decimal import Decimal
+
+from django.db.models import (
+    DecimalField,
+    F,
+    IntegerField,
+    Prefetch,
+    Sum,
+    Value,
+)
+from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
 
 from auditoria.utils import registrar_accion
 from usuarios.decorators import rol_requerido
 from ventas.models import Producto
+from ventas.models import DetalleVenta
 
+from . import reportes
 from .forms import AsignarRolForm, UsuarioForm
+
+
+@rol_requerido("Administrador")
+def reportes_ventas(request):
+    """
+    Reporte de ventas con filtro por rango de fechas.
+
+    Por defecto mira los últimos 14 días. El checkbox "solo finalizadas"
+    sirve porque `Venta.finalizada` todavía no lo usa el flujo de cobro
+    (viene del Sprint 3): sin él, el reporte contaría carritos a medio armar.
+    """
+    f_desde, f_hasta, desde_dt, hasta_dt = reportes.resolver_rango(
+        request.GET.get("desde"), request.GET.get("hasta")
+    )
+    solo_finalizadas = request.GET.get("finalizadas") == "1"
+
+    resumen = reportes.resumen_ventas(desde_dt, hasta_dt, solo_finalizadas)
+    serie = reportes.ventas_por_dia(desde_dt, hasta_dt, solo_finalizadas)
+    top = reportes.top_productos(desde_dt, hasta_dt, solo_finalizadas=solo_finalizadas)
+    rentables = reportes.productos_mas_rentables(
+        desde_dt, hasta_dt, solo_finalizadas=solo_finalizadas
+    )
+
+    ventas = (
+        reportes.ventas_del_rango(desde_dt, hasta_dt, solo_finalizadas)
+        .annotate(
+            unidades=Coalesce(
+                Sum("detalles__cantidad"),
+                Value(0),
+                output_field=IntegerField(),
+            ),
+            costo=Coalesce(
+                Sum(
+                    F("detalles__cantidad")
+                    * Coalesce(F("detalles__costo_unitario"), F("detalles__producto__costo"))
+                ),
+                Value(Decimal("0.00")),
+                output_field=DecimalField(max_digits=14, decimal_places=2),
+            ),
+        )
+        .annotate(ganancia=F("total") - F("costo"))
+        .prefetch_related(
+            Prefetch("detalles", queryset=DetalleVenta.objects.select_related("producto"))
+        )
+        .order_by("-fecha")
+    )
+
+    # Las barras son CSS puro, así que el template necesita el techo de cada
+    # serie para escalarlas con widthratio.
+    max_ingresos = max((fila["ingresos"] for fila in serie), default=0)
+    max_ganancia = max((fila["ganancia"] for fila in serie), default=0)
+
+    context = {
+        "desde": f_desde,
+        "hasta": f_hasta,
+        "solo_finalizadas": solo_finalizadas,
+        "resumen": resumen,
+        "serie": serie,
+        "max_ingresos": max_ingresos,
+        "max_ganancia": max_ganancia,
+        "top": top,
+        "rentables": rentables,
+        "ventas": ventas[:100],
+        "hay_mas_ventas": ventas.count() > 100,
+    }
+    return render(request, "administracion/reportes_ventas.html", context)
+
+
+@rol_requerido("Administrador")
+def reportes_stock(request):
+    """Reporte de inventario: valorización, faltantes y márgenes del catálogo."""
+    solo_activos = request.GET.get("activos") != "0"
+    stock = reportes.resumen_stock(solo_activos=solo_activos)
+
+    context = {
+        "solo_activos": solo_activos,
+        "stock": stock,
+        "por_categoria": reportes.stock_por_categoria(),
+        "bajo_margen": reportes.productos_bajo_margen(),
+        "umbral_stock_bajo": reportes.UMBRAL_STOCK_BAJO,
+    }
+    return render(request, "administracion/reportes_stock.html", context)
 
 
 @rol_requerido("Administrador")
