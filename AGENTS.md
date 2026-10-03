@@ -38,7 +38,7 @@ usuarios/          # Auth: login, logout, registro, roles/grupos, decorador de a
 ventas/            # Catálogo (Categoria, Producto), ventas (Venta, DetalleVenta) y pantalla de cobro
 administracion/    # Dashboard y CRUD de usuarios (listar/crear/editar/eliminar/roles/toggle)
 auditoria/         # RegistroAuditoria + signals: audita cambios en usuarios y ventas
-static/            # CSS/JS compartido (styles.css con los 3 estilos visuales)
+static/            # CSS/JS compartido (styles.css con el estilo visual neón)
 templates/         # base.html + templates por app (también 403.html y 404.html)
 ```
 
@@ -53,6 +53,6 @@ Modelos: `ventas` → `Categoria`, `Producto`, `Venta`, `DetalleVenta`; `auditor
 - **Flujo de auth**: `LoginKioscoView` → `post_login` redirige por rol (admin → dashboard, cajero → cobro, sin rol → `sin_rol`). `LOGIN_URL = 'usuarios:login'`.
 - **URLs**: cada app define `app_name` y patrones con nombre. Raíz `/` → `usuarios:post_login`.
 - **Templates**: extienden `base.html` (Bootstrap 5 CDN). Blocks: `titulo`, `contenido`.
-- **Frontend**: 3 estilos conmutables — `data-tema` (`cartelera` | `ticket` | `neon`) + `data-theme` (claro/oscuro) en `<html>`; preferencia en `localStorage` (`kiosco-estilo`, `kiosco-tema`); default saneado a `cartelera`. Botones `#estiloToggle` y `#darkToggle`. Vocabulario de animaciones "toldo" al final de `static/css/styles.css`; respetar `prefers-reduced-motion`.
+- **Frontend**: un solo estilo visual, **neón cian**, fijo — `data-tema="neon"` se fuerza en el `<head>` de `base.html` + `data-theme` (claro/oscuro) en `<html>`; tema oscuro en `localStorage['kiosco-tema']`. No existe selector de estilos (el botón `#estiloToggle` y las paletas cartelera/ticket fueron eliminados); botón `#darkToggle` sí. Vocabulario de animaciones "toldo" al final de `static/css/styles.css`; respetar `prefers-reduced-motion`.
 - **Usuarios de prueba** (los crea `setup_inicial`): `admin`/`kiosco2024` (Administrador), `cajero1`/`kiosco2024` (Cajero).
 - **Estilo de código**: nombres de apps y comentarios en español. Seguir las convenciones existentes al agregar apps o archivos nuevos.

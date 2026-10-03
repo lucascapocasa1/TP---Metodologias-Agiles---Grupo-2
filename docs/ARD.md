@@ -34,8 +34,8 @@ flowchart LR
         V1 --> D1[usuarios/decorators.py<br/>@rol_requerido]
         V2 --> D1
         V3 --> D1
-        V1 & V2 & V3 --> T[Django Templates<br/>base.html + 3 estilos]
-        T --> CSS[static/css/styles.css<br/>tokens · 3 temas · dark mode]
+        V1 & V2 & V3 --> T[Django Templates<br/>base.html + estilo neón]
+        T --> CSS[static/css/styles.css<br/>tokens · tema neón · dark mode]
     end
 
     V1 & V2 & V3 --> DB[(PostgreSQL<br/>fallback SQLite)]
@@ -69,8 +69,8 @@ flowchart LR
 | Driver | psycopg2-binary | 2.9.12 | Conector oficial de PostgreSQL |
 | Templates | Django Template Language | — | Server-side rendering, sin build step ni Node |
 | UI framework | Bootstrap 5.3.3 + Bootstrap Icons (CDN) | — | Grid y utilidades sin herramientas de build |
-| Tipografía | Google Fonts CDN (Alfa Slab One, Archivo, Bebas Neue, IBM Plex Mono, Righteous, Space Grotesk) | — | Identidad visual por estilo |
-| CSS | `static/css/styles.css` con custom properties (~3.100 líneas) | — | Design tokens, 3 temas y modo oscuro sin preprocesador |
+| Tipografía | Google Fonts CDN (Righteous, Space Grotesk) | — | Identidad visual neón |
+| CSS | `static/css/styles.css` con custom properties (~2.900 líneas) | — | Design tokens, tema neón y modo oscuro sin preprocesador |
 | Tests | Django test runner (`manage.py test`) | — | 35 tests, sin dependencias extra |
 | Auditoría | Señales de Django (`user_logged_in/out`) | — | Sin tocar las vistas de login |
 
@@ -304,9 +304,9 @@ sequenceDiagram
 | Layout | `templates/base.html` con blocks `titulo` y `contenido`; navbar solo si `user.is_authenticated` (marca, usuario, badge de rol, controles de tema, logout POST) |
 | Estructura de templates | `templates/<app>/…` en paralelo a las apps; páginas de error globales `403.html` / `404.html` |
 | Partiales | `templates/usuarios/tags/paginacion.html` y `buscador.html` (inclusion tags desde `usuarios/templatetags/`) |
-| Estilos | 3 estilos conmutables por `data-tema` (`cartelera` \| `ticket` \| `neon`) + modo oscuro por `data-theme` (`light`/`dark`) en `<html>` |
-| Persistencia | `localStorage['kiosco-estilo']` y `localStorage['kiosco-tema']`; script inline en `<head>` para aplicar sin destello; valor inválido se sanea a `cartelera` |
-| Tokens | Custom properties en `:root` + variantes `[data-tema=…]` y `[data-theme="dark"]`; una paleta definida una vez, reutilizada en todos los componentes |
+| Estilos | Un solo estilo visual, **neón cian**, forzado con `data-tema="neon"` en `<html>` + modo oscuro por `data-theme` (`light`/`dark`) (las paletas cartelera/ticket y el selector de estilo se eliminaron) |
+| Persistencia | `localStorage['kiosco-tema']` (claro/oscuro); script inline en `<head>` para aplicar sin destello; `localStorage['kiosco-estilo']` se limpia si existía |
+| Tokens | Custom properties en `:root` + variantes `[data-tema="neon"]` y `[data-theme="dark"]`; una paleta definida una vez, reutilizada en todos los componentes |
 | Accesibilidad | Contraste AA, `focus-visible`, `aria-label` en botones de tema, `@media (prefers-reduced-motion: reduce)` |
 | Responsivo | Navbar colapsa en mobile; login a panel único bajo 900px |
 | Sin build | Todo JS es inline en `base.html`; no hay `package.json` ni bundler |

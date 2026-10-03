@@ -6,7 +6,7 @@
     <title>{% block titulo %}Kiosco{% endblock %} — Sistema Kiosco</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Alfa+Slab+One&family=Archivo:wght@400;500;600;700&family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;500;600;700&family=Righteous&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="/static/css/styles.css?v=neon-cian">
@@ -17,13 +17,8 @@
         if (t === 'oscuro' || (!t && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.setAttribute('data-theme', 'dark');
         }
-        var e = localStorage.getItem('kiosco-estilo');
-        var validos = ['cartelera', 'ticket', 'neon'];
-        if (validos.indexOf(e) === -1) {
-            e = 'cartelera';
-            localStorage.setItem('kiosco-estilo', e);
-        }
-        document.documentElement.setAttribute('data-tema', e);
+        localStorage.removeItem('kiosco-estilo');
+        document.documentElement.setAttribute('data-tema', 'neon');
     })();
     </script>
 </head>
@@ -45,10 +40,6 @@
                         <span class="badge-superuser">Admin</span>
                     {% endif %}
                 </div>
-                <button type="button" class="btn-tema" id="estiloToggle" title="Cambiar el estilo visual" aria-label="Cambiar el estilo visual">
-                    <i class="bi bi-palette-fill" aria-hidden="true"></i>
-                    <span class="estilo-nombre">Cartelera</span>
-                </button>
                 <button type="button" class="btn-tema" id="darkToggle" title="Cambiar tema" aria-label="Cambiar entre tema claro y oscuro">
                     <i class="bi bi-moon-fill"></i>
                 </button>
@@ -119,47 +110,5 @@
     })();
     </script>
 
-    <script>
-    (function() {
-        var btn = document.getElementById('estiloToggle');
-        if (!btn) return;
-
-        var nombre = btn.querySelector('.estilo-nombre');
-        var ORDEN = ['cartelera', 'ticket', 'neon'];
-        var NOMBRES = { cartelera: 'Cartelera', ticket: 'Ticket', neon: 'Neón' };
-        var actual = document.documentElement.getAttribute('data-tema') || 'cartelera';
-
-        function aplicar(estilo) {
-            document.documentElement.setAttribute('data-tema', estilo);
-            if (nombre) {
-                nombre.textContent = NOMBRES[estilo] || 'Cartelera';
-            }
-        }
-
-        aplicar(actual);
-
-        btn.addEventListener('click', function() {
-            var i = ORDEN.indexOf(actual);
-            actual = ORDEN[(i + 1) % ORDEN.length];
-            localStorage.setItem('kiosco-estilo', actual);
-            aplicar(actual);
-
-            // Re-impresión de la página + vuelta del ícono de paleta
-            var doc = document.documentElement;
-            doc.classList.remove('re-impresion');
-            void doc.offsetWidth;
-            doc.classList.add('re-impresion');
-            setTimeout(function() { doc.classList.remove('re-impresion'); }, 600);
-
-            var ic = btn.querySelector('i');
-            if (ic) {
-                ic.classList.remove('gira');
-                void ic.offsetWidth;
-                ic.classList.add('gira');
-                setTimeout(function() { ic.classList.remove('gira'); }, 500);
-            }
-        });
-    })();
-    </script>
 </body>
 </html>

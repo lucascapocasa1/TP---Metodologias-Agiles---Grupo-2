@@ -2,8 +2,8 @@
 
 Trabajo práctico de Metodologías Ágiles. Sistema web de gestión para un kiosco de barrio.
 
-**Estado al 22-09-2026:** Sprint 1 completo · Sprint 2 en progreso · Frontend rediseñado con
-3 estilos visuales conmutables · 35 tests en verde.
+**Estado al 22-09-2026:** Sprint 1 completo · Sprint 2 en progreso · Frontend con
+estilo neón cian único · 35 tests en verde.
 
 ---
 
@@ -59,10 +59,10 @@ versión 24-09-2026) y son el entregable de documentación del trabajo práctico
 
 ### Frontend — rediseño completo
 
-- Identidad visual "toldo de barrio" y **3 estilos conmutables**: **Cartelera**
-  (por defecto), **Ticket** y **Neón**, más modo oscuro. Detalle en
+- Identidad visual "toldo de barrio" con **un solo estilo: Neón cian** (fijo),
+  más modo oscuro. Las paletas Cartelera y Ticket se eliminaron; detalle en
   [Decisiones técnicas → Frontend](#frontend) y
-  [Selector de estilos visuales](#selector-de-estilos-visuales).
+  [Estilo visual](#estilo-visual).
 
 ### Tests
 
@@ -259,13 +259,12 @@ para que el cajero pueda asociar una venta a un cliente cuando lo solicite
 - **Identidad "toldo de barrio"**: rotulación de kiosco argentino — contorno
   de tinta + sombra dura, etiquetas de precio adhesivas, código de barras como
   gráfico temático, códigos de error grandes (403/404) y filete de toldo en el
-  navbar. Tipografía display **Alfa Slab One** + interfaz **Archivo**.
-- **3 estilos visuales conmutables** (ver sección siguiente): **Cartelera**
-  (por defecto), **Ticket** (estética de comprobante impreso) y **Neón**
-  (cartelería nocturna). Cada estilo define su propia paleta, tipografía y
-  radios.
-- **Modo oscuro** persistente (`data-theme="dark"`), con los tres estilos
-  también disponibles en su variante oscura.
+  navbar. Tipografía display **Righteous** + interfaz **Space Grotesk**.
+- **Un solo estilo visual: Neón cian** (ver sección siguiente): paleta cian
+  `#00C8E0` sobre azul profundo `#081822`, con glow y grilla de piso. Las
+  paletas Cartelera y Ticket fueron eliminadas del CSS y el botón de selector
+  de estilo se retiró del navbar y del login.
+- **Modo oscuro** persistente (`data-theme="dark"`) en el estilo neón.
 - **Componentes custom**: `kiosco-navbar`, badges de rol, `btn-kiosco`,
   `kiosco-input`, `kiosco-alert`, `placeholder-page`, `error-page`,
   `warning-page`, mock de escáner en cobro, `sello` y banner `viene`.
@@ -455,14 +454,12 @@ kiosco_sprint1/
 ├── templates/                        # Django Template Language.
 │   ├── base.html                     # Layout: Google Fonts + Bootstrap CDN,
 │   │                                 # navbar (marca, usuario, badges, botón
-│   │                                 # de estilo, botón oscuro, salir),
-│   │                                 # bloque de messages, scripts de tema y
-│   │                                 # de estilo sin flash.
+│   │                                 # oscuro, salir), bloque de messages,
+│   │                                 # scripts de tema y de estilo neón.
 │   ├── 403.html / 404.html           # error-page con código grande.
 │   ├── usuarios/
 │   │   ├── login.html                # login-split: toldo a la izquierda +
-│   │   │                             # panel de ingreso a la derecha, botón
-│   │   │                             # de estilo flotante.
+│   │   │                             # panel de ingreso a la derecha.
 │   │   ├── registro.html             # auth-card de alta de cuenta.
 │   │   ├── sin_rol.html              # warning-page sin grupo asignado.
 │   │   └── tags/                     # Partiales de paginación y buscador.
@@ -476,12 +473,11 @@ kiosco_sprint1/
 │       └── asignar_roles.html        # checkboxes de grupos.
 │
 ├── static/
-│   ├── css/styles.css                # ~2.900 líneas: tokens del toldo, 3
-│   │                                 # estilos (cartelera/ticket/neon) con
-│   │                                 # dark variant, componentes base,
-│   │                                 # bloques auth/admin del equipo con
-│   │                                 # aliases de tokens, responsive,
-│   │                                 # reduced-motion.
+│   ├── css/styles.css                # ~2.900 líneas: tokens del toldo, estilo
+│   │                                 # neón (único) con dark variant,
+│   │                                 # componentes base, bloques auth/admin
+│   │                                 # del equipo con aliases de tokens,
+│   │                                 # responsive, reduced-motion.
 │   └── img/favicon.svg               # Tira amarilla + "K" sobre tinta
 │                                     # (#17130E / #FFC400).
 │
@@ -517,24 +513,18 @@ kiosco_sprint1/
   y aplica `data-theme="dark"` en `<html>` antes del render (sin flash). Si no
   hay nada guardado, respeta `prefers-color-scheme`.
 - El botón de luna/sol en el navbar cambia el atributo y guarda en `localStorage`.
-- Los estilos dark están en `styles.css` bajo selectores `[data-theme="dark"]`,
-  tanto para los componentes base como para los 3 estilos.
+- Los estilos dark están en `styles.css` bajo selectores `[data-theme="dark"]`.
 
-### Selector de estilos visuales
+### Estilo visual
 
-- Tres estilos, ciclados con el botón de paleta (navbar y login):
-  **Cartelera → Ticket → Neón → Cartelera…**
-- **Cartelera** (por defecto): Alfa Slab One + Archivo, negros `#0D0D0F`/
-  `#121214`, rojo `#E23D28`, focos amarillos, radios 6px.
-- **Ticket**: IBM Plex Mono en todo, papel `#F7F7F4` con tinta `#101010`,
-  navbar casi negra, radios 0px, perforación gris.
-- **Neón**: Righteous + Space Grotesk, noche `#081822`, cian `#00C8E0` como
-  luz principal con glow contenido y un azul `#5FE6F5` de apoyo, radios 10px.
-- Persistencia en `localStorage['kiosco-estilo']` + atributo `data-tema` en
-  `<html>` (script en `<head>` para aplicarlo sin flash). Un valor inválido o
-  viejo en el storage se sanea a `cartelera`.
-- Cada estilo tiene su variante oscura (`data-theme="dark"` combinado con
-  `data-tema`).
+- **Un solo estilo: Neón cian.** Righteous + Space Grotesk, noche `#081822`,
+  cian `#00C8E0` como luz principal con glow contenido y un azul `#5FE6F5` de
+  apoyo, radios 10px.
+- `data-tema="neon"` se fuerza en el script inline del `<head>` de `base.html`
+  (sin flash); `localStorage['kiosco-estilo']` se limpia si existía.
+- Se eliminaron las paletas **Cartelera** y **Ticket** (CSS y selector) y el
+  botón `#estiloToggle` del navbar y del login. Solo queda `#darkToggle`
+  (claro/oscuro).
 
 ## Backlog
 
@@ -555,7 +545,7 @@ kiosco_sprint1/
 | Cierre de turno: totales por método, operaciones, responsable (HU-10) | 4 | Pendiente |
 | Reporte top 10 de productos más vendidos (HU-11) | 4 | Pendiente |
 | Alta/búsqueda de clientes por CUIT/DNI (HU-12, opcional) | 4 | Pendiente |
-| Rediseño frontend: identidad toldo + 3 estilos + modo oscuro | transversal | Hecho |
+| Rediseño frontend: identidad toldo + estilo neón + modo oscuro | transversal | Hecho |
 
 ### Backlog nuevo (agregado 03-10-2026)
 
