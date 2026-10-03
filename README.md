@@ -2,8 +2,8 @@
 
 Trabajo práctico de Metodologías Ágiles. Sistema web de gestión para un kiosco de barrio.
 
-**Estado al 22-09-2026:** Sprint 1 completo · Sprint 2 en progreso · Frontend con
-estilo neón cian único · 35 tests en verde.
+**Estado al 03-10-2026:** Sprint 1 completo · Sprint 2 en progreso · Frontend con
+estilo neón cian único · reportes de ventas y stock · 92 tests en verde.
 
 ---
 
@@ -33,17 +33,30 @@ versión 24-09-2026) y son el entregable de documentación del trabajo práctico
 ### Productos y catálogo (Sprint 2) — en progreso
 
 - Modelos **Categoria**, **Producto**, **Venta** y **DetalleVenta** creados y migrados
-  (`ventas/migrations/0001_initial.py`), registrados en el admin de Django
+  (`0001_initial.py` + `0002_...costo...` que agrega `Producto.costo` y
+  `DetalleVenta.costo_unitario`), registrados en el admin de Django
   (Venta con inline de detalles).
 - Vistas y URLs de **lista de productos con búsqueda** (GET por nombre/descripción) y
   **alta de productos** con categoría nueva.
 - **Pendiente bloqueante:** faltan los templates `ventas/lista_productos.html` y
   `ventas/agregar_producto.html` — por eso `/ventas/productos/` y
   `/ventas/productos/agregar/` devuelven **500 (TemplateDoesNotExist)**. Las views,
-  urls y modelos sí están; hay que crear esos dos templates.
-- **Pendiente vs HU-04/05/06:** código de barras, precio de costo y precio de venta
-  separados, stock mínimo, marca de stock ≤ 5, y búsqueda en tiempo real con HTMX
-  (hoy la búsqueda recarga la página).
+  urls y modelos sí están; hay que crear esos dos templates. Además esas views
+  solo tienen `@login_required` (deberían ser de administrador) y no hay
+  edición ni baja de productos.
+- **Pendiente vs HU-04/05/06:** código de barras, stock mínimo, marca de stock
+  ≤ 5, y búsqueda en tiempo real con HTMX (hoy la búsqueda recarga la página).
+  *El precio de costo ya existe (`Producto.costo`).*
+
+### Reportes (Sprint 4) — completo
+
+- `/administracion/reportes/ventas/`: resumen (cantidad, ingresos, costo,
+  ganancia, ticket promedio, margen %), serie de 14 días, top 10 de productos,
+  más rentables.
+- `/administracion/reportes/stock/`: inventario valorado a costo y a venta,
+  stock bajo (≤5), sin stock, por categoría y productos con margen bajo.
+- Protegidos con `@rol_requerido("Administrador")` → el cajero recibe 403.
+- 57 tests en `administracion/tests_reportes.py`.
 
 ### Gestión de usuarios — completo
 
@@ -66,8 +79,8 @@ versión 24-09-2026) y son el entregable de documentación del trabajo práctico
 
 ### Tests
 
-- **35 tests OK** (`python manage.py test`): `usuarios` 9, `ventas` 4,
-  `administracion` 22.
+- **92 tests OK** (`python manage.py test`): `usuarios` 9, `ventas` 4,
+  `administracion` 22 + 57 de reportes.
 
 ---
 
@@ -142,12 +155,13 @@ que se están quedando sin stock, para saber qué tengo que salir a reponer.
 ### Modelos (implementados)
 
 - **Categoria**: nombre, descripción.
-- **Producto**: nombre, descripción, precio (único por ahora), stock,
-  categoría (FK), activo. *Todavía sin código de barras, precio de costo /
-  venta separados ni stock mínimo (pendientes de las HU).*
+- **Producto**: nombre, descripción, precio de venta, **costo** (solo lo ve el
+  administrador), stock, categoría (FK), activo. *Todavía sin código de barras
+  ni stock mínimo (pendientes de las HU).*
 - **Venta**: fecha/hora, total, finalizada. Base para el Sprint 3.
-- **DetalleVenta**: venta, producto, cantidad, precio unitario, `subtotal()`.
-  Base para el Sprint 3.
+- **DetalleVenta**: venta, producto, cantidad, precio unitario,
+  **costo_unitario**, `subtotal()`, `costo_total()`, `ganancia()`. Base para
+  el Sprint 3.
 
 ---
 
@@ -193,7 +207,9 @@ ingresar el monto entregado y que el sistema calcule el vuelto exacto.
 > "Cuando termina el turno o el día, quiero apretar un botón y que me tire
 > el total de plata que entró en efectivo, en tarjeta y cuántas ventas hice."
 
-**Estado:** pendiente.
+**Estado:** en progreso — **HU-11 (reporte top 10) hecha** con
+`administracion/reportes.py`; faltan HU-10 (cierre de turno) y HU-12
+(clientes).
 
 ### Historias de usuario
 
@@ -360,7 +376,7 @@ Con el entorno virtual activado:
 python manage.py test
 ```
 
-**35 tests** actualmente:
+**92 tests** actualmente:
 
 - **`usuarios/tests.py` (9)**: login correcto e incorrecto, acceso anónimo
   bloqueado, cajero bloqueado en administración, administrador con acceso
@@ -371,6 +387,10 @@ python manage.py test
   403 sin grupo, estadísticas) y CRUD de usuarios (listar con búsqueda y
   filtro por rol, crear, editar, eliminar con protección de superusuarios,
   activar/desactivar, asignar/quitar roles).
+- **`administracion/tests_reportes.py` (57)**: resumen de ventas, serie
+  diaria, top 10, productos rentables, stock valorado, stock por categoría,
+  margen bajo, propiedades de `Producto`/`DetalleVenta` y las vistas de
+  reportes (incluye 403 para el cajero).
 
 ## Estructura del proyecto
 
@@ -432,15 +452,21 @@ kiosco_sprint1/
 │     templates/ventas/agregar_producto.html (las dos URLs dan 500).
 │
 ├── administracion/                   # Panel del dueño.
-│   ├── views.py                      # dashboard (stats de usuarios) + CRUD:
+│   ├── views.py                      # dashboard (stats de usuarios), CRUD:
 │   │                                 # listar, crear, editar, eliminar,
-│   │                                 # asignar_roles, toggle_usuario.
-│   ├── urls.py                       # 7 rutas bajo /administracion/.
+│   │                                 # asignar_roles, toggle_usuario, y las
+│   │                                 # vistas de reportes (solo admin).
+│   ├── reportes.py                   # Resúmenes de ventas y stock: ingresos,
+│   │                                 # ganancia, ticket promedio, top 10,
+│   │                                 # stock valorado, por categoría, margen.
+│   ├── urls.py                       # 9 rutas bajo /administracion/
+│   │                                 # (7 de usuarios + 2 de reportes).
 │   ├── forms.py                      # UsuarioForm (alta/edición con
 │   │                                 # contraseña opcional al editar) y
 │   │                                 # AsignarRolForm (checkboxes de grupos).
 │   ├── tests.py                      # 22 tests.
-│   └── templates → ../templates/administracion/ (7 templates).
+│   ├── tests_reportes.py             # 57 tests.
+│   └── templates → ../templates/administracion/ (8 templates).
 │
 ├── auditoria/                        # Logs de auditoría.
 │   ├── models.py                     # RegistroAuditoria: usuario, acción,
@@ -470,7 +496,9 @@ kiosco_sprint1/
 │       ├── listar_usuarios.html      # tabla con búsqueda/filtros.
 │       ├── crear_usuario.html / editar_usuario.html
 │       ├── eliminar_usuario.html     # confirmación con advertencia.
-│       └── asignar_roles.html        # checkboxes de grupos.
+│       ├── asignar_roles.html        # checkboxes de grupos.
+│       ├── reportes_ventas.html       # resumen, serie diaria, top 10.
+│       └── reportes_stock.html        # inventario valorado y alertas.
 │
 ├── static/
 │   ├── css/styles.css                # ~2.900 líneas: tokens del toldo, estilo
@@ -528,40 +556,65 @@ kiosco_sprint1/
 
 ## Backlog
 
-| Item | Sprint | Estado |
-|------|--------|--------|
-| Login + roles + 403 server-side + post-login por rol | 1 | Hecho |
-| Auditoría de login/logout con IP | transversal | Hecho |
-| Registro de cuentas públicas (sin rol) | transversal | Hecho |
-| CRUD de usuarios + búsqueda + filtro por roles + paginación | 2 | Hecho |
-| Modelos Categoria, Producto, Venta, DetalleVenta + admin Django | 2 | Hecho |
-| Views/urls de lista y alta de productos | 2 | Parcial (faltan 2 templates → 500) |
-| Código de barras + precio costo/venta + stock mínimo (HU-04) | 2 | Pendiente |
-| Búsqueda de productos en tiempo real con HTMX (HU-05) | 2 | Pendiente |
-| Alerta de stock ≤ 5 con marca de color (HU-06) | 2 | Pendiente |
-| Carrito de cobro con lector de código de barras (HU-07/08) | 3 | Pendiente |
-| Cobro efectivo/tarjeta con vuelto (HU-09) | 3 | Pendiente |
-| Descuento automático de stock al confirmar venta | 3 | Pendiente |
-| Cierre de turno: totales por método, operaciones, responsable (HU-10) | 4 | Pendiente |
-| Reporte top 10 de productos más vendidos (HU-11) | 4 | Pendiente |
-| Alta/búsqueda de clientes por CUIT/DNI (HU-12, opcional) | 4 | Pendiente |
-| Rediseño frontend: identidad toldo + estilo neón + modo oscuro | transversal | Hecho |
+Estado real al **03-10-2026** (unificado: tabla original + backlog nuevo).
 
-### Backlog nuevo (agregado 03-10-2026)
+### Hecho
 
-Ítems del backlog que **no estaban** en la tabla anterior. La columna *Sprint*
-queda "por definir" hasta que se planifique.
+| Item | Sprint | Evidencia |
+|------|--------|-----------|
+| Login + roles + 403 server-side + post-login por rol | 1 | `usuarios/decorators.py`, tests de `usuarios` |
+| Auditoría de login/logout con IP | transversal | `auditoria/signals.py` |
+| Registro de cuentas públicas (sin rol) | transversal | `usuarios:registro` |
+| CRUD de usuarios + búsqueda + filtro por roles + paginación | 2 | `administracion/views.py`, 22 tests |
+| Modelos Categoria, Producto, Venta, DetalleVenta + admin Django | 2 | `ventas/models.py` (+ migración 0002 con `costo`) |
+| Campo de costo en Producto (lo ve solo el admin) | 2 | `Producto.costo`, `DetalleVenta.costo_unitario` |
+| Cajero no accede a costos de mercadería | transversal | `@rol_requerido("Administrador")` + test `test_no_muestra_costos_al_cajero` (403) |
+| Reporte top 10 de productos más vendidos (HU-11) | 4 | `administracion/reportes.py::top_productos` |
+| Consulta de ventas, stock, costos y reportes para el administrador | 4 | `/administracion/reportes/ventas/` y `/reportes/stock/` |
+| KPIs de negocio: ingresos, ganancia, margen, ticket promedio, stock valorizado | 4 | `reportes.py` (`resumen_ventas`, `resumen_stock`, `ventas_por_dia`) |
+| Rediseño frontend: identidad toldo + modo oscuro | transversal | `static/css/styles.css` |
+| Estilo neón cian único (se eliminaron cartelera/ticket) | transversal | `data-tema="neon"` forzado en `base.html` |
 
-| Item | Sprint | Estado |
-|------|--------|--------|
-| Botón "pago exacto" en el cobro | 3 | Pendiente |
-| Vuelto rápido con billetes/montos predeterminados | 3 | Pendiente |
-| Cálculo automático del total de la compra en el carrito | 3 | Parcial (modelos `Venta.total`/`subtotal()` creados, sin lógica ni UI) |
-| Venta a consumidor final sin solicitar datos personales | 3 | Parcial (no hay flujo de confirmación de venta) |
-| Cobro con Mercado Pago (MP) | por definir | Pendiente (sin dependencia ni integración) |
-| Cajero no accede a costos de mercadería | por definir | Parcial (roles OK, `Producto` aún sin campo costo) |
-| KPIs de negocio (ventas, ingresos, stock) en el dashboard | por definir | Parcial (solo KPIs de usuarios) |
-| Consulta de ventas, stock, costos y reportes para el administrador | 4 | Parcial (vía `/admin/` de Django, sin vistas de reportes propias) |
-| Gestión de productos y precios desde administrador (alta/edición/baja) | 2 | Parcial (alta y lista dan 500 por templates faltantes; sin edición ni baja) |
-| Logo propio del kiosco (navbar) | por definir | Parcial (solo `favicon.svg`, sin logo de página) |
-| Recuperar contraseña ("¿Olvidaste tu contraseña?") | por definir | Pendiente (sin `password_reset` ni SMTP) |
+### Parcial
+
+| Item | Sprint | Qué falta |
+|------|--------|-----------|
+| Views/urls de lista y alta de productos | 2 | Faltan los templates `lista_productos.html` y `agregar_producto.html` → 500 |
+| Altas, bajas y modificaciones de productos | 2 | Sin vista de edición ni de baja (solo `/admin/` de Django) |
+| KPIs en el dashboard principal | 2 | El dashboard sigue mostrando solo métricas de usuarios (los de negocio están en `/reportes/`) |
+| Cálculo automático del total de la compra | 3 | Modelos `Venta.total`/`subtotal()` creados; falta lógica en views y UI |
+| Venta a consumidor final sin datos personales | 3 | No hay flujo de confirmación de venta (no descuenta stock ni registra método de pago) |
+| Logo propio del kiosco | por definir | Solo `favicon.svg`; el navbar usa icono de Bootstrap + texto |
+
+### Pendiente
+
+| Item | Sprint | Notas |
+|------|--------|-------|
+| Código de barras en producto + alta por lectura (HU-04) | 2 | `Producto` aún sin campo; solo mock visual en el cobro |
+| Búsqueda de productos en tiempo real con HTMX (HU-05) | 2 | Hoy es GET con recarga de página |
+| Alerta de stock ≤ 5 con marca de color (HU-06) | 2 | El modelo no tiene stock mínimo |
+| Carrito de cobro con lector de código de barras (HU-07/08) | 3 | Escanear → identificar → agregar al carrito; editar cantidades |
+| Cobro efectivo/tarjeta con vuelto (HU-09) | 3 | Incluir monto entregado, vuelto y descuento de stock |
+| Botón "pago exacto" en el cobro | 3 | Agiliza el cobro en efectivo |
+| Vuelto rápido con billetes/montos predeterminados | 3 | Botones de billetes (100/200/500/1000) |
+| Método de pago en `Venta` (efectivo/tarjeta) | 3 | Campo inexistente, necesario para los cierres |
+| Descuento automático de stock al confirmar venta | 3 | — |
+| Cierre de turno: totales por método, operaciones, responsable (HU-10) | 4 | Requiere modelo `Turno` + FK de `Venta` a usuario y método de pago |
+| Registrar el cajero responsable de cada turno | 4 | `Venta` no tiene FK a `User` |
+| Alta/búsqueda de clientes por CUIT/DNI (HU-12) | 4 | Requiere modelo `Cliente` y FK opcional en `Venta` |
+| Cobro con Mercado Pago (MP) | por definir | Sin dependencia ni integración en `requirements.txt` |
+| Recuperar contraseña ("¿Olvidaste tu contraseña?") | por definir | Sin `password_reset` ni `EMAIL_*` en settings |
+
+### Pasos a seguir
+
+1. **Sprint 2 (cerrar):** crear los 2 templates faltantes de productos,
+   agregar campo `codigo_barras` y `stock_minimo`, y las vistas de
+   edición/baja (protegidas con `@rol_requerido("Administrador")`, que hoy
+   solo tiene `@login_required`).
+2. **Sprint 3 (la caja):** carrito con JS/HTMX, campo `metodo_pago` y
+   `usuario` en `Venta`, vuelto + pago exacto + billetes, descuento de
+   stock y cliente opcional.
+3. **Sprint 4 (cierres):** modelo `Turno`, cierre con totales por método y
+   operaciones, y modelo `Cliente` con búsqueda por CUIT/DNI.
+4. **Extras (por definir):** Mercado Pago, recuperar contraseña, logo,
+   KPIs de negocio en el dashboard.
