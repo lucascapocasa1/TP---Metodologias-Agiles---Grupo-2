@@ -35,16 +35,16 @@ No hay linter, formatter ni typecheck configurados.
 config/            # Settings y urls raíz del proyecto (DJANGO_SETTINGS_MODULE=config.settings)
 usuarios/          # Auth: login, logout, registro, roles/grupos, decorador de autorización,
                    # templatetags (buscador, paginación), comando setup_inicial
-ventas/            # Catálogo (Categoria, Producto), ventas (Venta, DetalleVenta) y pantalla de cobro
+ventas/            # Catálogo (Categoria, Producto: CRUD completo con código de barras,
+                   # búsqueda HTMX y alerta de stock), ventas (Venta, DetalleVenta)
+                   # y pantalla de cobro
 administracion/    # Dashboard y CRUD de usuarios (listar/crear/editar/eliminar/roles/toggle)
 auditoria/         # RegistroAuditoria + signals: audita cambios en usuarios y ventas
 static/            # CSS/JS compartido (styles.css con el estilo visual neón)
 templates/         # base.html + templates por app (también 403.html y 404.html)
 ```
 
-Modelos: `ventas` → `Categoria`, `Producto`, `Venta`, `DetalleVenta`; `auditoria` → `RegistroAuditoria`; `usuarios` y `administracion` no tienen modelos (usan `auth.User`).
-
-**Gap conocido**: existen las views/urls de `ventas:lista_productos` y `ventas:agregar_producto` pero faltan sus templates (`templates/ventas/lista_productos.html` y `agregar_producto.html`): esas rutas devuelven 500 (`TemplateDoesNotExist`).
+Modelos: `ventas` → `Categoria`, `Producto` (`codigo_barras` unique, `costo`, `stock_minimo`, property `stock_bajo`), `Venta`, `DetalleVenta`; `auditoria` → `RegistroAuditoria`; `usuarios` y `administracion` no tienen modelos (usan `auth.User`).
 
 ## Convenciones clave
 
@@ -53,6 +53,7 @@ Modelos: `ventas` → `Categoria`, `Producto`, `Venta`, `DetalleVenta`; `auditor
 - **Flujo de auth**: `LoginKioscoView` → `post_login` redirige por rol (admin → dashboard, cajero → cobro, sin rol → `sin_rol`). `LOGIN_URL = 'usuarios:login'`.
 - **URLs**: cada app define `app_name` y patrones con nombre. Raíz `/` → `usuarios:post_login`.
 - **Templates**: extienden `base.html` (Bootstrap 5 CDN). Blocks: `titulo`, `contenido`.
+- **HTMX**: CDN al final de `base.html`. Las vistas revisan `request.headers.get("HX-Request")` y devuelven solo el partial (ej. `ventas:lista_productos` → `ventas/_productos_tabla.html`).
 - **Frontend**: un solo estilo visual, **neón cian**, fijo — `data-tema="neon"` se fuerza en el `<head>` de `base.html` + `data-theme` (claro/oscuro) en `<html>`; tema oscuro en `localStorage['kiosco-tema']`. No existe selector de estilos (el botón `#estiloToggle` y las paletas cartelera/ticket fueron eliminados); botón `#darkToggle` sí. Vocabulario de animaciones "toldo" al final de `static/css/styles.css`; respetar `prefers-reduced-motion`.
 - **Usuarios de prueba** (los crea `setup_inicial`): `admin`/`kiosco2024` (Administrador), `cajero1`/`kiosco2024` (Cajero).
 - **Estilo de código**: nombres de apps y comentarios en español. Seguir las convenciones existentes al agregar apps o archivos nuevos.

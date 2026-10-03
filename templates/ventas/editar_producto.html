@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% block titulo %}Editar Producto - {{ producto.nombre }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <a href="{% url 'ventas:lista_productos' %}" class="btn-back">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h1><i class="bi bi-pencil"></i> Editar Producto</h1>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header">
+            <h2><i class="bi bi-box-seam"></i> Editando: {{ producto.nombre }}</h2>
+        </div>
+        <div class="card-body">
+            {% if form.errors %}
+            <div class="admin-alert admin-alert-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>
+                    {% if form.codigo_barras.errors %}
+                        {{ form.codigo_barras.errors.0 }}
+                    {% else %}
+                        Revisá los campos marcados en rojo.
+                    {% endif %}
+                </span>
+            </div>
+            {% endif %}
+
+            <form method="post" class="admin-form">
+                {% csrf_token %}
+
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-tag"></i> Nombre *
+                        </label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <span class="field-error">{{ form.nombre.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-upc-scan"></i> Código de barras
+                        </label>
+                        {{ form.codigo_barras }}
+                        {% if form.codigo_barras.errors %}
+                            <span class="field-error">{{ form.codigo_barras.errors.0 }}</span>
+                        {% endif %}
+                        <span class="help-text">Se lee con el lector; no puede repetirse</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="admin-label">
+                        <i class="bi bi-card-text"></i> Descripción
+                    </label>
+                    {{ form.descripcion }}
+                    {% if form.descripcion.errors %}
+                        <span class="field-error">{{ form.descripcion.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-cart"></i> Precio de costo *
+                        </label>
+                        {{ form.costo }}
+                        {% if form.costo.errors %}
+                            <span class="field-error">{{ form.costo.errors.0 }}</span>
+                        {% endif %}
+                        <span class="help-text">Lo ve solo el administrador</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-cash"></i> Precio de venta *
+                        </label>
+                        {{ form.precio }}
+                        {% if form.precio.errors %}
+                            <span class="field-error">{{ form.precio.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-boxes"></i> Stock actual *
+                        </label>
+                        {{ form.stock }}
+                        {% if form.stock.errors %}
+                            <span class="field-error">{{ form.stock.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-exclamation-triangle"></i> Stock mínimo (alerta)
+                        </label>
+                        {{ form.stock_minimo }}
+                        {% if form.stock_minimo.errors %}
+                            <span class="field-error">{{ form.stock_minimo.errors.0 }}</span>
+                        {% endif %}
+                        <span class="help-text">Marca el producto cuando el stock llegue a este valor</span>
+                    </div>
+                </div>
+
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-folder"></i> Categoría *
+                        </label>
+                        {{ form.categoria }}
+                        {% if form.categoria.errors %}
+                            <span class="field-error">{{ form.categoria.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-folder-plus"></i> Nueva categoría
+                        </label>
+                        <input type="text" name="nueva_categoria" class="kiosco-input"
+                               placeholder="Ej: Golosinas" autocomplete="off">
+                        <span class="help-text">Si la escribís acá, se crea y tiene prioridad</span>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        {{ form.activo }}
+                        <label class="admin-label checkbox-label">Producto activo (se puede vender)</label>
+                    </div>
+                    {% if form.activo.errors %}
+                        <span class="field-error">{{ form.activo.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'ventas:lista_productos' %}" class="btn btn-admin-cancel">
+                        <i class="bi bi-x-lg"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-admin-primary">
+                        <i class="bi bi-check-lg"></i> Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

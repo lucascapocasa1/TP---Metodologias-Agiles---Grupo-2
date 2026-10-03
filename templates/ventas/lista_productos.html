@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block titulo %}Catálogo de Productos{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-box-seam"></i> Catálogo de Productos</h1>
+            <p class="admin-subtitle">Alta, edición y baja de productos y precios</p>
+        </div>
+        <a href="{% url 'ventas:agregar_producto' %}" class="btn btn-admin-primary">
+            <i class="bi bi-plus-lg"></i> Nuevo Producto
+        </a>
+    </div>
+
+    <!-- Búsqueda en tiempo real (HU-05): HTMX reemplaza solo la tabla -->
+    <div class="admin-filters">
+        <form class="filter-form" role="search" onsubmit="return false">
+            <div class="filter-group">
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text"
+                           name="buscar"
+                           value="{{ busqueda }}"
+                           placeholder="Buscar por nombre, descripción o código de barras..."
+                           class="admin-input"
+                           autocomplete="off"
+                           hx-get="{% url 'ventas:lista_productos' %}"
+                           hx-trigger="keyup changed delay:300ms, search"
+                           hx-target="#contenedor-tabla"
+                           hx-swap="innerHTML">
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="admin-table-container" id="contenedor-tabla">
+        {% include "ventas/_productos_tabla.html" %}
+    </div>
+</div>
+{% endblock %}

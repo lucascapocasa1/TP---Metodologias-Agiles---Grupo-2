@@ -10,6 +10,14 @@ class Categoria(models.Model):
 class Producto(models.Model):
      nombre = models.CharField(max_length=150)
      descripcion = models.TextField(blank=True, null=True)
+     codigo_barras = models.CharField(
+         max_length=50,
+         unique=True,
+         blank=True,
+         null=True,
+         verbose_name="Código de barras",
+         help_text="Se lee con el lector del kiosco. No puede repetirse.",
+     )
      precio = models.DecimalField(max_digits=10, decimal_places=2)
      costo = models.DecimalField(
          max_digits=10,
@@ -18,10 +26,21 @@ class Producto(models.Model):
          help_text="Precio de compra unitario. Lo ve solo el Administrador.",
      )
      stock = models.IntegerField(default=0)
+     stock_minimo = models.PositiveIntegerField(
+         default=5,
+         help_text="Alerta de stock bajo (HU-06): se marca cuando el stock "
+                   "actual es menor o igual a este valor.",
+     )
      categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='productos')
      activo = models.BooleanField(default=True)
      def __str__(self):
          return f"{self.nombre} - ${self.precio}"
+
+     @property
+     def stock_bajo(self):
+         """True si hay que marcar el producto por stock bajo (HU-06)."""
+         return self.stock <= self.stock_minimo
+
 
      @property
      def margen_unitario(self):

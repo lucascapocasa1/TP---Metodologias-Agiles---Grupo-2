@@ -2,8 +2,8 @@
 
 Trabajo práctico de Metodologías Ágiles. Sistema web de gestión para un kiosco de barrio.
 
-**Estado al 03-10-2026:** Sprint 1 completo · Sprint 2 en progreso · Frontend con
-estilo neón cian único · reportes de ventas y stock · 92 tests en verde.
+**Estado al 03-10-2026:** Sprint 1 completo · Sprint 2 completo (catálogo de
+productos) · reportes de ventas y stock · estilo neón cian único · 110 tests en verde.
 
 ---
 
@@ -30,23 +30,25 @@ versión 24-09-2026) y son el entregable de documentación del trabajo práctico
   `sin_rol` hasta que un administrador le asigne uno.
 - Auditoría automática de login/logout con IP (`auditoria/`).
 
-### Productos y catálogo (Sprint 2) — en progreso
+### Productos y catálogo (Sprint 2) — completo
 
 - Modelos **Categoria**, **Producto**, **Venta** y **DetalleVenta** creados y migrados
-  (`0001_initial.py` + `0002_...costo...` que agrega `Producto.costo` y
-  `DetalleVenta.costo_unitario`), registrados en el admin de Django
-  (Venta con inline de detalles).
-- Vistas y URLs de **lista de productos con búsqueda** (GET por nombre/descripción) y
-  **alta de productos** con categoría nueva.
-- **Pendiente bloqueante:** faltan los templates `ventas/lista_productos.html` y
-  `ventas/agregar_producto.html` — por eso `/ventas/productos/` y
-  `/ventas/productos/agregar/` devuelven **500 (TemplateDoesNotExist)**. Las views,
-  urls y modelos sí están; hay que crear esos dos templates. Además esas views
-  solo tienen `@login_required` (deberían ser de administrador) y no hay
-  edición ni baja de productos.
-- **Pendiente vs HU-04/05/06:** código de barras, stock mínimo, marca de stock
-  ≤ 5, y búsqueda en tiempo real con HTMX (hoy la búsqueda recarga la página).
-  *El precio de costo ya existe (`Producto.costo`).*
+  (`0001_initial.py`, `0002_...costo...` con `Producto.costo` y
+  `0003_...` con `codigo_barras` y `stock_minimo`), registrados en el admin de
+  Django (Venta con inline de detalles).
+- **HU-04 — alta rápida:** `ventas/forms.py::ProductoForm` con nombre, código de
+  barras, descripción, costo, precio de venta, stock, stock mínimo y categoría
+  (con "categoría nueva"). El código de barras **no se permite duplicado**
+  (`clean_codigo_barras`).
+- **CRUD completo:** alta, edición (`productos/<id>/editar/`) y **baja lógica**
+  (`productos/<id>/eliminar/` → `activo=False`, se puede reactivar desde editar).
+- **HU-05 — búsqueda en tiempo real con HTMX:** el input dispara
+  `hx-get /ventas/productos/` cada 300 ms y la vista responde solo con el
+  partial `ventas/_productos_tabla.html` (sin recargar la página).
+- **HU-06 — alerta de stock:** `Producto.stock_bajo` (stock ≤ `stock_minimo`,
+  configurable por producto) y badge `.badge-stock-bajo` en la tabla.
+- **Seguridad:** las 4 vistas del catálogo usan `@rol_requerido("Administrador")`
+  → el cajero recibe 403 (no ve costos ni precios).
 
 ### Reportes (Sprint 4) — completo
 
@@ -79,7 +81,7 @@ versión 24-09-2026) y son el entregable de documentación del trabajo práctico
 
 ### Tests
 
-- **92 tests OK** (`python manage.py test`): `usuarios` 9, `ventas` 4,
+- **110 tests OK** (`python manage.py test`): `usuarios` 9, `ventas` 22,
   `administracion` 22 + 57 de reportes.
 
 ---
@@ -131,7 +133,7 @@ remota).
 > nombre, el código de barras, cuánto me costó, a cuánto lo vendo y cuántos
 > tengo. Si el código ya existe, avísame."
 
-**Estado:** en progreso (ver [Estado actual](#estado-actual-del-trabajo)).
+**Estado:** completo (HU-04, HU-05 y HU-06 implementadas y testeadas).
 
 ### Historias de usuario
 
@@ -292,8 +294,8 @@ para que el cajero pueda asociar una venta a un cliente cuando lo solicite
   `prefers-reduced-motion` respetado, `aria-label` en los botones de tema.
 - **Responsive**: en mobile el navbar oculta el nombre de usuario y mantiene
   badges y salida; el login pasa a panel único bajo 900px.
-- **HTMX** sigue quedando para el Sprint 3 (carrito de cobro); la búsqueda de
-  productos hoy es un GET con recarga.
+- **HTMX** (CDN en `base.html`) se usa en la búsqueda del catálogo de
+  productos (Sprint 2) y queda disponible para el carrito del Sprint 3.
 
 ---
 
@@ -376,13 +378,16 @@ Con el entorno virtual activado:
 python manage.py test
 ```
 
-**92 tests** actualmente:
+**110 tests** actualmente:
 
 - **`usuarios/tests.py` (9)**: login correcto e incorrecto, acceso anónimo
   bloqueado, cajero bloqueado en administración, administrador con acceso
   total, y la redirección post-login según rol.
-- **`ventas/tests.py` (4)**: pantalla de cobro accesible solo con login,
-  cajero y admin acceden, template correcto.
+- **`ventas/tests.py` (22)**: pantalla de cobro (login, cajero, admin,
+  template) + catálogo: acceso 403 para el cajero en las 4 vistas, alta con
+  costo y código, código duplicado rechazado, precio 0 rechazado, categoría
+  nueva, edición, baja lógica, búsqueda por nombre/código, respuesta HTMX con
+  partial y alerta de stock bajo.
 - **`administracion/tests.py` (22)**: dashboard (login, admin, 403 cajero,
   403 sin grupo, estadísticas) y CRUD de usuarios (listar con búsqueda y
   filtro por rol, crear, editar, eliminar con protección de superusuarios,
@@ -438,18 +443,20 @@ kiosco_sprint1/
 ├── ventas/                           # Productos y pantalla de cobro (POS).
 │   ├── models.py                     # Categoria, Producto, Venta,
 │   │                                 # DetalleVenta (migración 0001).
-│   ├── views.py                      # pantalla_cobro (placeholder con mock
-│   │                                 # de escáner), lista_productos (búsqueda
-│   │                                 # GET), agregar_producto (alta con
-│   │                                 # categoría nueva).
-│   ├── urls.py                       # 3 rutas: cobro/, productos/,
-│   │                                 # productos/agregar/.
+│   ├── views.py                      # pantalla_cobro, lista_productos (HTMX),
+│   │                                 # agregar / editar / eliminar producto
+│   │                                 # (todo @rol_requerido Administrador).
+│   ├── forms.py                      # ProductoForm (HU-04): código de barras
+│   │                                 # sin duplicados, costo, precio, stock,
+│   │                                 # stock_minimo y categoría.
+│   ├── urls.py                       # 5 rutas: cobro/, productos/,
+│   │                                 # productos/agregar/, productos/<id>/
+│   │                                 # editar/, productos/<id>/eliminar/.
 │   ├── admin.py                      # Venta (inline DetalleVenta), Producto,
 │   │                                 # Categoria.
-│   ├── tests.py                      # 4 tests.
-│   └── migrations/0001_initial.py    # Tablas de catálogo y ventas.
-│   ⚠ Faltan: templates/ventas/lista_productos.html y
-│     templates/ventas/agregar_producto.html (las dos URLs dan 500).
+│   ├── tests.py                      # 22 tests.
+│   └── migrations/                   # 0001 catálogo/ventas, 0002 costo,
+│                                     # 0003 código de barras + stock mínimo.
 │
 ├── administracion/                   # Panel del dueño.
 │   ├── views.py                      # dashboard (stats de usuarios), CRUD:
@@ -490,7 +497,12 @@ kiosco_sprint1/
 │   │   ├── sin_rol.html              # warning-page sin grupo asignado.
 │   │   └── tags/                     # Partiales de paginación y buscador.
 │   ├── ventas/
-│   │   └── pantalla_cobro.html       # Placeholder con mock de escáner.
+│   │   ├── pantalla_cobro.html       # Placeholder con mock de escáner.
+│   │   ├── lista_productos.html      # Catálogo con búsqueda HTMX.
+│   │   ├── _productos_tabla.html     # Partial que devuelve HTMX.
+│   │   ├── agregar_producto.html     # Alta (HU-04).
+│   │   ├── editar_producto.html      # Edición de precios y stock.
+│   │   └── eliminar_producto.html    # Confirmación de baja lógica.
 │   └── administracion/               # Panel del equipo:
 │       ├── dashboard.html            # stats de usuarios + accesos rápidos.
 │       ├── listar_usuarios.html      # tabla con búsqueda/filtros.
@@ -574,13 +586,17 @@ Estado real al **03-10-2026** (unificado: tabla original + backlog nuevo).
 | KPIs de negocio: ingresos, ganancia, margen, ticket promedio, stock valorizado | 4 | `reportes.py` (`resumen_ventas`, `resumen_stock`, `ventas_por_dia`) |
 | Rediseño frontend: identidad toldo + modo oscuro | transversal | `static/css/styles.css` |
 | Estilo neón cian único (se eliminaron cartelera/ticket) | transversal | `data-tema="neon"` forzado en `base.html` |
+| Views/urls + templates de lista y alta de productos | 2 | `ventas/views.py`, 5 templates en `templates/ventas/` (ya no dan 500) |
+| Código de barras en Producto + alta sin duplicados (HU-04) | 2 | `Producto.codigo_barras` (unique) + `ProductoForm.clean_codigo_barras` |
+| Altas, bajas y modificaciones de productos (CRUD) | 2 | `agregar/`, `<id>/editar/`, `<id>/eliminar/` (baja lógica, reversible) |
+| Búsqueda de productos en tiempo real con HTMX (HU-05) | 2 | `hx-get` en el buscador + partial `_productos_tabla.html` |
+| Alerta de stock bajo configurable (HU-06) | 2 | `Producto.stock_minimo` (default 5) + `stock_bajo` + `.badge-stock-bajo` |
+| Catálogo protegido para el administrador (el cajero: 403) | 2 | `@rol_requerido("Administrador")` en las 4 vistas de `ventas` |
 
 ### Parcial
 
 | Item | Sprint | Qué falta |
 |------|--------|-----------|
-| Views/urls de lista y alta de productos | 2 | Faltan los templates `lista_productos.html` y `agregar_producto.html` → 500 |
-| Altas, bajas y modificaciones de productos | 2 | Sin vista de edición ni de baja (solo `/admin/` de Django) |
 | KPIs en el dashboard principal | 2 | El dashboard sigue mostrando solo métricas de usuarios (los de negocio están en `/reportes/`) |
 | Cálculo automático del total de la compra | 3 | Modelos `Venta.total`/`subtotal()` creados; falta lógica en views y UI |
 | Venta a consumidor final sin datos personales | 3 | No hay flujo de confirmación de venta (no descuenta stock ni registra método de pago) |
@@ -590,9 +606,6 @@ Estado real al **03-10-2026** (unificado: tabla original + backlog nuevo).
 
 | Item | Sprint | Notas |
 |------|--------|-------|
-| Código de barras en producto + alta por lectura (HU-04) | 2 | `Producto` aún sin campo; solo mock visual en el cobro |
-| Búsqueda de productos en tiempo real con HTMX (HU-05) | 2 | Hoy es GET con recarga de página |
-| Alerta de stock ≤ 5 con marca de color (HU-06) | 2 | El modelo no tiene stock mínimo |
 | Carrito de cobro con lector de código de barras (HU-07/08) | 3 | Escanear → identificar → agregar al carrito; editar cantidades |
 | Cobro efectivo/tarjeta con vuelto (HU-09) | 3 | Incluir monto entregado, vuelto y descuento de stock |
 | Botón "pago exacto" en el cobro | 3 | Agiliza el cobro en efectivo |
@@ -607,11 +620,9 @@ Estado real al **03-10-2026** (unificado: tabla original + backlog nuevo).
 
 ### Pasos a seguir
 
-1. **Sprint 2 (cerrar):** crear los 2 templates faltantes de productos,
-   agregar campo `codigo_barras` y `stock_minimo`, y las vistas de
-   edición/baja (protegidas con `@rol_requerido("Administrador")`, que hoy
-   solo tiene `@login_required`).
-2. **Sprint 3 (la caja):** carrito con JS/HTMX, campo `metodo_pago` y
+1. **~~Sprint 2 (cerrar)~~ — HECHO:** catálogo con alta/edición/baja, código de
+   barras, búsqueda HTMX y alerta de stock (110 tests en verde).
+2. **Sprint 3 (la caja):** carrito con HTMX/JS, campo `metodo_pago` y
    `usuario` en `Venta`, vuelto + pago exacto + billetes, descuento de
    stock y cliente opcional.
 3. **Sprint 4 (cierres):** modelo `Turno`, cierre con totales por método y

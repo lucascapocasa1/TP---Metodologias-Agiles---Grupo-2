@@ -2091,6 +2091,25 @@ strong {
   color: var(--text-muted);
 }
 
+/* --- Alerta de stock bajo (HU-06): stock <= stock_minimo --- */
+.badge-stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8rem;
+  font-weight: 700;
+  padding: 0.2em 0.55em;
+  border-radius: 6px;
+}
+
+.badge-stock-bajo {
+  background: rgba(255, 176, 32, 0.16);
+  color: var(--aviso, #ffb020);
+  border: 1px solid rgba(255, 176, 32, 0.45);
+  animation: alerta-baja 0.35s ease-out backwards;
+}
+
+
 /* --- Status Badge --- */
 .status-badge {
   display: inline-flex;
