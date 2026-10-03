@@ -337,11 +337,11 @@ python manage.py migrate
 # 8. Crear los grupos y usuarios de prueba (una sola vez)
 python manage.py setup_inicial
 
-# 9. Levantar el servidor de desarrollo
-python manage.py runserver
+# 9. Levantar el servidor de desarrollo (el 8000 lo ocupa otro proyecto: backend VPN)
+python manage.py runserver 8001
 ```
 
-Abrí `http://127.0.0.1:8000/` en el navegador.
+Abrí `http://127.0.0.1:8001/` en el navegador.
 
 > **Nota:** los pasos 2, 4, 5, 6, 7 y 8 solo se hacen la **primera vez**.
 > Después de eso, solo necesitás activar el entorno (paso 3) y levantar
@@ -528,7 +528,7 @@ kiosco_sprint1/
 
 ### Flujo de autenticación (cómo funciona login → pantalla)
 
-1. El usuario visita `http://127.0.0.1:8000/` → redirige a `usuarios:post_login`.
+1. El usuario visita `http://127.0.0.1:8001/` → redirige a `usuarios:post_login`.
 2. Si no está autenticado, Django lo manda a `usuarios:login` (configurado en `LOGIN_URL`).
 3. El formulario (`LoginKioscoForm`) valida credenciales contra `auth.User`.
 4. **Registro:** cualquiera puede crear cuenta en `/usuarios/registro/`; el usuario

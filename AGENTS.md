@@ -12,10 +12,11 @@ python -m venv venv
 pip install -r requirements.txt
 python manage.py migrate
 python manage.py setup_inicial   # crea Groups + usuarios de prueba
-python manage.py runserver
+python manage.py runserver 8001  # el 8000 lo ocupa otro proyecto (backend VPN); NO tocar ese proceso
 ```
 
 Requiere un servidor PostgreSQL accesible y un archivo `.env` con `DATABASE_URL`.
+Siempre verificar con `Get-NetTCPConnection -LocalPort 8001 -State Listen` antes de levantar; el puerto 8000 pertenece a otro proyecto y no debe usarse ni detenerse.
 
 ## Comandos
 
