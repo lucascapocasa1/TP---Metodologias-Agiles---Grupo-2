@@ -556,3 +556,22 @@ kiosco_sprint1/
 | Reporte top 10 de productos más vendidos (HU-11) | 4 | Pendiente |
 | Alta/búsqueda de clientes por CUIT/DNI (HU-12, opcional) | 4 | Pendiente |
 | Rediseño frontend: identidad toldo + 3 estilos + modo oscuro | transversal | Hecho |
+
+### Backlog nuevo (agregado 03-10-2026)
+
+Ítems del backlog que **no estaban** en la tabla anterior. La columna *Sprint*
+queda "por definir" hasta que se planifique.
+
+| Item | Sprint | Estado |
+|------|--------|--------|
+| Botón "pago exacto" en el cobro | 3 | Pendiente |
+| Vuelto rápido con billetes/montos predeterminados | 3 | Pendiente |
+| Cálculo automático del total de la compra en el carrito | 3 | Parcial (modelos `Venta.total`/`subtotal()` creados, sin lógica ni UI) |
+| Venta a consumidor final sin solicitar datos personales | 3 | Parcial (no hay flujo de confirmación de venta) |
+| Cobro con Mercado Pago (MP) | por definir | Pendiente (sin dependencia ni integración) |
+| Cajero no accede a costos de mercadería | por definir | Parcial (roles OK, `Producto` aún sin campo costo) |
+| KPIs de negocio (ventas, ingresos, stock) en el dashboard | por definir | Parcial (solo KPIs de usuarios) |
+| Consulta de ventas, stock, costos y reportes para el administrador | 4 | Parcial (vía `/admin/` de Django, sin vistas de reportes propias) |
+| Gestión de productos y precios desde administrador (alta/edición/baja) | 2 | Parcial (alta y lista dan 500 por templates faltantes; sin edición ni baja) |
+| Logo propio del kiosco (navbar) | por definir | Parcial (solo `favicon.svg`, sin logo de página) |
+| Recuperar contraseña ("¿Olvidaste tu contraseña?") | por definir | Pendiente (sin `password_reset` ni SMTP) |
