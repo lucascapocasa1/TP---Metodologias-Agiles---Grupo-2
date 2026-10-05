@@ -1,0 +1,129 @@
+{% load formatos %}
+{% if error %}
+<div class="kiosco-alert kiosco-alert-danger mb-2" role="alert">
+    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+    <span>{{ error }}</span>
+</div>
+{% endif %}
+
+{% if items %}
+<div class="admin-table-container">
+    <table class="admin-table">
+        <thead>
+            <tr>
+                <th>Producto</th>
+                <th>Precio</th>
+                <th>Cantidad</th>
+                <th>Subtotal</th>
+                <th class="actions-col">Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for item in items %}
+            <tr>
+                <td>
+                    <div class="user-cell">
+                        <span class="user-username">{{ item.producto.nombre }}</span>
+                        <span class="cobro-codigo">{{ item.producto.codigo_barras|default:"sin código" }}</span>
+                    </div>
+                </td>
+                <td>${{ item.producto.precio|montos }}</td>
+                <td>
+                    <div class="cobro-cantidad" data-producto="{{ item.producto.pk }}">
+                        <button type="button"
+                                class="btn-qty"
+                                title="Restar"
+                                aria-label="Restar una unidad de {{ item.producto.nombre }}"
+                                hx-post="{% url 'ventas:cobro_cantidad' %}"
+                                hx-target="#carrito-region"
+                                hx-swap="innerHTML"
+                                hx-vals='{"producto_id": "{{ item.producto.pk }}", "accion": "restar"}'>
+                            <i class="bi bi-dash-lg" aria-hidden="true"></i>
+                        </button>
+                        <span class="qty-valor">{{ item.cantidad }}</span>
+                        <button type="button"
+                                class="btn-qty"
+                                title="Sumar"
+                                aria-label="Sumar una unidad de {{ item.producto.nombre }}"
+                                hx-post="{% url 'ventas:cobro_cantidad' %}"
+                                hx-target="#carrito-region"
+                                hx-swap="innerHTML"
+                                hx-vals='{"producto_id": "{{ item.producto.pk }}", "accion": "sumar"}'>
+                            <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </td>
+                <td><strong>${{ item.subtotal|montos }}</strong></td>
+                <td class="actions-cell">
+                    <div class="action-buttons">
+                        <button type="button"
+                                class="btn-action btn-delete"
+                                title="Quitar del carrito"
+                                aria-label="Quitar {{ item.producto.nombre }} del carrito"
+                                hx-post="{% url 'ventas:cobro_cantidad' %}"
+                                hx-target="#carrito-region"
+                                hx-swap="innerHTML"
+                                hx-vals='{"producto_id": "{{ item.producto.pk }}", "accion": "quitar"}'>
+                            <i class="bi bi-trash" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="cobro-total">
+    <span>Total a cobrar</span>
+    <strong>${{ total|montos }}</strong>
+</div>
+
+<form method="post" action="{% url 'ventas:cobro_confirmar' %}" class="cobro-pago">
+    {% csrf_token %}
+
+    <div class="cobro-metodos" role="radiogroup" aria-label="Método de pago">
+        {% for valor, etiqueta in metodos_pago %}
+        <label class="cobro-metodo {% if forloop.first %}activo{% endif %}">
+            <input type="radio" name="metodo_pago" value="{{ valor }}"
+                   {% if forloop.first %}checked{% endif %}>
+            <i class="bi {% if valor == 'efectivo' %}bi-cash{% else %}bi-credit-card{% endif %}" aria-hidden="true"></i>
+            {{ etiqueta }}
+        </label>
+        {% endfor %}
+    </div>
+
+    <div id="bloque-monto">
+        <label class="cobro-label" for="monto">Monto entregado</label>
+        <input type="text"
+               id="monto"
+               name="monto_entregado"
+               class="admin-input"
+               inputmode="decimal"
+               placeholder="0.00"
+               autocomplete="off">
+        <div id="vuelto-preview" class="cobro-vuelto-preview" data-total="{{ total }}"></div>
+
+        <div class="cobro-billetes">
+            <button type="button" class="btn-billete" data-monto-boton="1000">$1000</button>
+            <button type="button" class="btn-billete" data-monto-boton="500">$500</button>
+            <button type="button" class="btn-billete" data-monto-boton="200">$200</button>
+            <button type="button" class="btn-billete" data-monto-boton="100">$100</button>
+            <button type="button" class="btn-billete btn-exacto"
+                    data-monto-boton="exacto"
+                    data-total="{{ total }}">Pago exacto</button>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-kiosco cobro-confirmar">
+        <i class="bi bi-check2-circle" aria-hidden="true"></i> Confirmar cobro · ${{ total|montos }}
+    </button>
+</form>
+
+{% else %}
+<div class="admin-empty">
+    <div class="empty-icon"><i class="bi bi-cart3"></i></div>
+    <h3>El carrito está vacío</h3>
+    <p>Escaneá el código de barras o tipeá 3 letras del producto arriba.</p>
+</div>
+{% endif %}

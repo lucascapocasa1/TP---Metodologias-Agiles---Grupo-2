@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load formatos %}
 {% block titulo %}Reporte de Stock{% endblock %}
 {% block contenido %}
 <div class="admin-panel">
@@ -42,14 +43,14 @@
         <div class="stat-card stat-inactive">
             <div class="stat-icon"><i class="bi bi-cash"></i></div>
             <div class="stat-content">
-                <h3>${{ stock.valor_costo|floatformat:2 }}</h3>
+                <h3>${{ stock.valor_costo|montos }}</h3>
                 <p>Invertido a costo</p>
             </div>
         </div>
         <div class="stat-card stat-active">
             <div class="stat-icon"><i class="bi bi-arrow-up-right"></i></div>
             <div class="stat-content">
-                <h3>${{ stock.ganancia_potencial|floatformat:2 }}</h3>
+                <h3>${{ stock.ganancia_potencial|montos }}</h3>
                 <p>Ganancia si se vende todo</p>
             </div>
         </div>
@@ -100,7 +101,7 @@
                         <td>{{ fila.categoria__nombre }}</td>
                         <td>{{ fila.productos }}</td>
                         <td>{{ fila.unidades }}</td>
-                        <td>${{ fila.valor_costo|floatformat:2 }}</td>
+                        <td>${{ fila.valor_costo|montos }}</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -139,8 +140,8 @@
                             <span class="status-badge status-active">{{ p.stock }}</span>
                             {% endif %}
                         </td>
-                        <td>${{ p.costo|floatformat:2 }}</td>
-                        <td>${{ p.precio|floatformat:2 }}</td>
+                        <td>${{ p.costo|montos }}</td>
+                        <td>${{ p.precio|montos }}</td>
                         <td>{{ p.margen_porcentual|floatformat:1 }}%</td>
                     </tr>
                     {% endfor %}
@@ -179,9 +180,9 @@
                     {% for p in bajo_margen %}
                     <tr>
                         <td>{{ p.nombre }}</td>
-                        <td>${{ p.costo|floatformat:2 }}</td>
-                        <td>${{ p.precio|floatformat:2 }}</td>
-                        <td>${{ p.margen_unitario|floatformat:2 }}</td>
+                        <td>${{ p.costo|montos }}</td>
+                        <td>${{ p.precio|montos }}</td>
+                        <td>${{ p.margen_unitario|montos }}</td>
                         <td>{{ p.margen_porcentual|floatformat:1 }}%</td>
                     </tr>
                     {% endfor %}

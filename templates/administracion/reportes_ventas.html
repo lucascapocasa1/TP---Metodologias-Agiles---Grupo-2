@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load formatos %}
 {% block titulo %}Reporte de Ventas{% endblock %}
 {% block contenido %}
 <div class="admin-panel">
@@ -41,21 +42,21 @@
         <div class="stat-card stat-total">
             <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
             <div class="stat-content">
-                <h3>${{ resumen.ingresos|floatformat:2 }}</h3>
+                <h3>${{ resumen.ingresos|montos }}</h3>
                 <p>Ingresos</p>
             </div>
         </div>
         <div class="stat-card stat-inactive">
             <div class="stat-icon"><i class="bi bi-receipt"></i></div>
             <div class="stat-content">
-                <h3>${{ resumen.costo|floatformat:2 }}</h3>
+                <h3>${{ resumen.costo|montos }}</h3>
                 <p>Costo del producto</p>
             </div>
         </div>
         <div class="stat-card stat-active">
             <div class="stat-icon"><i class="bi bi-arrow-up-right"></i></div>
             <div class="stat-content">
-                <h3>${{ resumen.ganancia|floatformat:2 }}</h3>
+                <h3>${{ resumen.ganancia|montos }}</h3>
                 <p>Ganancia</p>
             </div>
         </div>
@@ -87,7 +88,7 @@
         <div class="info-grid">
             <div class="info-item">
                 <span class="info-label">Ticket promedio:</span>
-                <span class="info-value">${{ resumen.ticket_promedio|floatformat:2 }}</span>
+                <span class="info-value">${{ resumen.ticket_promedio|montos }}</span>
             </div>
             <div class="info-item">
                 <span class="info-label">Período:</span>
@@ -108,11 +109,11 @@
             {% for fila in serie %}
             <div class="reporte-dia">
                 <div class="reporte-dia-barras">
-                    <span class="reporte-dia-ganancia" style="height: {% widthratio fila.ganancia max_ganancia 100 %}%" title="Ganancia ${{ fila.ganancia|floatformat:2 }}"></span>
-                    <span class="reporte-dia-ingresos" style="height: {% widthratio fila.ingresos max_ingresos 100 %}%" title="Ingresos ${{ fila.ingresos|floatformat:2 }}"></span>
+                    <span class="reporte-dia-ganancia" style="height: {% widthratio fila.ganancia max_ganancia 100 %}%" title="Ganancia ${{ fila.ganancia|montos }}"></span>
+                    <span class="reporte-dia-ingresos" style="height: {% widthratio fila.ingresos max_ingresos 100 %}%" title="Ingresos ${{ fila.ingresos|montos }}"></span>
                 </div>
                 <span class="reporte-dia-label">{{ fila.dia|date:'d/m' }}</span>
-                <span class="reporte-dia-valor">${{ fila.ingresos|floatformat:0 }}</span>
+                <span class="reporte-dia-valor">${{ fila.ingresos|montos }}</span>
             </div>
             {% endfor %}
         </div>
@@ -149,7 +150,7 @@
                             <tr>
                                 <td>{{ fila.producto__nombre }}</td>
                                 <td>{{ fila.unidades }}</td>
-                                <td>${{ fila.ingresos|floatformat:2 }}</td>
+                                <td>${{ fila.ingresos|montos }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -179,8 +180,8 @@
                             {% for fila in rentables %}
                             <tr>
                                 <td>{{ fila.producto__nombre }}</td>
-                                <td>${{ fila.ganancia|floatformat:2 }}</td>
-                                <td>${{ fila.costo|floatformat:2 }}</td>
+                                <td>${{ fila.ganancia|montos }}</td>
+                                <td>${{ fila.costo|montos }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
@@ -224,9 +225,9 @@
                             {% endfor %}
                         </td>
                         <td>{{ venta.unidades }}</td>
-                        <td>${{ venta.costo|floatformat:2 }}</td>
-                        <td>${{ venta.total|floatformat:2 }}</td>
-                        <td>${{ venta.ganancia|floatformat:2 }}</td>
+                        <td>${{ venta.costo|montos }}</td>
+                        <td>${{ venta.total|montos }}</td>
+                        <td>${{ venta.ganancia|montos }}</td>
                         <td>
                             {% if venta.finalizada %}
                             <span class="status-badge status-active">Finalizada</span>

@@ -2,8 +2,9 @@
 
 Trabajo práctico de Metodologías Ágiles. Sistema web de gestión para un kiosco de barrio.
 
-**Estado al 03-10-2026:** Sprint 1 completo · Sprint 2 completo (catálogo de
-productos) · reportes de ventas y stock · estilo neón cian único · 110 tests en verde.
+**Estado al 05-10-2026:** Sprint 1 completo · Sprint 2 completo (catálogo de
+productos) · Sprint 3 completo (caja y cobro) · reportes de ventas y stock ·
+estilo neón cian único · 148 tests en verde.
 
 ---
 
@@ -11,11 +12,13 @@ productos) · reportes de ventas y stock · estilo neón cian único · 110 test
 
 | Documento | Contenido |
 |---|---|
-| [docs/PRD.md](docs/PRD.md) | Documento de Requerimientos de Producto: alcance, personas, requerimientos funcionales (RF-01…RF-40) y no funcionales, historias de usuario con criterios de aceptación, riesgos y métricas. |
-| [docs/ARD.md](docs/ARD.md) | Arquitectura y Requerimientos Técnicos: stack, diagramas (flujo y modelo de datos), endpoints, autorización, auditoría, mini-ADRs y calidad. |
+| [docs/PRD.md](docs/PRD.md) | Documento de Requerimientos de Producto (v2.1): alcance, personas, requerimientos funcionales (RF-01…RF-51) y no funcionales, historias de usuario con criterios de aceptación, riesgos y métricas. |
+| [docs/ARD.md](docs/ARD.md) | Arquitectura y Requerimientos Técnicos (v2.1): stack, diagramas (flujo y modelo de datos), endpoints, autorización, auditoría, 12 mini-ADRs y calidad. |
 
-Ambos documentos describen el estado del producto al **Sprint 2** (fecha de
-versión 24-09-2026) y son el entregable de documentación del trabajo práctico.
+Ambos documentos describen el estado del producto al **Sprint 3 cerrado +
+reportes entregados** (fecha de versión 05-10-2026, código `60e490b` + cambios
+de Sprint 3 sin commitear) y son el entregable de documentación del trabajo
+práctico.
 
 ---
 
@@ -67,10 +70,26 @@ versión 24-09-2026) y son el entregable de documentación del trabajo práctico
   con protecciones (no puede desactivar/eliminar superusuarios ni su propia cuenta).
 - 22 tests de `administracion` cubren todo el flujo.
 
-### Pantalla de cobro (Sprint 3) — pendiente
+### Pantalla de cobro (Sprint 3) — completo
 
-- Sigue siendo placeholder, ahora con un mock de escáner de código de barras
-  reservado para el Sprint 3. Los modelos `Venta`/`DetalleVenta` ya existen como base.
+- **HU-07 — carrito con lector:** input escáner con mock; al escanear o tipear
+  un código y apretar Enter, `ventas/services.py::buscar_producto` lo resuelve
+  (código exacto → nombre único → aviso si es ambiguo) y `cobro_agregar` lo
+  suma al carrito (`session["carrito"]`); repetir el mismo producto suma
+  cantidad en vez de duplicar la fila. **Búsqueda en tiempo real:** desde
+  3 letras/carácteres, `cobro_buscar` sugiere productos en `_cobro_resultados.html`
+  y un clic los agrega.
+- **HU-08 — edición:** botones de sumar/restar/quitar por ítem
+  (`cobro_cantidad`, HTMX) que reemplazan el partial `_carrito.html` y
+  recalculan el total en cada request.
+- **HU-09 — cobro:** método de pago efectivo/tarjeta, monto entregado con
+  preview de vuelto, botones de billetes (100/200/500/1000/2000) y "pago
+  exacto"; `confirmar_venta` crea la `Venta` en una transacción con
+  `select_for_update`, congela precios, descuenta stock con `F()`, guarda
+  `metodo_pago`, `usuario`, `monto_entregado` y `vuelto`, audita la operación
+  y muestra el comprobante (`/ventas/cobro/?venta=<id>`).
+- Migración `0004_...` sobre `Venta`. 38 tests nuevos en `ventas/tests.py`
+  (60 en total para la app).
 
 ### Frontend — rediseño completo
 
@@ -81,7 +100,7 @@ versión 24-09-2026) y son el entregable de documentación del trabajo práctico
 
 ### Tests
 
-- **110 tests OK** (`python manage.py test`): `usuarios` 9, `ventas` 22,
+- **148 tests OK** (`python manage.py test`): `usuarios` 9, `ventas` 60,
   `administracion` 22 + 57 de reportes.
 
 ---
@@ -158,12 +177,11 @@ que se están quedando sin stock, para saber qué tengo que salir a reponer.
 
 - **Categoria**: nombre, descripción.
 - **Producto**: nombre, descripción, precio de venta, **costo** (solo lo ve el
-  administrador), stock, categoría (FK), activo. *Todavía sin código de barras
-  ni stock mínimo (pendientes de las HU).*
-- **Venta**: fecha/hora, total, finalizada. Base para el Sprint 3.
+  administrador), stock, stock mínimo, código de barras (único), categoría
+  (FK), activo.
+- **Venta**: fecha/hora, total, finalizada.
 - **DetalleVenta**: venta, producto, cantidad, precio unitario,
-  **costo_unitario**, `subtotal()`, `costo_total()`, `ganancia()`. Base para
-  el Sprint 3.
+  **costo_unitario**, `subtotal()`, `costo_total()`, `ganancia()`.
 
 ---
 
@@ -173,8 +191,8 @@ que se están quedando sin stock, para saber qué tengo que salir a reponer.
 > barras o tipear el código, apretar Enter y que el producto se cargue al
 > toque en el carrito sin tener que usar el mouse."
 
-**Estado:** pendiente. Los modelos `Venta` y `DetalleVenta` ya existen como
-base; la pantalla de cobro tiene el lugar reservado para el lector.
+**Estado:** completo (HU-07, HU-08 y HU-09 implementadas y testeadas; cerrado
+el 05-10, diez días antes de la entrega del 15-10).
 
 ### Historias de usuario
 
@@ -183,24 +201,37 @@ Como cajero, quiero escanear o tipear un código de barras y que el producto
 se agregue al carrito de inmediato.
 - Criterio de aceptación: si escaneo el mismo producto dos veces, se suma
   la cantidad (2) en vez de crear una fila duplicada.
+- *Estado: ✅ Hecho.*
 
 **HU-08 — Editar carrito antes de cobrar**
 Como cajero, quiero poder borrar un producto del carrito o cambiar la
 cantidad antes de confirmar la venta.
 - Criterio de aceptación: el total se recalcula al modificar el carrito.
+- *Estado: ✅ Hecho.*
 
 **HU-09 — Cobro con efectivo o tarjeta**
 Como cajero, quiero indicar si el cliente paga en efectivo o tarjeta,
 ingresar el monto entregado y que el sistema calcule el vuelto exacto.
 - Criterio de aceptación: el stock se descuenta automáticamente al
   confirmar la venta.
+- *Estado: ✅ Hecho.*
 
-### Modelos (ya creados como base)
+### Cómo está implementado
 
-- **Venta**: fecha/hora, total, finalizada. *Falta método de pago
-  (efectivo/tarjeta) y usuario cajero.*
-- **DetalleVenta**: venta, producto, cantidad, precio unitario al momento
-  de la venta.
+- **Carrito en la sesión** (`request.session["carrito"]`), no en la base de
+  datos: no quedan ventas "a medias" que ensucien los reportes (ADN-11 del ARD).
+- **`ventas/services.py`**: `buscar_producto`, `agregar_al_carrito`,
+  `modificar_cantidad`, `total_del_carrito` y `confirmar_venta`
+  (transacción + `select_for_update` + descuento de stock).
+- **Endpoints HTMX**: `/ventas/cobro/agregar/`, `/ventas/cobro/cantidad/` y
+  `/ventas/cobro/confirmar/` responden el partial `_carrito.html`;
+  `/ventas/cobro/buscar/` responde las sugerencias del escáner
+  (`_cobro_resultados.html`) desde 3 caracteres.
+- **`Venta` ampliada** (migración `0004`): `metodo_pago` (efectivo/tarjeta),
+  `usuario` (cajero responsable, `SET_NULL`), `monto_entregado` y `vuelto`.
+- **Auditoría**: cada venta confirmada se registra con
+  `registrar_accion()`, y el comprobante es visible solo para quien la cobró
+  o para un administrador (403 si no).
 
 ---
 
@@ -266,12 +297,18 @@ para que el cajero pueda asociar una venta a un cliente cuando lo solicite
   `RegistroAuditoria` (usuario, acción, fecha, IP) sin tocar las vistas de
   login.
 
+- **Carrito en la sesión, venta al confirmar** (Sprint 3): el carrito es una
+  lista en `request.session["carrito"]`; la `Venta` recién se crea en
+  `services.confirmar_venta()` dentro de una transacción (con
+  `select_for_update` y descuento de stock con `F()`), de modo que nunca
+  queda una venta parcial que contaminaría los reportes.
+
 ### Frontend
 
 <a id="frontend"></a>
 
 - **Bootstrap 5.3.3 + Bootstrap Icons** vía CDN como framework de utilidades.
-- **CSS custom** (`static/css/styles.css`, ~2.900 líneas) con design tokens vía
+- **CSS custom** (`static/css/styles.css`, ~3.200 líneas) con design tokens vía
   CSS custom properties (`:root` + variantes). La paleta, tipografía, radios y
   sombras se definen una vez y se reutilizan en todas las páginas.
 - **Identidad "toldo de barrio"**: rotulación de kiosco argentino — contorno
@@ -295,7 +332,8 @@ para que el cajero pueda asociar una venta a un cliente cuando lo solicite
 - **Responsive**: en mobile el navbar oculta el nombre de usuario y mantiene
   badges y salida; el login pasa a panel único bajo 900px.
 - **HTMX** (CDN en `base.html`) se usa en la búsqueda del catálogo de
-  productos (Sprint 2) y queda disponible para el carrito del Sprint 3.
+  productos y en las acciones del carrito del cobro; el token CSRF se envía
+  globalmente con `hx-headers`.
 
 ---
 
@@ -378,16 +416,20 @@ Con el entorno virtual activado:
 python manage.py test
 ```
 
-**110 tests** actualmente:
+**148 tests** actualmente:
 
 - **`usuarios/tests.py` (9)**: login correcto e incorrecto, acceso anónimo
   bloqueado, cajero bloqueado en administración, administrador con acceso
   total, y la redirección post-login según rol.
-- **`ventas/tests.py` (22)**: pantalla de cobro (login, cajero, admin,
-  template) + catálogo: acceso 403 para el cajero en las 4 vistas, alta con
+- **`ventas/tests.py` (60)**: pantalla de cobro (login, cajero, admin,
+  template) + catálogo (acceso 403 para el cajero en las 4 vistas, alta con
   costo y código, código duplicado rechazado, precio 0 rechazado, categoría
   nueva, edición, baja lógica, búsqueda por nombre/código, respuesta HTMX con
-  partial y alerta de stock bajo.
+  partial y alerta de stock bajo) + **Sprint 3** (carrito: agregar por
+  código, duplicado suma cantidad, sumar/restar/quitar y total; cobro:
+  efectivo con vuelto, pago exacto, tarjeta, stock insuficiente, auditoría de
+  la venta; comprobante: formato de pesos y 403 para ventas ajenas; búsqueda
+  en tiempo real del escáner desde 3 caracteres).
 - **`administracion/tests.py` (22)**: dashboard (login, admin, 403 cajero,
   403 sin grupo, estadísticas) y CRUD de usuarios (listar con búsqueda y
   filtro por rol, crear, editar, eliminar con protección de superusuarios,
@@ -408,7 +450,7 @@ kiosco_sprint1/
 ├── README.md                         # Este archivo.
 ├── AGENTS.md                         # Instrucciones para agentes IA.
 ├── docs/
-│   ├── PRD.md                        # Requerimientos de producto (alcance S1+S2).
+│   ├── PRD.md                        # Requerimientos de producto (v2.1).
 │   └── ARD.md                        # Arquitectura y requerimientos técnicos.
 ├── .env                              # DATABASE_URL (no se sube al repo).
 ├── .gitignore                        # __pycache__, venv/, db.sqlite3, .env…
@@ -441,22 +483,24 @@ kiosco_sprint1/
 │                                     # Idempotente.
 │
 ├── ventas/                           # Productos y pantalla de cobro (POS).
-│   ├── models.py                     # Categoria, Producto, Venta,
-│   │                                 # DetalleVenta (migración 0001).
-│   ├── views.py                      # pantalla_cobro, lista_productos (HTMX),
-│   │                                 # agregar / editar / eliminar producto
-│   │                                 # (todo @rol_requerido Administrador).
+│   ├── models.py                     # Categoria, Producto, Venta (método de
+│   │                                 # pago, cajero, vuelto), DetalleVenta.
+│   ├── services.py                   # Carrito en sesión + confirmar_venta
+│   │                                 # (transacción, stock, precios HU-09).
+│   ├── views.py                      # pantalla_cobro + cobro_agregar /
+│   │                                 # cobro_cantidad / cobro_confirmar (HTMX),
+│   │                                 # lista_productos y CRUD de productos
+│   │                                 # (@rol_requerido Administrador).
 │   ├── forms.py                      # ProductoForm (HU-04): código de barras
 │   │                                 # sin duplicados, costo, precio, stock,
 │   │                                 # stock_minimo y categoría.
-│   ├── urls.py                       # 5 rutas: cobro/, productos/,
-│   │                                 # productos/agregar/, productos/<id>/
-│   │                                 # editar/, productos/<id>/eliminar/.
+│   ├── urls.py                       # 10 rutas: 5 de cobro/ y 5 de productos/.
 │   ├── admin.py                      # Venta (inline DetalleVenta), Producto,
 │   │                                 # Categoria.
-│   ├── tests.py                      # 22 tests.
+│   ├── tests.py                      # 60 tests.
 │   └── migrations/                   # 0001 catálogo/ventas, 0002 costo,
-│                                     # 0003 código de barras + stock mínimo.
+│                                     # 0003 código de barras + stock mínimo,
+│                                     # 0004 campos de cobro de la Venta.
 │
 ├── administracion/                   # Panel del dueño.
 │   ├── views.py                      # dashboard (stats de usuarios), CRUD:
@@ -497,7 +541,9 @@ kiosco_sprint1/
 │   │   ├── sin_rol.html              # warning-page sin grupo asignado.
 │   │   └── tags/                     # Partiales de paginación y buscador.
 │   ├── ventas/
-│   │   ├── pantalla_cobro.html       # Placeholder con mock de escáner.
+│   │   ├── pantalla_cobro.html       # POS: escáner, carrito, pago (HU-07…09).
+│   │   ├── _carrito.html             # Partial HTMX del carrito y form de pago.
+│   │   ├── _cobro_resultados.html    # Sugerencias del escáner (≥3 caracteres).
 │   │   ├── lista_productos.html      # Catálogo con búsqueda HTMX.
 │   │   ├── _productos_tabla.html     # Partial que devuelve HTMX.
 │   │   ├── agregar_producto.html     # Alta (HU-04).
@@ -513,7 +559,7 @@ kiosco_sprint1/
 │       └── reportes_stock.html        # inventario valorado y alertas.
 │
 ├── static/
-│   ├── css/styles.css                # ~2.900 líneas: tokens del toldo, estilo
+│   ├── css/styles.css                # ~3.200 líneas: tokens del toldo, estilo
 │   │                                 # neón (único) con dark variant,
 │   │                                 # componentes base, bloques auth/admin
 │   │                                 # del equipo con aliases de tokens,
@@ -568,7 +614,7 @@ kiosco_sprint1/
 
 ## Backlog
 
-Estado real al **03-10-2026** (unificado: tabla original + backlog nuevo).
+Estado real al **05-10-2026** (unificado: tabla original + backlog nuevo).
 
 ### Hecho
 
@@ -592,28 +638,28 @@ Estado real al **03-10-2026** (unificado: tabla original + backlog nuevo).
 | Búsqueda de productos en tiempo real con HTMX (HU-05) | 2 | `hx-get` en el buscador + partial `_productos_tabla.html` |
 | Alerta de stock bajo configurable (HU-06) | 2 | `Producto.stock_minimo` (default 5) + `stock_bajo` + `.badge-stock-bajo` |
 | Catálogo protegido para el administrador (el cajero: 403) | 2 | `@rol_requerido("Administrador")` en las 4 vistas de `ventas` |
+| Carrito de cobro con lector de código de barras (HU-07/08) | 3 | `ventas/services.py` + `cobro_agregar`/`cobro_cantidad` con partial `_carrito.html` |
+| Búsqueda en tiempo real en el cobro (desde 3 letras) | 3 | `cobro_buscar` + `hx-get` con debounce 300 ms y partial `_cobro_resultados.html` |
+| Cobro efectivo/tarjeta con vuelto (HU-09) | 3 | `cobro_confirmar` + preview de vuelto, billetes y "pago exacto" |
+| Botón "pago exacto" en el cobro | 3 | `.btn-exacto` rellena el monto con el total |
+| Vuelto rápido con billetes/montos predeterminados | 3 | Botones de billetes (100/200/500/1000/2000) |
+| Método de pago en `Venta` (efectivo/tarjeta) | 3 | `Venta.metodo_pago` (migración `0004`) |
+| Descuento automático de stock al confirmar venta | 3 | `transaction.atomic` + `F("stock")` en `confirmar_venta` |
+| Cajero responsable en cada venta | 3 | `Venta.usuario` (`SET_NULL`) + auditoría de la venta |
 
 ### Parcial
 
 | Item | Sprint | Qué falta |
 |------|--------|-----------|
 | KPIs en el dashboard principal | 2 | El dashboard sigue mostrando solo métricas de usuarios (los de negocio están en `/reportes/`) |
-| Cálculo automático del total de la compra | 3 | Modelos `Venta.total`/`subtotal()` creados; falta lógica en views y UI |
-| Venta a consumidor final sin datos personales | 3 | No hay flujo de confirmación de venta (no descuenta stock ni registra método de pago) |
 | Logo propio del kiosco | por definir | Solo `favicon.svg`; el navbar usa icono de Bootstrap + texto |
+| Comercio configurable (nombre y colores del local) | por definir | Identidad fija en neón; se parametrizaría vía settings/templates |
 
 ### Pendiente
 
 | Item | Sprint | Notas |
 |------|--------|-------|
-| Carrito de cobro con lector de código de barras (HU-07/08) | 3 | Escanear → identificar → agregar al carrito; editar cantidades |
-| Cobro efectivo/tarjeta con vuelto (HU-09) | 3 | Incluir monto entregado, vuelto y descuento de stock |
-| Botón "pago exacto" en el cobro | 3 | Agiliza el cobro en efectivo |
-| Vuelto rápido con billetes/montos predeterminados | 3 | Botones de billetes (100/200/500/1000) |
-| Método de pago en `Venta` (efectivo/tarjeta) | 3 | Campo inexistente, necesario para los cierres |
-| Descuento automático de stock al confirmar venta | 3 | — |
-| Cierre de turno: totales por método, operaciones, responsable (HU-10) | 4 | Requiere modelo `Turno` + FK de `Venta` a usuario y método de pago |
-| Registrar el cajero responsable de cada turno | 4 | `Venta` no tiene FK a `User` |
+| Cierre de turno: totales por método, operaciones, responsable (HU-10) | 4 | Requiere modelo `Turno` (el FK de `Venta` a usuario y método de pago ya existen) |
 | Alta/búsqueda de clientes por CUIT/DNI (HU-12) | 4 | Requiere modelo `Cliente` y FK opcional en `Venta` |
 | Cobro con Mercado Pago (MP) | por definir | Sin dependencia ni integración en `requirements.txt` |
 | Recuperar contraseña ("¿Olvidaste tu contraseña?") | por definir | Sin `password_reset` ni `EMAIL_*` en settings |
@@ -621,11 +667,11 @@ Estado real al **03-10-2026** (unificado: tabla original + backlog nuevo).
 ### Pasos a seguir
 
 1. **~~Sprint 2 (cerrar)~~ — HECHO:** catálogo con alta/edición/baja, código de
-   barras, búsqueda HTMX y alerta de stock (110 tests en verde).
-2. **Sprint 3 (la caja):** carrito con HTMX/JS, campo `metodo_pago` y
-   `usuario` en `Venta`, vuelto + pago exacto + billetes, descuento de
-   stock y cliente opcional.
+   barras, búsqueda HTMX y alerta de stock.
+2. **~~Sprint 3 (la caja)~~ — HECHO:** carrito con HTMX/JS, campo `metodo_pago`
+   y `usuario` en `Venta`, vuelto + pago exacto + billetes, descuento de
+   stock y comprobante (148 tests en verde).
 3. **Sprint 4 (cierres):** modelo `Turno`, cierre con totales por método y
    operaciones, y modelo `Cliente` con búsqueda por CUIT/DNI.
 4. **Extras (por definir):** Mercado Pago, recuperar contraseña, logo,
-   KPIs de negocio en el dashboard.
+   KPIs de negocio en el dashboard, comercio configurable.

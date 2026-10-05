@@ -1,33 +1,210 @@
 {% extends "base.html" %}
+{% load formatos %}
 {% block titulo %}Cobro{% endblock %}
 {% block contenido %}
-<div class="placeholder-page">
-    <div class="page-header">
-        <h2>Pantalla de cobro</h2>
-        <p class="page-subtitle">
-            El mostrador del cajero: escaneo por código de barras, carrito
-            rápido y cálculo de vuelto con billetes.
-        </p>
-    </div>
-
-    <div class="escaner-mock">
-        <div class="barcode" aria-hidden="true"></div>
-        <p class="escaner-nota">Espacio reservado para el lector de códigos (Sprint 3).</p>
-    </div>
-
-    <div class="kiosco-alert kiosco-alert-info mt-4" role="note">
-        <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
-        <span><strong>Sprint 1:</strong> esta pantalla demuestra que el acceso
-        está protegido por login y disponible tanto para <strong>Cajero</strong>
-        como para <strong>Administrador</strong>.</span>
-    </div>
-
-    {% if request.user.groups.first.name == "Administrador" or request.user.is_superuser %}
-    <div class="acciones">
+<div class="admin-panel cobro-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-upc-scan"></i> Pantalla de cobro</h1>
+            <p class="admin-subtitle">
+                Escaneá o tipeá el código: el producto vuela al carrito
+                (HU-07) · con 3 letras aparece la búsqueda en tiempo real ·
+                cantidades editables (HU-08) · efectivo o tarjeta con vuelto
+                (HU-09).
+            </p>
+        </div>
+        {% if request.user.groups.first.name == "Administrador" or request.user.is_superuser %}
         <a href="{% url 'administracion:dashboard' %}" class="btn btn-kiosco-outline">
-            <i class="bi bi-gear" aria-hidden="true"></i> Ir al panel de administración
+            <i class="bi bi-gear" aria-hidden="true"></i> Panel
         </a>
+        {% endif %}
+    </div>
+
+    {% if venta %}
+    <!-- ===== Comprobante de la venta confirmada ===== -->
+    <div class="cobro-ticket" id="comprobante">
+        <div class="cobro-ticket-header">
+            <span class="cobro-ticket-icono"><i class="bi bi-check-circle-fill"></i></span>
+            <div>
+                <h2>Venta N° {{ venta.pk }} confirmada</h2>
+                <p class="page-subtitle">
+                    {{ venta.fecha|date:"d/m/Y H:i" }} ·
+                    {{ venta.get_metodo_pago_display }} ·
+                    Cajero: {{ venta.usuario|default:"—" }}
+                </p>
+            </div>
+        </div>
+
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th>Producto</th>
+                    <th>Cant.</th>
+                    <th>Precio</th>
+                    <th>Subtotal</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in detalles %}
+                <tr>
+                    <td>{{ d.producto.nombre }}</td>
+                    <td>{{ d.cantidad }}</td>
+                    <td>${{ d.precio_unitario|montos }}</td>
+                    <td>${{ d.subtotal|montos }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <div class="cobro-totales">
+            <div class="cobro-total-linea"><span>Total</span><strong>${{ venta.total|montos }}</strong></div>
+            {% if venta.metodo_pago == "efectivo" %}
+            <div class="cobro-total-linea"><span>Entregado</span><strong>${{ venta.monto_entregado|montos }}</strong></div>
+            <div class="cobro-total-linea cobro-vuelto"><span>Vuelto</span><strong>${{ venta.vuelto|montos }}</strong></div>
+            {% endif %}
+        </div>
+
+        <div class="acciones mt-3">
+            <a href="{% url 'ventas:pantalla_cobro' %}" class="btn btn-kiosco">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva venta
+            </a>
+        </div>
+    </div>
+
+    {% else %}
+    <!-- ===== Escáner + carrito + cobro ===== -->
+    <div class="cobro-grid">
+        <section class="cobro-izq" aria-label="Carga de productos">
+            <form class="cobro-escaner"
+                  autocomplete="off"
+                  hx-post="{% url 'ventas:cobro_agregar' %}"
+                  hx-target="#carrito-region"
+                  hx-swap="innerHTML"
+                  hx-on::after-request="if (event.detail.successful && event.target === this) cobroLimpiar();">
+                {% csrf_token %}
+                <div class="search-box">
+                    <i class="bi bi-upc" aria-hidden="true"></i>
+                    <input type="text"
+                           id="codigo-input"
+                           name="codigo"
+                           class="admin-input"
+                           placeholder="Escanear código de barras o tipear 3 letras..."
+                           aria-label="Código de barras o nombre del producto"
+                           autocomplete="off"
+                           hx-get="{% url 'ventas:cobro_buscar' %}"
+                           hx-trigger="input changed delay:300ms"
+                           hx-vals="js:{codigo: document.getElementById('codigo-input').value}"
+                           hx-target="#cobro-resultados"
+                           hx-swap="innerHTML"
+                           autofocus>
+                </div>
+                <button type="submit" class="btn btn-kiosco">
+                    <i class="bi bi-cart-plus" aria-hidden="true"></i> Agregar
+                </button>
+            </form>
+
+            <div id="cobro-resultados" class="cobro-resultados" aria-live="polite"></div>
+
+            <div class="escaner-mock" aria-hidden="true">
+                <div class="barcode"></div>
+                <p class="escaner-nota">Pasá el código por el lector y apretá Enter, o escribí 3 letras y elegí de la lista.</p>
+            </div>
+
+            <div id="carrito-region" aria-live="polite">
+                {% include "ventas/_carrito.html" %}
+            </div>
+        </section>
+    </div>
+    {% endif %}
+
+    {% if error %}
+    <div class="kiosco-alert kiosco-alert-danger mt-3" role="alert">
+        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+        <span>{{ error }}</span>
     </div>
     {% endif %}
 </div>
+
+<script>
+(function () {
+    // Los totales llegan con coma decimal (locale es-ar): para los cálculos
+    // en JS hace falta pasarlos a punto.
+    function aNumero(texto) {
+        var v = (texto || '0').toString().trim().replace('$', '');
+        if (v.indexOf(',') !== -1) v = v.replace(/\./g, '').replace(',', '.');
+        return parseFloat(v);
+    }
+
+    // Formato de pesos: 26600 → "26.600"; 26600.5 → "26.600,50".
+    function aTexto(valor) {
+        var redondeado = Math.round(valor * 100) / 100;
+        var signo = redondeado < 0 ? '-' : '';
+        var abs = Math.abs(redondeado).toFixed(2).split('.');
+        var entero = abs[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return signo + entero + (abs[1] === '00' ? '' : ',' + abs[1]);
+    }
+
+    // Limpia el campo del escáner y la lista de sugerencias (HTMX lo llama
+    // después de agregar un producto al carrito).
+    window.cobroLimpiar = function () {
+        var input = document.getElementById('codigo-input');
+        var resultados = document.getElementById('cobro-resultados');
+        if (input) {
+            input.value = '';
+            input.focus();
+        }
+        if (resultados) resultados.innerHTML = '';
+    };
+
+    // Escape (o un clic afuera) cierra la lista de sugerencias.
+    document.addEventListener('keydown', function (e) {
+        if (e.key !== 'Escape') return;
+        var resultados = document.getElementById('cobro-resultados');
+        if (resultados) resultados.innerHTML = '';
+    });
+    document.addEventListener('click', function (e) {
+        if (e.target.closest('#cobro-resultados') || e.target.closest('#codigo-input')) return;
+        var resultados = document.getElementById('cobro-resultados');
+        if (resultados && resultados.innerHTML.trim() !== '') resultados.innerHTML = '';
+    });
+
+    // Billetes y pago exacto (HU-09): siempre sobre el input actual,
+    // aunque el carrito se vuelva a dibujar con HTMX.
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-monto-boton]');
+        if (!btn) return;
+        var monto = document.getElementById('monto');
+        if (!monto) return;
+        monto.value = btn.getAttribute('data-monto-boton') === 'exacto'
+            ? btn.getAttribute('data-total')
+            : btn.getAttribute('data-monto-boton');
+        monto.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    // Vista previa del vuelto mientras se tipea el monto entregado.
+    document.addEventListener('input', function (e) {
+        if (e.target.id !== 'monto') return;
+        var cont = document.getElementById('vuelto-preview');
+        if (!cont) return;
+        var total = aNumero(cont.getAttribute('data-total'));
+        var entregado = aNumero(e.target.value);
+        if (isNaN(entregado) || entregado < total) {
+            cont.textContent = entregado > 0
+                ? 'Falta ingresar $' + aTexto(total - entregado)
+                : '';
+            cont.classList.toggle('cobro-vuelto-negativo', entregado > 0);
+            return;
+        }
+        cont.textContent = 'Vuelto: $' + aTexto(entregado - total);
+        cont.classList.remove('cobro-vuelto-negativo');
+    });
+
+    // Efectivo / tarjeta: el monto entregado solo aplica a efectivo.
+    document.addEventListener('change', function (e) {
+        if (e.target.name !== 'metodo_pago') return;
+        var bloque = document.getElementById('bloque-monto');
+        if (bloque) bloque.hidden = (e.target.value !== 'efectivo');
+    });
+})();
+</script>
 {% endblock %}

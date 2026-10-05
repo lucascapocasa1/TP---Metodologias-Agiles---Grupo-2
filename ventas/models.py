@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from django.conf import settings
 from django.db import models
  
 class Categoria(models.Model):
@@ -65,9 +66,44 @@ class Producto(models.Model):
          return self.precio * self.stock
      
 class Venta(models.Model):
+     METODO_PAGO = [
+         ("efectivo", "Efectivo"),
+         ("tarjeta", "Tarjeta"),
+     ]
+
      fecha = models.DateTimeField(auto_now_add=True)
      total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
      finalizada = models.BooleanField(default=False)
+     metodo_pago = models.CharField(
+         max_length=10,
+         choices=METODO_PAGO,
+         default="efectivo",
+         verbose_name="Método de pago",
+     )
+     usuario = models.ForeignKey(
+         settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ventas_realizadas",
+        verbose_name="Cajero responsable",
+     )
+     monto_entregado = models.DecimalField(
+         max_digits=10,
+         decimal_places=2,
+         null=True,
+         blank=True,
+         verbose_name="Monto entregado",
+         help_text="Solo para pagos en efectivo.",
+     )
+     vuelto = models.DecimalField(
+         max_digits=10,
+         decimal_places=2,
+         null=True,
+         blank=True,
+         help_text="Monto entregado menos el total. Solo para efectivo.",
+     )
+
      def __str__(self):
          return f"Venta N° {self.id} - {self.fecha.strftime('%d/%m/%Y')}"
 class DetalleVenta(models.Model):

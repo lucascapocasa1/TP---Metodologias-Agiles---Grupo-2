@@ -1380,6 +1380,7 @@ strong {
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  white-space: nowrap;
 }
 
 .admin-header h1 i {
@@ -1563,7 +1564,7 @@ strong {
 /* --- Stats Grid --- */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
 }
@@ -1576,6 +1577,8 @@ strong {
   display: flex;
   align-items: center;
   gap: 1rem;
+  min-width: 0;
+  overflow: hidden;
   transition: all var(--transition);
   box-shadow: var(--shadow-sm);
 }
@@ -1626,12 +1629,19 @@ strong {
   color: #F59E0B;
 }
 
+.stat-content {
+  min-width: 0;
+  flex: 1;
+}
+
 .stat-content h3 {
-  font-size: 1.5rem;
+  font-size: clamp(1.1rem, 0.75rem + 1.1vw, 1.5rem);
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
-  line-height: 1;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  font-variant-numeric: tabular-nums;
 }
 
 .stat-content p {
@@ -1773,7 +1783,7 @@ strong {
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 2px;
+  gap: 3px;
   width: 100%;
   height: 130px;
 }
@@ -1787,12 +1797,16 @@ strong {
   transition: height var(--transition);
 }
 
+/* Ingresos: amarillo · Ganancia: cian/azul. Series bien separadas para que
+   se distingan de un vistazo en el gráfico de barras. */
 .reporte-dia-ingresos {
-  background: linear-gradient(180deg, var(--kiosco-amber), var(--kiosco-yellow));
+  background: linear-gradient(180deg, #FFD34D, var(--kiosco-yellow));
+  box-shadow: inset 0 0 0 1px rgba(8, 24, 34, 0.3);
 }
 
 .reporte-dia-ganancia {
-  background: linear-gradient(180deg, #34D399, var(--green));
+  background: linear-gradient(180deg, #35B7E8, #0077C8);
+  box-shadow: inset 0 0 0 1px rgba(8, 24, 34, 0.3);
 }
 
 .reporte-dia-label {
@@ -1830,11 +1844,11 @@ strong {
 }
 
 .reporte-swatch-ingresos {
-  background: linear-gradient(180deg, var(--kiosco-amber), var(--kiosco-yellow));
+  background: linear-gradient(180deg, #FFD34D, var(--kiosco-yellow));
 }
 
 .reporte-swatch-ganancia {
-  background: linear-gradient(180deg, #34D399, var(--green));
+  background: linear-gradient(180deg, #35B7E8, #0077C8);
 }
 
 .reporte-nota {
@@ -2654,6 +2668,10 @@ strong {
     align-items: stretch;
   }
 
+  .admin-header h1 {
+    white-space: normal;
+  }
+
   .admin-header-left {
     justify-content: flex-start;
   }
@@ -2937,3 +2955,332 @@ strong {
   opacity: 0.92;
 }
 
+
+
+/* ============================================================
+   SPRINT 3 — Pantalla de cobro (HU-07/08/09)
+   ============================================================ */
+.cobro-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--radio);
+}
+
+.cobro-izq {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.cobro-escaner {
+  display: flex;
+  gap: 10px;
+  align-items: stretch;
+}
+
+.cobro-escaner .search-box {
+  flex: 1;
+  min-width: 0;
+}
+
+.cobro-escaner .btn-kiosco {
+  white-space: nowrap;
+}
+
+.cobro-codigo {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+}
+
+.cobro-cantidad {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-qty {
+  width: 30px;
+  height: 30px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--superficie);
+  color: var(--texto);
+  border: var(--borde);
+  border-radius: var(--radio-chico);
+  box-shadow: var(--dureza-chica);
+  transition: transform var(--transicion), box-shadow var(--transicion);
+}
+
+.btn-qty:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--sombra);
+}
+
+.btn-qty:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--sombra);
+}
+
+.qty-valor {
+  min-width: 24px;
+  text-align: center;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.cobro-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 14px;
+  padding: 14px 16px;
+  background: var(--sol);
+  color: var(--ink-solid);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+}
+
+.cobro-total span {
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.cobro-total strong {
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  line-height: 1;
+}
+
+.cobro-pago {
+  margin-top: 14px;
+  padding: 16px;
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+}
+
+.cobro-metodos {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.cobro-metodo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 16px;
+  border: var(--borde);
+  border-radius: var(--radio);
+  background: var(--papel);
+  cursor: pointer;
+  font-weight: 600;
+  transition: background var(--transicion), transform var(--transicion);
+}
+
+.cobro-metodo input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cobro-metodo:has(input:checked) {
+  background: var(--sol);
+  color: var(--ink-solid);
+  transform: translate(-1px, -1px);
+  box-shadow: var(--dureza-chica);
+}
+
+.cobro-metodo:has(input:focus-visible) {
+  outline: 3px solid var(--celeste);
+  outline-offset: 2px;
+}
+
+.cobro-label {
+  display: block;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+#bloque-monto .admin-input {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  width: 100%;
+}
+
+.cobro-vuelto-preview {
+  min-height: 1.4rem;
+  margin-top: 6px;
+  font-weight: 700;
+  color: var(--verde);
+}
+
+.cobro-vuelto-preview.cobro-vuelto-negativo {
+  color: var(--caramelo);
+}
+
+.cobro-billetes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.btn-billete {
+  padding: 8px 14px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  background: var(--papel);
+  color: var(--texto);
+  border: var(--borde);
+  border-radius: var(--radio-chico);
+  box-shadow: var(--dureza-chica);
+  transition: transform var(--transicion), box-shadow var(--transicion);
+}
+
+.btn-billete:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 4px 4px 0 var(--sombra);
+}
+
+.btn-billete:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0 var(--sombra);
+}
+
+.btn-exacto {
+  background: var(--celeste);
+  color: #fff;
+}
+
+.cobro-confirmar {
+  width: 100%;
+  margin-top: 16px;
+  font-size: 1.1rem;
+}
+
+/* Comprobante de la venta confirmada */
+.cobro-ticket {
+  padding: 20px;
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+}
+
+.cobro-ticket-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.cobro-ticket-icono {
+  font-size: 2.4rem;
+  color: var(--verde);
+  line-height: 1;
+}
+
+.cobro-ticket-header h2 {
+  margin: 0;
+  font-family: var(--font-display);
+}
+
+.cobro-totales {
+  margin-top: 14px;
+  display: grid;
+  gap: 6px;
+}
+
+.cobro-total-linea {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 600;
+}
+
+.cobro-total-linea.cobro-vuelto strong {
+  color: var(--verde);
+}
+
+
+/* Buscador en tiempo real del esc�ner: aparece desde 3 letras */
+.cobro-resultados:not(:empty) {
+  margin-top: -6px;
+}
+
+.cobro-res-lista {
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 270px;
+  overflow-y: auto;
+  display: grid;
+  gap: 4px;
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+}
+
+.cobro-res-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--texto);
+  text-align: left;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radio-chico);
+  cursor: pointer;
+  transition: background var(--transicion), border-color var(--transicion);
+}
+
+.cobro-res-item:hover,
+.cobro-res-item:focus-visible {
+  background: color-mix(in srgb, var(--celeste) 14%, transparent);
+  border-color: var(--celeste);
+}
+
+.cobro-res-nombre {
+  font-weight: 700;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.cobro-res-meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+.cobro-res-codigo {
+  font-family: var(--font-ui);
+  opacity: 0.75;
+}
+
+.cobro-res-vacio {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}

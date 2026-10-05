@@ -22,7 +22,7 @@
     })();
     </script>
 </head>
-<body>
+<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     {% if user.is_authenticated %}
     <nav class="kiosco-navbar">
         <div class="kiosco-navbar-inner">
