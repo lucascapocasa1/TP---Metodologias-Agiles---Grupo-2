@@ -120,6 +120,7 @@ Como usuario del sistema (dueño o cajero), quiero ingresar con usuario y
 contraseña para que solo personal autorizado pueda operar el kiosco.
 - Criterio de aceptación: con credenciales válidas se ingresa al sistema;
   con credenciales inválidas se muestra un error y no se ingresa.
+- *Estado: ✅ Hecho.*
 
 **HU-02 — Separación de roles: Cajero**
 Como dueño, quiero que el cajero solo pueda ver la pantalla de cobro, para
@@ -127,6 +128,7 @@ que no tenga acceso a costos, precios ni reportes del negocio.
 - Criterio de aceptación: un usuario del grupo *Cajero* que intenta acceder
   a una URL de administración recibe "Acceso denegado" (403), y accede sin
   problemas a la pantalla de cobro.
+- *Estado: ✅ Hecho.*
 
 **HU-03 — Separación de roles: Administrador**
 Como dueño, quiero tener un usuario administrador con acceso total, para
@@ -134,6 +136,7 @@ manejar yo mismo la parte sensible del negocio (desde el local o de forma
 remota).
 - Criterio de aceptación: un usuario del grupo *Administrador* accede tanto
   al panel de administración como a la pantalla de cobro.
+- *Estado: ✅ Hecho.*
 
 ### Qué se implementó
 
@@ -162,16 +165,19 @@ código de barras, precio de costo, precio de venta y stock, para tener el
 catálogo actualizado.
 - Criterio de aceptación: si el código de barras ya existe, el sistema
   muestra un error y no permite el duplicado.
+- *Estado: ✅ Hecho.*
 
 **HU-05 — Lista de productos con búsqueda**
 Como administrador, quiero una lista donde pueda buscar cualquier producto
 por nombre o código para modificarle el precio o corregir el stock.
 - Criterio de aceptación: la búsqueda filtra en tiempo real (HTMX).
+- *Estado: ✅ Hecho.*
 
 **HU-06 — Alerta de stock bajo**
 Como administrador, quiero que el sistema me marque en color los productos
 que se están quedando sin stock, para saber qué tengo que salir a reponer.
 - Criterio de aceptación: productos con stock ≤ 5 se muestran marcados.
+- *Estado: ✅ Hecho.*
 
 ### Modelos (implementados)
 
@@ -257,6 +263,7 @@ Como administrador, quiero ver un reporte de los productos más vendidos,
 para no quedarme sin mercadería de lo que más sale.
 - Criterio de aceptación: el reporte muestra el top 10 de productos por
   cantidad vendida en un período seleccionable.
+- *Estado: ✅ Hecho.*
 
 **HU-12 — Clientes frecuentes (opcional)**
 Como administrador, quiero poder registrar clientes con nombre y CUIT/DNI,
@@ -375,7 +382,7 @@ python manage.py migrate
 # 8. Crear los grupos y usuarios de prueba (una sola vez)
 python manage.py setup_inicial
 
-# 9. Levantar el servidor de desarrollo (el 8000 lo ocupa otro proyecto: backend VPN)
+# 9. Levantar el servidor de desarrollo
 python manage.py runserver 8001
 ```
 

@@ -102,8 +102,8 @@ provoca:
   sin romper los tests existentes (148 en verde).
 - Idioma y formato argentinos: español rioplatense, moneda ARS, horario
   `America/Argentina/Buenos_Aires`.
-- El servidor de desarrollo corre en el puerto **8001** (el 8000 está ocupado
-  por el backend VPN de otro proyecto y no debe tocarse).
+- El servidor de desarrollo corre en el puerto **8001** (conservar ese puerto
+  en todas las máquinas del equipo).
 
 ---
 

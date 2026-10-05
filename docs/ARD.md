@@ -403,7 +403,7 @@ Comandos del proyecto:
 |---|---|
 | Migraciones | `python manage.py migrate` |
 | Seed | `python manage.py setup_inicial` |
-| Servidor | `python manage.py runserver 8001` (el 8000 lo ocupa otro proyecto) |
+| Servidor | `python manage.py runserver 8001` (puerto fijo del equipo) |
 | Tests | `python manage.py test` |
 
 ---
