@@ -3,8 +3,10 @@
 Trabajo práctico de Metodologías Ágiles. Sistema web de gestión para un kiosco de barrio.
 
 **Estado al 05-10-2026:** Sprint 1 completo · Sprint 2 completo (catálogo de
-productos) · Sprint 3 completo (caja y cobro) · reportes de ventas y stock ·
-estilo neón cian único · 148 tests en verde.
+productos + gestión de usuarios) · Sprint 3 completo (caja y cobro) ·
+**Sprint 4 parcial** (reportes de ventas y stock entregados adelantado;
+faltan cierre de turno y clientes) · estilo neón cian único · 148 tests en
+verde.
 
 ---
 
@@ -16,92 +18,22 @@ estilo neón cian único · 148 tests en verde.
 | [docs/ARD.md](docs/ARD.md) | Arquitectura y Requerimientos Técnicos (v2.1): stack, diagramas (flujo y modelo de datos), endpoints, autorización, auditoría, 12 mini-ADRs y calidad. |
 
 Ambos documentos describen el estado del producto al **Sprint 3 cerrado +
-reportes entregados** (fecha de versión 05-10-2026, código `60e490b` + cambios
-de Sprint 3 sin commitear) y son el entregable de documentación del trabajo
-práctico.
+reportes entregados** (versión 05-10-2026) y son el entregable de
+documentación del trabajo práctico.
 
 ---
 
-## Estado actual del trabajo
+## Estado del proyecto
 
-### Seguridad y roles (Sprint 1) — completo
+| Sprint | Contenido | Estado |
+|---|---|---|
+| 1 | Login, roles y 403 server-side (HU-01…03) | ✅ Completo |
+| 2 | Catálogo de productos + gestión de usuarios (HU-04…06) | ✅ Completo |
+| 3 | Caja: carrito, edición del carrito y cobro con vuelto (HU-07…09) | ✅ Completo (cerrado 05-10) |
+| 4 | Reportes de ventas y stock, cierre de turno (HU-10) y clientes (HU-12) | 🟡 Reportes entregados adelantado; faltan HU-10 y HU-12 |
 
-- Login/logout con Django Authentication, roles vía Django Groups
-  (`Administrador`, `Cajero`) y restricción server-side con `@rol_requerido` (403).
-- Redirección post-login por rol (`post_login`) y aviso `sin_rol` para usuarios sin grupo.
-- Registro público de cuentas en `/usuarios/registro/`: nace **sin rol** y cae en
-  `sin_rol` hasta que un administrador le asigne uno.
-- Auditoría automática de login/logout con IP (`auditoria/`).
-
-### Productos y catálogo (Sprint 2) — completo
-
-- Modelos **Categoria**, **Producto**, **Venta** y **DetalleVenta** creados y migrados
-  (`0001_initial.py`, `0002_...costo...` con `Producto.costo` y
-  `0003_...` con `codigo_barras` y `stock_minimo`), registrados en el admin de
-  Django (Venta con inline de detalles).
-- **HU-04 — alta rápida:** `ventas/forms.py::ProductoForm` con nombre, código de
-  barras, descripción, costo, precio de venta, stock, stock mínimo y categoría
-  (con "categoría nueva"). El código de barras **no se permite duplicado**
-  (`clean_codigo_barras`).
-- **CRUD completo:** alta, edición (`productos/<id>/editar/`) y **baja lógica**
-  (`productos/<id>/eliminar/` → `activo=False`, se puede reactivar desde editar).
-- **HU-05 — búsqueda en tiempo real con HTMX:** el input dispara
-  `hx-get /ventas/productos/` cada 300 ms y la vista responde solo con el
-  partial `ventas/_productos_tabla.html` (sin recargar la página).
-- **HU-06 — alerta de stock:** `Producto.stock_bajo` (stock ≤ `stock_minimo`,
-  configurable por producto) y badge `.badge-stock-bajo` en la tabla.
-- **Seguridad:** las 4 vistas del catálogo usan `@rol_requerido("Administrador")`
-  → el cajero recibe 403 (no ve costos ni precios).
-
-### Reportes (Sprint 4) — completo
-
-- `/administracion/reportes/ventas/`: resumen (cantidad, ingresos, costo,
-  ganancia, ticket promedio, margen %), serie de 14 días, top 10 de productos,
-  más rentables.
-- `/administracion/reportes/stock/`: inventario valorado a costo y a venta,
-  stock bajo (≤5), sin stock, por categoría y productos con margen bajo.
-- Protegidos con `@rol_requerido("Administrador")` → el cajero recibe 403.
-- 57 tests en `administracion/tests_reportes.py`.
-
-### Gestión de usuarios — completo
-
-- CRUD de usuarios para el administrador: listar (búsqueda por nombre/usuario, filtro
-  por rol, paginación), crear, editar, eliminar, activar/desactivar y asignar roles,
-  con protecciones (no puede desactivar/eliminar superusuarios ni su propia cuenta).
-- 22 tests de `administracion` cubren todo el flujo.
-
-### Pantalla de cobro (Sprint 3) — completo
-
-- **HU-07 — carrito con lector:** input escáner con mock; al escanear o tipear
-  un código y apretar Enter, `ventas/services.py::buscar_producto` lo resuelve
-  (código exacto → nombre único → aviso si es ambiguo) y `cobro_agregar` lo
-  suma al carrito (`session["carrito"]`); repetir el mismo producto suma
-  cantidad en vez de duplicar la fila. **Búsqueda en tiempo real:** desde
-  3 letras/carácteres, `cobro_buscar` sugiere productos en `_cobro_resultados.html`
-  y un clic los agrega.
-- **HU-08 — edición:** botones de sumar/restar/quitar por ítem
-  (`cobro_cantidad`, HTMX) que reemplazan el partial `_carrito.html` y
-  recalculan el total en cada request.
-- **HU-09 — cobro:** método de pago efectivo/tarjeta, monto entregado con
-  preview de vuelto, botones de billetes (100/200/500/1000/2000) y "pago
-  exacto"; `confirmar_venta` crea la `Venta` en una transacción con
-  `select_for_update`, congela precios, descuenta stock con `F()`, guarda
-  `metodo_pago`, `usuario`, `monto_entregado` y `vuelto`, audita la operación
-  y muestra el comprobante (`/ventas/cobro/?venta=<id>`).
-- Migración `0004_...` sobre `Venta`. 38 tests nuevos en `ventas/tests.py`
-  (60 en total para la app).
-
-### Frontend — rediseño completo
-
-- Identidad visual "toldo de barrio" con **un solo estilo: Neón cian** (fijo),
-  más modo oscuro. Las paletas Cartelera y Ticket se eliminaron; detalle en
-  [Decisiones técnicas → Frontend](#frontend) y
-  [Estilo visual](#estilo-visual).
-
-### Tests
-
-- **148 tests OK** (`python manage.py test`): `usuarios` 9, `ventas` 60,
-  `administracion` 22 + 57 de reportes.
+El detalle de cada sprint está en los apartados **Alcance de Sprint 1-4**;
+el avance item por item, en [Backlog](#backlog).
 
 ---
 
@@ -146,6 +78,9 @@ remota).
   que escribe la URL a mano recibe 403, no solo se le oculta el botón.
 - Redirección post-login por rol: cajero va directo a cobro, admin al dashboard.
 - Pantallas protegidas por login/roles para cobro y administración.
+- Registro público de cuentas (`/usuarios/registro/`): nace **sin rol** y cae
+  en `sin_rol` hasta que un administrador le asigne uno.
+- Auditoría automática de login/logout con IP (`auditoria/signals.py`).
 
 ---
 
@@ -155,7 +90,8 @@ remota).
 > nombre, el código de barras, cuánto me costó, a cuánto lo vendo y cuántos
 > tengo. Si el código ya existe, avísame."
 
-**Estado:** completo (HU-04, HU-05 y HU-06 implementadas y testeadas).
+**Estado:** completo (HU-04, HU-05 y HU-06 implementadas y testeadas, más la
+gestión de usuarios de `administracion/`).
 
 ### Historias de usuario
 
@@ -188,6 +124,15 @@ que se están quedando sin stock, para saber qué tengo que salir a reponer.
 - **Venta**: fecha/hora, total, finalizada.
 - **DetalleVenta**: venta, producto, cantidad, precio unitario,
   **costo_unitario**, `subtotal()`, `costo_total()`, `ganancia()`.
+
+### Gestión de usuarios (Sprint 2)
+
+- CRUD de usuarios para el administrador (`administracion/`): listar con
+  búsqueda por nombre/usuario, filtro por rol y paginación; crear, editar,
+  eliminar, activar/desactivar y asignar/quitar roles.
+- Protecciones: no se puede eliminar ni desactivar la cuenta propia ni un
+  superusuario; cada escritura queda auditada. 22 tests en
+  `administracion/tests.py`.
 
 ---
 
@@ -246,9 +191,9 @@ ingresar el monto entregado y que el sistema calcule el vuelto exacto.
 > "Cuando termina el turno o el día, quiero apretar un botón y que me tire
 > el total de plata que entró en efectivo, en tarjeta y cuántas ventas hice."
 
-**Estado:** en progreso — **HU-11 (reporte top 10) hecha** con
-`administracion/reportes.py`; faltan HU-10 (cierre de turno) y HU-12
-(clientes).
+**Estado:** 🟡 parcial — los **reportes de ventas y stock se entregaron
+adelantado** (05-10) con `administracion/reportes.py`; **HU-10** (cierre de
+turno) y **HU-12** (clientes) siguen pendientes para el 05-11.
 
 ### Historias de usuario
 

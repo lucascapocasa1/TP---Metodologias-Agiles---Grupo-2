@@ -6,7 +6,7 @@
 |---|---|
 | Documento | ARD v2.1 |
 | Fecha | 05/10/2026 |
-| Versión del código documentado | `main` @ `60e490b` (03-10-2026) + Sprint 3 sin commitear · 148 tests OK |
+| Versión del código documentado | `main` @ `97b87e6` (05-10-2026), Sprint 3 commiteado · 148 tests OK |
 | Documento relacionado | [PRD — Documento de Requerimientos de Producto](PRD.md) |
 
 > El PRD define el **qué**; este documento define el **cómo**: stack,

@@ -6,7 +6,7 @@
 |---|---|
 | Documento | PRD v2.1 |
 | Fecha | 05/10/2026 |
-| Versión del código documentado | `main` @ `60e490b` (03-10-2026) + cambios de Sprint 3 sin commitear |
+| Versión del código documentado | `main` @ `97b87e6` (05-10-2026), Sprint 3 commiteado |
 | Proyecto | Sistema Kiosco — TP Metodologías Ágiles (UNAB) |
 | Estado del producto | **Sprint 1 ✅ · Sprint 2 ✅ · Sprint 3 ✅ · Reportes (S4) ✅ · 148 tests en verde** |
 | Documento relacionado | [ARD — Arquitectura y requerimientos técnicos](ARD.md) |
