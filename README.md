@@ -90,8 +90,7 @@ remota).
 > nombre, el código de barras, cuánto me costó, a cuánto lo vendo y cuántos
 > tengo. Si el código ya existe, avísame."
 
-**Estado:** completo (HU-04, HU-05 y HU-06 implementadas y testeadas, más la
-gestión de usuarios de `administracion/`).
+**Estado:** completo (HU-04, HU-05 y HU-06 implementadas y testeadas).
 
 ### Historias de usuario
 
@@ -124,15 +123,6 @@ que se están quedando sin stock, para saber qué tengo que salir a reponer.
 - **Venta**: fecha/hora, total, finalizada.
 - **DetalleVenta**: venta, producto, cantidad, precio unitario,
   **costo_unitario**, `subtotal()`, `costo_total()`, `ganancia()`.
-
-### Gestión de usuarios (Sprint 2)
-
-- CRUD de usuarios para el administrador (`administracion/`): listar con
-  búsqueda por nombre/usuario, filtro por rol y paginación; crear, editar,
-  eliminar, activar/desactivar y asignar/quitar roles.
-- Protecciones: no se puede eliminar ni desactivar la cuenta propia ni un
-  superusuario; cada escritura queda auditada. 22 tests en
-  `administracion/tests.py`.
 
 ---
 
@@ -229,17 +219,18 @@ para que el cajero pueda asociar una venta a un cliente cuando lo solicite
   variable, el sistema cae automáticamente a SQLite para desarrollo local
   sin configuración extra.
 
-- **Roles con Django Groups**, no con permisos sueltos: el pedido de este
-  sprint es binario ("cajero solo ve cobro"), no hay todavía acciones finas
-  para diferenciar (ej. "puede ver stock pero no editar precio"). Eso se
-  resuelve más adelante con `django.contrib.auth.models.Permission` sobre
-  cada modelo, cuando exista el modelo de Producto.
+- **Roles con Django Groups**, no con permisos sueltos: el acceso es binario
+  ("cajero solo ve el cobro" / "administrador ve todo"), no hay acciones
+  finas que diferenciar (ej. "puede ver stock pero no editar precio"). El
+  modelo `Producto` ya existe (Sprint 2) y la decisión se mantuvo; si algún
+  día hace falta permiso fino, se pasa a
+  `django.contrib.auth.models.Permission` por modelo.
 
 - **Restricción por decorador (`usuarios/decorators.py`)**: `rol_requerido`
-  para vistas de función y `RolRequeridoMixin` para vistas basadas en clase
-  (se va a necesitar en el sprint de stock con `ListView`/`CreateView`).
-  El cajero no solo "no ve el botón": si escribe la URL a mano, el servidor
-  le devuelve 403. Es un requisito de seguridad real, no solo de UI.
+  en todas las vistas (hoy todas son funciones); `RolRequeridoMixin` está
+  definido y disponible por si se adoptan CBVs, aunque ninguna vista lo usa
+  todavía. El cajero no solo "no ve el botón": si escribe la URL a mano, el
+  servidor le devuelve 403. Es un requisito de seguridad real, no solo de UI.
 
 - **Redirección post-login por rol** (`usuarios/views.py::post_login`): cada
   usuario cae directo en su pantalla (cajero → cobro, admin → dashboard),
@@ -259,8 +250,8 @@ para que el cajero pueda asociar una venta a un cliente cuando lo solicite
 
 <a id="frontend"></a>
 
-- **Bootstrap 5.3.3 + Bootstrap Icons** vía CDN como framework de utilidades.
-- **CSS custom** (`static/css/styles.css`, ~3.200 líneas) con design tokens vía
+- **Bootstrap 5.3.3 + Bootstrap Icons 1.11.3** vía CDN como framework de utilidades.
+- **CSS custom** (`static/css/styles.css`, ~3.300 líneas) con design tokens vía
   CSS custom properties (`:root` + variantes). La paleta, tipografía, radios y
   sombras se definen una vez y se reutilizan en todas las páginas.
 - **Identidad "toldo de barrio"**: rotulación de kiosco argentino — contorno
@@ -281,10 +272,11 @@ para que el cajero pueda asociar una venta a un cliente cuando lo solicite
   `--kiosco-yellow`, …) para que usen los tokens del rediseño.
 - **Accesibilidad**: contraste AA, `focus-visible` para teclado,
   `prefers-reduced-motion` respetado, `aria-label` en los botones de tema.
-- **Responsive**: en mobile el navbar oculta el nombre de usuario y mantiene
-  badges y salida; el login pasa a panel único bajo 900px.
+- **Responsive**: bajo 576px el navbar oculta el nombre de usuario y mantiene
+  badges y salida; bajo 860px el login pasa a panel único.
 - **HTMX** (CDN en `base.html`) se usa en la búsqueda del catálogo de
-  productos y en las acciones del carrito del cobro; el token CSRF se envía
+  productos, en las acciones del carrito y en la búsqueda en tiempo real del
+  escáner del cobro (desde 3 caracteres); el token CSRF se envía
   globalmente con `hx-headers`.
 
 ---
@@ -573,23 +565,20 @@ Estado real al **05-10-2026** (unificado: tabla original + backlog nuevo).
 | Item | Sprint | Evidencia |
 |------|--------|-----------|
 | Login + roles + 403 server-side + post-login por rol | 1 | `usuarios/decorators.py`, tests de `usuarios` |
-| Auditoría de login/logout con IP | transversal | `auditoria/signals.py` |
-| Registro de cuentas públicas (sin rol) | transversal | `usuarios:registro` |
-| CRUD de usuarios + búsqueda + filtro por roles + paginación | 2 | `administracion/views.py`, 22 tests |
-| Modelos Categoria, Producto, Venta, DetalleVenta + admin Django | 2 | `ventas/models.py` (+ migración 0002 con `costo`) |
+| Registro de cuentas públicas (sin rol) | 1 | `usuarios:registro` |
+| Auditoría de login/logout con IP | 1 | `auditoria/signals.py` |
+| Rediseño frontend: identidad toldo + modo oscuro | 1 | `static/css/styles.css` |
+| Modelos Categoria, Producto, Venta, DetalleVenta + admin Django | 2 | `ventas/models.py` (+ migración `0002` con `costo`) |
 | Campo de costo en Producto (lo ve solo el admin) | 2 | `Producto.costo`, `DetalleVenta.costo_unitario` |
-| Cajero no accede a costos de mercadería | transversal | `@rol_requerido("Administrador")` + test `test_no_muestra_costos_al_cajero` (403) |
-| Reporte top 10 de productos más vendidos (HU-11) | 4 | `administracion/reportes.py::top_productos` |
-| Consulta de ventas, stock, costos y reportes para el administrador | 4 | `/administracion/reportes/ventas/` y `/reportes/stock/` |
-| KPIs de negocio: ingresos, ganancia, margen, ticket promedio, stock valorizado | 4 | `reportes.py` (`resumen_ventas`, `resumen_stock`, `ventas_por_dia`) |
-| Rediseño frontend: identidad toldo + modo oscuro | transversal | `static/css/styles.css` |
-| Estilo neón cian único (se eliminaron cartelera/ticket) | transversal | `data-tema="neon"` forzado en `base.html` |
+| Cajero no accede a costos de mercadería | 2 | `@rol_requerido("Administrador")` + `administracion/tests_reportes.py::test_no_muestra_costos_al_cajero` (403) |
 | Views/urls + templates de lista y alta de productos | 2 | `ventas/views.py`, 5 templates en `templates/ventas/` (ya no dan 500) |
 | Código de barras en Producto + alta sin duplicados (HU-04) | 2 | `Producto.codigo_barras` (unique) + `ProductoForm.clean_codigo_barras` |
 | Altas, bajas y modificaciones de productos (CRUD) | 2 | `agregar/`, `<id>/editar/`, `<id>/eliminar/` (baja lógica, reversible) |
 | Búsqueda de productos en tiempo real con HTMX (HU-05) | 2 | `hx-get` en el buscador + partial `_productos_tabla.html` |
 | Alerta de stock bajo configurable (HU-06) | 2 | `Producto.stock_minimo` (default 5) + `stock_bajo` + `.badge-stock-bajo` |
 | Catálogo protegido para el administrador (el cajero: 403) | 2 | `@rol_requerido("Administrador")` en las 4 vistas de `ventas` |
+| CRUD de usuarios + búsqueda + filtro por roles + paginación | 2 | `administracion/views.py`, 22 tests |
+| Estilo neón cian único (se eliminaron cartelera/ticket) | 2 | `data-tema="neon"` forzado en `base.html` |
 | Carrito de cobro con lector de código de barras (HU-07/08) | 3 | `ventas/services.py` + `cobro_agregar`/`cobro_cantidad` con partial `_carrito.html` |
 | Búsqueda en tiempo real en el cobro (desde 3 letras) | 3 | `cobro_buscar` + `hx-get` con debounce 300 ms y partial `_cobro_resultados.html` |
 | Cobro efectivo/tarjeta con vuelto (HU-09) | 3 | `cobro_confirmar` + preview de vuelto, billetes y "pago exacto" |
@@ -598,14 +587,9 @@ Estado real al **05-10-2026** (unificado: tabla original + backlog nuevo).
 | Método de pago en `Venta` (efectivo/tarjeta) | 3 | `Venta.metodo_pago` (migración `0004`) |
 | Descuento automático de stock al confirmar venta | 3 | `transaction.atomic` + `F("stock")` en `confirmar_venta` |
 | Cajero responsable en cada venta | 3 | `Venta.usuario` (`SET_NULL`) + auditoría de la venta |
-
-### Parcial
-
-| Item | Sprint | Qué falta |
-|------|--------|-----------|
-| KPIs en el dashboard principal | 2 | El dashboard sigue mostrando solo métricas de usuarios (los de negocio están en `/reportes/`) |
-| Logo propio del kiosco | por definir | Solo `favicon.svg`; el navbar usa icono de Bootstrap + texto |
-| Comercio configurable (nombre y colores del local) | por definir | Identidad fija en neón; se parametrizaría vía settings/templates |
+| Reporte top 10 de productos más vendidos (HU-11) | 4 | `administracion/reportes.py::top_productos` |
+| Consulta de ventas, stock, costos y reportes para el administrador | 4 | `/administracion/reportes/ventas/` y `/reportes/stock/` |
+| KPIs de negocio: ingresos, ganancia, margen, ticket promedio, stock valorizado | 4 | `reportes.py` (`resumen_ventas`, `resumen_stock`, `ventas_por_dia`) |
 
 ### Pendiente
 
@@ -613,17 +597,7 @@ Estado real al **05-10-2026** (unificado: tabla original + backlog nuevo).
 |------|--------|-------|
 | Cierre de turno: totales por método, operaciones, responsable (HU-10) | 4 | Requiere modelo `Turno` (el FK de `Venta` a usuario y método de pago ya existen) |
 | Alta/búsqueda de clientes por CUIT/DNI (HU-12) | 4 | Requiere modelo `Cliente` y FK opcional en `Venta` |
+| Logo propio del kiosco | por definir | Solo `favicon.svg`; el navbar usa icono de Bootstrap + texto |
+| Comercio configurable (nombre y colores del local) | por definir | Identidad fija en neón; se parametrizaría vía settings/templates |
 | Cobro con Mercado Pago (MP) | por definir | Sin dependencia ni integración en `requirements.txt` |
 | Recuperar contraseña ("¿Olvidaste tu contraseña?") | por definir | Sin `password_reset` ni `EMAIL_*` en settings |
-
-### Pasos a seguir
-
-1. **~~Sprint 2 (cerrar)~~ — HECHO:** catálogo con alta/edición/baja, código de
-   barras, búsqueda HTMX y alerta de stock.
-2. **~~Sprint 3 (la caja)~~ — HECHO:** carrito con HTMX/JS, campo `metodo_pago`
-   y `usuario` en `Venta`, vuelto + pago exacto + billetes, descuento de
-   stock y comprobante (148 tests en verde).
-3. **Sprint 4 (cierres):** modelo `Turno`, cierre con totales por método y
-   operaciones, y modelo `Cliente` con búsqueda por CUIT/DNI.
-4. **Extras (por definir):** Mercado Pago, recuperar contraseña, logo,
-   KPIs de negocio en el dashboard, comercio configurable.
