@@ -1,0 +1,57 @@
+{% extends "base.html" %}
+{% block titulo %}Dar de baja - {{ producto.nombre }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <a href="{% url 'ventas:lista_productos' %}" class="btn-back">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h1><i class="bi bi-trash"></i> Dar de baja producto</h1>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header">
+            <h2><i class="bi bi-exclamation-triangle-fill"></i> ¿Eliminar «{{ producto.nombre }}»?</h2>
+        </div>
+        <div class="card-body">
+            <div class="admin-alert admin-alert-danger">
+                <i class="bi bi-info-circle-fill"></i>
+                <span>
+                    El producto queda <strong>inactivo</strong>: no se puede vender ni aparece
+                    en el cobro, pero se conserva el historial de ventas.
+                    Podés volver a activarlo desde <strong>Editar</strong>.
+                </span>
+            </div>
+
+            <div class="detail-list" style="margin: 1.25rem 0;">
+                <div class="detail-item">
+                    <span class="detail-label">Producto</span>
+                    <span class="detail-value">{{ producto.nombre }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Código de barras</span>
+                    <span class="detail-value">{{ producto.codigo_barras|default:"—" }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Stock actual</span>
+                    <span class="detail-value">{{ producto.stock }}</span>
+                </div>
+            </div>
+
+            <form method="post" class="admin-form">
+                {% csrf_token %}
+                <div class="form-actions">
+                    <a href="{% url 'ventas:lista_productos' %}" class="btn btn-admin-cancel">
+                        <i class="bi bi-x-lg"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-admin-primary">
+                        <i class="bi bi-trash"></i> Sí, dar de baja
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

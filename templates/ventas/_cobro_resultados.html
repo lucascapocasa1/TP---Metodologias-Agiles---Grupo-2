@@ -1,0 +1,28 @@
+{% load formatos %}
+{% if consulta|length >= 3 %}
+    {% if coincidencias %}
+    <ul class="cobro-res-lista" role="listbox" aria-label="Productos encontrados">
+        {% for p in coincidencias %}
+        {% firstof p.codigo_barras p.nombre as clave %}
+        <li>
+            <button type="button"
+                    class="cobro-res-item"
+                    hx-post="{% url 'ventas:cobro_agregar' %}"
+                    hx-vals='{"codigo": "{{ clave|escapejs }}"}'
+                    hx-target="#carrito-region"
+                    hx-swap="innerHTML"
+                    hx-on::after-request="cobroLimpiar()">
+                <span class="cobro-res-nombre">{{ p.nombre }}</span>
+                <span class="cobro-res-meta">
+                    <strong>${{ p.precio|montos }}</strong>
+                    <span>{{ p.stock }} u.</span>
+                    <span class="cobro-res-codigo">{{ p.codigo_barras|default:"sin código" }}</span>
+                </span>
+            </button>
+        </li>
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="cobro-res-vacio">Sin productos para «{{ consulta }}».</p>
+    {% endif %}
+{% endif %}

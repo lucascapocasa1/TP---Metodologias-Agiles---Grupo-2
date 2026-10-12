@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from django.conf import settings
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
@@ -8,25 +11,148 @@ class Categoria(models.Model):
 class Producto(models.Model):
      nombre = models.CharField(max_length=100)
      precio = models.DecimalField(max_digits=10, decimal_places=2)
+     costo = models.DecimalField(max_digits=10, decimal_places=2, default=0)
      categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE)
      stock = models.IntegerField(default=0)
-     codigo_barras = models.CharField(max_length=50, blank=True, null=True)
+     stock_minimo = models.IntegerField(default=0)
+     descripcion = models.TextField(blank=True, null=True)
+     codigo_barras = models.CharField(
+         max_length=50,
+         unique=True,
+         blank=True,
+         null=True
+     )
+     activo = models.BooleanField(default=True)
      def __str__(self):
          return f"{self.nombre} - ${self.precio}"
+
 class Venta(models.Model):
      usuario = models.ForeignKey(User, on_delete=models.CASCADE)
      fecha = models.DateTimeField(default=timezone.now)
      total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+
+     nombre = models.CharField(max_length=150)
+     descripcion = models.TextField(blank=True, null=True)
+     codigo_barras = models.CharField(
+         max_length=50,
+         unique=True,
+         blank=True,
+         null=True,
+         verbose_name="Código de barras",
+         help_text="Se lee con el lector del kiosco. No puede repetirse.",
+     )
+     precio = models.DecimalField(max_digits=10, decimal_places=2)
+     costo = models.DecimalField(
+         max_digits=10,
+         decimal_places=2,
+         default=Decimal("0.00"),
+         help_text="Precio de compra unitario. Lo ve solo el Administrador.",
+     )
+     stock = models.IntegerField(default=0)
+     stock_minimo = models.PositiveIntegerField(
+         default=5,
+         help_text="Alerta de stock bajo (HU-06): se marca cuando el stock "
+                   "actual es menor o igual a este valor.",
+     )
+     categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='productos')
+     activo = models.BooleanField(default=True)
+     def __str__(self):
+         return f"{self.nombre} - ${self.precio}"
+
+     @property
+     def stock_bajo(self):
+         """True si hay que marcar el producto por stock bajo (HU-06)."""
+         return self.stock <= self.stock_minimo
+
+
+     @property
+     def margen_unitario(self):
+         """Ganancia por unidad (precio de venta menos costo)."""
+         return self.precio - self.costo
+
+     @property
+     def margen_porcentual(self):
+         """Margen sobre el costo, en porcentaje. 0 si el costo es 0."""
+         if not self.costo:
+             return Decimal("0.00")
+         return (self.margen_unitario / self.costo) * Decimal("100")
+
+     @property
+     def valor_stock_costo(self):
+         """Cuánto dinero del negocio está parado en este producto, a costo."""
+         return self.costo * self.stock
+
+     @property
+     def valor_stock_venta(self):
+         """Lo mismo, pero al precio de venta (capital potencial)."""
+         return self.precio * self.stock
+     
+class Venta(models.Model):
+     METODO_PAGO = [
+         ("efectivo", "Efectivo"),
+         ("tarjeta", "Tarjeta"),
+     ]
+
+     fecha = models.DateTimeField(auto_now_add=True)
+     total = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+     finalizada = models.BooleanField(default=False)
+     metodo_pago = models.CharField(
+         max_length=10,
+         choices=METODO_PAGO,
+         default="efectivo",
+         verbose_name="Método de pago",
+     )
+     usuario = models.ForeignKey(
+         settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="ventas_realizadas",
+        verbose_name="Cajero responsable",
+     )
+     monto_entregado = models.DecimalField(
+         max_digits=10,
+         decimal_places=2,
+         null=True,
+         blank=True,
+         verbose_name="Monto entregado",
+         help_text="Solo para pagos en efectivo.",
+     )
+     vuelto = models.DecimalField(
+         max_digits=10,
+         decimal_places=2,
+         null=True,
+         blank=True,
+         help_text="Monto entregado menos el total. Solo para efectivo.",
+     )
+
      def __str__(self):
          return f"Venta {self.id} - ${self.total}"
 class DetalleVenta(models.Model):
      venta = models.ForeignKey(Venta, on_delete=models.CASCADE, related_name='detalles')
      producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
      cantidad = models.IntegerField(default=1)
+
      subtotal = models.DecimalField(max_digits=10, decimal_places=2)
      def save(self, *args, **kwargs):
          self.subtotal = self.producto.precio * self.cantidad
          super().save(*args, **kwargs)
+
+     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
+     costo_unitario = models.DecimalField(
+         max_digits=10,
+         decimal_places=2,
+         default=Decimal("0.00"),
+         help_text="Costo congelado al momento de la venta, para que el margen "
+                   "histórico no cambie si después se actualiza el precio de compra.",
+     )
+     def subtotal(self):
+         return self.cantidad * self.precio_unitario
+     def costo_total(self):
+         return self.cantidad * self.costo_unitario
+     def ganancia(self):
+         return self.subtotal() - self.costo_total()
+
      def __str__(self):
          return f"{self.cantidad}x {self.producto.nombre}"
      
