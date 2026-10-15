@@ -8,7 +8,7 @@
 | Fecha | 05/10/2026 |
 | Versión del código documentado | `main` @ `97b87e6` (05-10-2026), Sprint 3 commiteado |
 | Proyecto | Sistema Kiosco — TP Metodologías Ágiles (UNAB) |
-| Estado del producto | **Sprint 1 ✅ · Sprint 2 ✅ · Sprint 3 ✅ · Reportes (S4) ✅ · 148 tests en verde** |
+| Estado del producto | **Sprint 1 ✅ · Sprint 2 ✅ · Sprint 3 ✅ · Reportes y auditoría (S4) ✅ · 193 tests en verde** |
 | Documento relacionado | [ARD — Arquitectura y requerimientos técnicos](ARD.md) |
 
 > Historial: v1.0 (24-09) documentaba el alcance de Sprints 1 y 2 en curso.
@@ -99,7 +99,7 @@ provoca:
 - Aplicación **web** (navegador), sin app nativa; se usa en PC del kiosco y
   eventualmente en celular/tablet.
 - Trabajo en equipo con merge a `main`; los artefactos deben poder integrarse
-  sin romper los tests existentes (148 en verde).
+  sin romper los tests existentes (193 en verde).
 - Idioma y formato argentinos: español rioplatense, moneda ARS, horario
   `America/Argentina/Buenos_Aires`.
 - El servidor de desarrollo corre en el puerto **8001** (conservar ese puerto
@@ -196,7 +196,7 @@ Estado verificado contra el código el 05-10-2026.
 | RF-42 | Registro automático de login y logout con usuario, acción, fecha e IP | M | ✅ Hecho |
 | RF-43 | Registro de acciones de administración (crear/editar/eliminar/asignar rol/toggle de usuarios) | S | ✅ Hecho |
 | RF-44 | Registros de solo lectura (no editables ni eliminables desde la interfaz) | M | ✅ Hecho (Django admin en solo lectura) |
-| RF-45 | Interfaz propia para consultar la auditoría | C | ⏳ Pendiente (hasta ahora solo vía Django admin) |
+| RF-45 | Interfaz propia para consultar la auditoría | C | ✅ `/auditoria/` con filtros, paginación y botón desde ambos reportes |
 
 ### 4.7 Experiencia de usuario y presentación
 
@@ -224,7 +224,7 @@ Estado verificado contra el código el 05-10-2026.
 | RNF-07 | Integridad | Bajas de producto **lógicas**: nunca borrar registros referenciados por ventas |
 | RNF-08 | Disponibilidad | Idempotencia del seed de datos (`setup_inicial`) para poder reejecutarlo sin romper el entorno |
 | RNF-09 | Rendimiento | Respuesta interactiva en CRUD y búsquedas; la búsqueda de productos no recarga la página (HTMX) |
-| RNF-10 | Mantenibilidad | Suite de tests automatizados verde antes de cada entrega (**148 tests** hoy) |
+| RNF-10 | Mantenibilidad | Suite de tests automatizados verde antes de cada entrega (**193 tests** hoy) |
 | RNF-11 | Mantenibilidad | Convención de nombres y comentarios en español; estructura de apps por dominio |
 | RNF-12 | Portabilidad | Corre en Windows con Python 3.10+; PostgreSQL principal con fallback automático a SQLite |
 | RNF-13 | Localización | Español rioplatense (`es-ar`), huso horario Argentina, formato de fecha/hora local |
@@ -319,7 +319,13 @@ qué usuario estaba a cargo. Requiere modelo `Turno` y FK de `Venta` a usuario.*
 - *Implementado en `/administracion/reportes/ventas/` junto con KPIs
   (ingresos, costo, ganancia, ticket promedio, margen), serie de 14 días y
   productos más rentables; más el reporte de stock en
-  `/administracion/reportes/stock/`. 57 tests.*
+  `/administracion/reportes/stock/`. 59 tests.*
+
+**RF-45 — Interfaz para consultar la auditoría** — ✅ **Hecho.**
+- *Listado en `/auditoria/` con filtros por rango de fechas, tipo de evento
+  (ventas, usuarios, sesiones) y búsqueda por texto; paginado, de solo
+  lectura y accesible desde un botón en la cabecera de ambos reportes.
+  23 tests.*
 
 **HU-12 — Clientes frecuentes (opcional)** — ⏳ Pendiente.
 *CA: el cajero busca por CUIT y trae los datos automáticamente; si es nuevo, lo
@@ -405,7 +411,7 @@ carga en una ventanita rápida. Requiere modelo `Cliente`.*
 
 | Métrica | Objetivo | Valor al 05-10-2026 |
 |---|---|---|
-| Tests automatizados en verde | 100% de la suite | **148/148 OK** (usuarios 9, ventas 60, administración 22, reportes 57) |
+| Tests automatizados en verde | 100% de la suite | **193/193 OK** (usuarios 9, ventas 78, administración 83, auditoría 23) |
 | Historias Sprint 1 | 3/3 | 3/3 ✅ |
 | Historias Sprint 2 | 3/3 | 3/3 ✅ (HU-04, HU-05, HU-06 cerradas) |
 | Historias Sprint 3 | 3/3 al 15-10 | 3/3 ✅ (HU-07, HU-08, HU-09 cerradas el 05-10) |
