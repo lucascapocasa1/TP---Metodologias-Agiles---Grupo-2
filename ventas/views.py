@@ -10,7 +10,7 @@ from usuarios.decorators import es_administrador, rol_requerido
 
 from . import services
 from .forms import ProductoForm
-from .models import Categoria, Producto, Venta
+from .models import Categoria, Producto, Turno, Venta
 from .services import ErrorCobro
 
 
@@ -145,6 +145,72 @@ def cobro_confirmar(request):
         f"Total: {services.formatear_monto(venta.total)}.",
     )
     return redirect(f"{reverse('ventas:pantalla_cobro')}?venta={venta.pk}")
+
+
+# ========== CIERRE DE TURNO (Sprint 4: HU-10) ==========
+@rol_requerido("Cajero", "Administrador")
+def cierre_turno(request):
+    """
+    HU-10: abrir turno, ver los totales en vivo (efectivo, tarjeta y
+    cantidad de operaciones) y cerrarlo para contar la caja.
+    Con `?turno=<id>` muestra el resumen de ese turno (el recién cerrado
+    o cualquiera histórico, con control de responsable).
+    """
+    if request.method == "POST":
+        accion = request.POST.get("accion", "")
+        turno = services.turno_abierto(request.user)
+
+        if accion == "abrir" and turno is None:
+            services.abrir_turno(request.user)
+            messages.success(request, "Turno abierto. ¡Buen trabajo!")
+            return redirect("ventas:cierre_turno")
+
+        if accion == "cerrar" and turno is not None:
+            try:
+                turno = services.cerrar_turno(turno)
+            except ErrorCobro as exc:
+                messages.error(request, str(exc))
+                return redirect("ventas:cierre_turno")
+
+            registrar_accion(
+                request.user,
+                "Cierre de turno",
+                f"Efectivo {services.formatear_monto(turno.total_efectivo)} · "
+                f"Tarjeta {services.formatear_monto(turno.total_tarjeta)} · "
+                f"{turno.cantidad_operaciones} operaciones",
+                request,
+            )
+            messages.success(
+                request, "Turno cerrado. Contá la caja antes de retirarte."
+            )
+            return redirect(f"{reverse('ventas:cierre_turno')}?turno={turno.pk}")
+
+        messages.error(request, "La acción no coincide con el estado del turno.")
+        return redirect("ventas:cierre_turno")
+
+    # GET: ?turno=<id> para un turno puntual, si no el turno abierto propio.
+    turno = services.turno_abierto(request.user)
+    turno_id = request.GET.get("turno")
+    if turno_id:
+        turno = get_object_or_404(Turno, pk=turno_id)
+        if turno.usuario_id != request.user.pk and not es_administrador(
+            request.user
+        ):
+            raise PermissionDenied("Solo podés ver el turno a tu nombre.")
+
+    contexto = {
+        "turno": turno,
+        "totales": services.totales_del_turno(turno) if turno else None,
+        "puede_cerrar": bool(
+            turno
+            and turno.activo
+            and (
+                turno.usuario_id == request.user.pk
+                or es_administrador(request.user)
+            )
+        ),
+    }
+    return render(request, "ventas/cierre_turno.html", contexto)
 
 
 # Columnas del catálogo que se pueden ordenar desde el encabezado. El nombre

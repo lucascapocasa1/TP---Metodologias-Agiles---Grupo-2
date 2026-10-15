@@ -106,6 +106,13 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
+# Tests: hasher liviano para que los client.login() no cuesten ~1s cada uno
+# por PBKDF2. Solo aplica al correr `manage.py test`.
+import sys
+
+if 'test' in sys.argv:
+    PASSWORD_HASHERS = ['django.contrib.auth.hashers.MD5PasswordHasher']
+
 
 # Internationalization
 # https://docs.djangoproject.com/en/6.1/topics/i18n/

@@ -1,3 +1,4 @@
+from datetime import timedelta
 from decimal import Decimal
 
 from django.contrib.auth.models import Group, User
@@ -6,7 +7,7 @@ from django.urls import reverse
 
 from auditoria.models import RegistroAuditoria
 
-from .models import Categoria, DetalleVenta, Producto, Venta
+from .models import Categoria, DetalleVenta, Producto, Turno, Venta
 
 
 class PantallaCobroTests(TestCase):
@@ -793,3 +794,235 @@ class ComprobanteTests(BaseCobro):
             reverse("ventas:pantalla_cobro"), {"venta": 9999}
         )
         self.assertEqual(respuesta.status_code, 404)
+
+
+class CierreTurnoTests(TestCase):
+    """HU-10: totales por método de pago, operaciones y responsable."""
+
+    def setUp(self):
+        self.grupo_cajero = Group.objects.create(name="Cajero")
+        self.grupo_admin = Group.objects.create(name="Administrador")
+
+        self.cajero = User.objects.create_user(
+            username="cajero_turno", password="claveSegura123"
+        )
+        self.cajero.groups.add(self.grupo_cajero)
+
+        self.admin = User.objects.create_user(
+            username="admin_turno", password="claveSegura123", is_staff=True
+        )
+        self.admin.groups.add(self.grupo_admin)
+
+        self.categoria = Categoria.objects.create(nombre="Bebidas")
+        self.producto = Producto.objects.create(
+            nombre="Coca 500ml",
+            codigo_barras="7790000000001",
+            precio=Decimal("1500.00"),
+            costo=Decimal("900.00"),
+            stock=10,
+            stock_minimo=5,
+            categoria=self.categoria,
+        )
+
+    def login_cajero(self):
+        self.client.login(username="cajero_turno", password="claveSegura123")
+
+    def login_admin(self):
+        self.client.login(username="admin_turno", password="claveSegura123")
+
+    def abrir(self):
+        return self.client.post(
+            reverse("ventas:cierre_turno"), {"accion": "abrir"}
+        )
+
+    def cerrar(self):
+        return self.client.post(
+            reverse("ventas:cierre_turno"), {"accion": "cerrar"}
+        )
+
+    def venta(self, total, metodo="efectivo", usuario=None, finalizada=True):
+        return Venta.objects.create(
+            total=Decimal(str(total)),
+            metodo_pago=metodo,
+            usuario=usuario if usuario is not None else self.cajero,
+            finalizada=finalizada,
+        )
+
+    def test_anonimo_redirige_a_login(self):
+        url = reverse("ventas:cierre_turno")
+        self.assertEqual(self.client.get(url).status_code, 302)
+        self.assertEqual(
+            self.client.post(url, {"accion": "abrir"}).status_code, 302
+        )
+
+    def test_abrir_turno_registra_al_usuario_a_cargo(self):
+        """CA de HU-10: se registra qué usuario estaba a cargo del turno."""
+        self.login_cajero()
+        self.abrir()
+        turno = Turno.objects.get()
+        self.assertEqual(turno.usuario, self.cajero)
+        self.assertTrue(turno.activo)
+        self.assertIsNone(turno.fecha_cierre)
+
+    def test_no_abre_dos_turnos_a_la_vez(self):
+        self.login_cajero()
+        self.abrir()
+        self.abrir()
+        self.assertEqual(Turno.objects.filter(usuario=self.cajero).count(), 1)
+
+    def test_pantalla_sin_turno_propone_abrir(self):
+        self.login_cajero()
+        respuesta = self.client.get(reverse("ventas:cierre_turno"))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "No tenés un turno abierto")
+        self.assertTemplateUsed(respuesta, "ventas/cierre_turno.html")
+
+    def test_totales_en_vivo_antes_de_cerrar(self):
+        self.login_cajero()
+        self.abrir()
+        self.venta("1500")
+        self.venta("500")
+        self.venta("1200", metodo="tarjeta")
+
+        respuesta = self.client.get(reverse("ventas:cierre_turno"))
+        totales = respuesta.context["totales"]
+        self.assertEqual(totales["total_efectivo"], Decimal("2000.00"))
+        self.assertEqual(totales["total_tarjeta"], Decimal("1200.00"))
+        self.assertEqual(totales["cantidad_operaciones"], 3)
+
+    def test_cerrar_turno_congela_los_totales(self):
+        """CA de HU-10: efectivo, tarjeta, operaciones y responsable."""
+        self.login_cajero()
+        self.abrir()
+        self.venta("1500")
+        self.venta("500")
+        self.venta("1200", metodo="tarjeta")
+
+        respuesta = self.cerrar()
+        self.assertEqual(respuesta.status_code, 302)
+
+        turno = Turno.objects.get()
+        self.assertFalse(turno.activo)
+        self.assertIsNotNone(turno.fecha_cierre)
+        self.assertEqual(turno.usuario, self.cajero)
+        self.assertEqual(turno.total_efectivo, Decimal("2000.00"))
+        self.assertEqual(turno.total_tarjeta, Decimal("1200.00"))
+        self.assertEqual(turno.cantidad_operaciones, 3)
+
+    def test_cerrar_sin_turno_abierto_no_crea_nada(self):
+        self.login_cajero()
+        respuesta = self.cerrar()
+        self.assertEqual(respuesta.status_code, 302)
+        self.assertEqual(Turno.objects.count(), 0)
+
+    def test_ventas_de_otro_cajero_no_entran_en_el_turno(self):
+        self.login_cajero()
+        self.abrir()
+        self.venta("1500", usuario=self.cajero)
+        self.venta("9999", usuario=self.admin)
+
+        self.cerrar()
+        turno = Turno.objects.get()
+        self.assertEqual(turno.total_efectivo, Decimal("1500.00"))
+        self.assertEqual(turno.cantidad_operaciones, 1)
+
+    def test_ventas_no_finalizadas_no_entran(self):
+        self.login_cajero()
+        self.abrir()
+        self.venta("1500", finalizada=True)
+        self.venta("9999", finalizada=False)
+
+        self.cerrar()
+        turno = Turno.objects.get()
+        self.assertEqual(turno.total_efectivo, Decimal("1500.00"))
+        self.assertEqual(turno.cantidad_operaciones, 1)
+
+    def test_ventas_anteriores_a_la_apertura_no_entran(self):
+        self.login_cajero()
+        self.abrir()
+        turno = Turno.objects.get()
+        vieja = self.venta("9999")
+        Venta.objects.filter(pk=vieja.pk).update(
+            fecha=turno.fecha_apertura - timedelta(hours=1)
+        )
+
+        self.cerrar()
+        turno.refresh_from_db()
+        self.assertEqual(turno.total_efectivo, Decimal("0.00"))
+        self.assertEqual(turno.cantidad_operaciones, 0)
+
+    def test_ventas_posteriores_no_cambian_el_snapshot(self):
+        self.login_cajero()
+        self.abrir()
+        self.venta("1500")
+        self.cerrar()
+        self.venta("9999")
+
+        turno = Turno.objects.get()
+        self.assertEqual(turno.total_efectivo, Decimal("1500.00"))
+        self.assertEqual(turno.cantidad_operaciones, 1)
+
+    def test_cierre_queda_auditoriado(self):
+        self.login_cajero()
+        self.abrir()
+        self.venta("1500")
+        self.cerrar()
+        self.assertTrue(
+            RegistroAuditoria.objects.filter(accion="Cierre de turno").exists()
+        )
+
+    def test_resumen_muestra_totales_formateados(self):
+        self.login_cajero()
+        self.abrir()
+        self.venta("2000")
+        self.venta("1200", metodo="tarjeta")
+        self.cerrar()
+
+        turno = Turno.objects.get()
+        respuesta = self.client.get(
+            reverse("ventas:cierre_turno"), {"turno": turno.pk}
+        )
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "$2.000")  # efectivo
+        self.assertContains(respuesta, "$1.200")  # tarjeta
+        self.assertContains(respuesta, "cajero_turno")
+
+    def test_no_puede_ver_el_turno_de_otro_cajero(self):
+        self.login_cajero()
+        self.abrir()
+        turno = Turno.objects.get()
+        self.client.logout()
+
+        otro = User.objects.create_user(
+            username="cajero2_turno", password="claveSegura123"
+        )
+        otro.groups.add(self.grupo_cajero)
+        self.client.login(username="cajero2_turno", password="claveSegura123")
+        respuesta = self.client.get(
+            reverse("ventas:cierre_turno"), {"turno": turno.pk}
+        )
+        self.assertEqual(respuesta.status_code, 403)
+
+    def test_admin_puede_ver_el_turno_de_un_cajero(self):
+        self.login_cajero()
+        self.abrir()
+        turno = Turno.objects.get()
+        self.client.logout()
+
+        self.login_admin()
+        respuesta = self.client.get(
+            reverse("ventas:cierre_turno"), {"turno": turno.pk}
+        )
+        self.assertEqual(respuesta.status_code, 200)
+
+    def test_turno_inexistente_da_404(self):
+        self.login_cajero()
+        respuesta = self.client.get(
+            reverse("ventas:cierre_turno"), {"turno": 9999}
+        )
+        self.assertEqual(respuesta.status_code, 404)
+
+    def test_el_cajero_ve_el_boton_de_acceso_desde_el_cobro(self):
+        self.login_cajero()
+        respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
+        self.assertContains(respuesta, reverse("ventas:cierre_turno"))

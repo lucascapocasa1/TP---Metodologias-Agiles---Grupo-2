@@ -2298,6 +2298,39 @@ a.stat-card-link:hover {
   margin-bottom: 1.5rem;
 }
 
+/* --- Cierre de turno (HU-10) --- */
+.turno-resumen {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  background: var(--surface);
+  border: 1px solid rgba(26, 26, 46, 0.06);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+}
+
+.turno-resumen p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 0.92rem;
+}
+
+.turno-resumen p + p {
+  margin-top: 0.25rem;
+}
+
+.turno-resumen strong {
+  color: var(--text-primary);
+}
+
+.turno-cerrar-form {
+  margin-top: 1.5rem;
+}
+
 /* --- Admin Card --- */
 .admin-card {
   background: var(--surface);
@@ -2642,6 +2675,7 @@ a.stat-card-link:hover {
 [data-theme="dark"] .system-info,
 [data-theme="dark"] .action-card,
 [data-theme="dark"] .stat-card,
+[data-theme="dark"] .turno-resumen,
 [data-theme="dark"] .role-card {
   background: #1E1E2E;
   border-color: rgba(205, 214, 244, 0.08);

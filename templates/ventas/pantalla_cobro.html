@@ -13,6 +13,9 @@
                 (HU-09).
             </p>
         </div>
+        <a href="{% url 'ventas:cierre_turno' %}" class="btn btn-kiosco-outline">
+            <i class="bi bi-clock-history" aria-hidden="true"></i> Cierre de turno
+        </a>
         {% if request.user.groups.first.name == "Administrador" or request.user.is_superuser %}
         <a href="{% url 'administracion:dashboard' %}" class="btn btn-kiosco-outline">
             <i class="bi bi-gear" aria-hidden="true"></i> Panel

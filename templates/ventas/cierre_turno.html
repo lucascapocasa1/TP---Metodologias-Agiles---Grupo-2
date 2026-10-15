@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% load formatos %}
+{% block titulo %}Cierre de turno{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-clock-history"></i> Cierre de turno</h1>
+            <p class="admin-subtitle">
+                Revisá el efectivo y la tarjeta antes de cerrar (HU-10):
+                el cierre congela los totales del turno y deja registrado
+                quién estaba a cargo de la caja.
+            </p>
+        </div>
+        <a href="{% url 'ventas:pantalla_cobro' %}" class="btn btn-kiosco-outline">
+            <i class="bi bi-upc-scan" aria-hidden="true"></i> Pantalla de cobro
+        </a>
+    </div>
+
+    {% if turno %}
+    <!-- ===== Totales del turno (abierto en vivo o cerrado) ===== -->
+    <div class="turno-resumen">
+        <div>
+            <p class="turno-responsable">
+                <i class="bi bi-person-badge" aria-hidden="true"></i>
+                A cargo: <strong>{{ turno.usuario.username|default:"—" }}</strong>
+            </p>
+            <p class="turno-fechas">
+                <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>
+                Apertura: {{ turno.fecha_apertura|date:"d/m/Y H:i" }}
+                &middot;
+                {% if turno.activo %}
+                <i class="bi bi-unlock" aria-hidden="true"></i> Turno abierto
+                {% else %}
+                <i class="bi bi-lock" aria-hidden="true"></i>
+                Cierre: {{ turno.fecha_cierre|date:"d/m/Y H:i" }}
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card stat-active">
+            <div class="stat-icon">
+                <i class="bi bi-cash"></i>
+            </div>
+            <div class="stat-content">
+                <h3>${{ totales.total_efectivo|montos }}</h3>
+                <p>Total en efectivo</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-cashier">
+            <div class="stat-icon">
+                <i class="bi bi-credit-card"></i>
+            </div>
+            <div class="stat-content">
+                <h3>${{ totales.total_tarjeta|montos }}</h3>
+                <p>Total en tarjeta</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-warning">
+            <div class="stat-icon">
+                <i class="bi bi-receipt"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ totales.cantidad_operaciones }}</h3>
+                <p>Operaciones realizadas</p>
+            </div>
+        </div>
+
+        <div class="stat-card stat-total">
+            <div class="stat-icon">
+                <i class="bi bi-cash-stack"></i>
+            </div>
+            <div class="stat-content">
+                <h3>${{ totales.total_general|montos }}</h3>
+                <p>Esperado en caja</p>
+            </div>
+        </div>
+    </div>
+
+    {% if turno.activo %}
+    {% if puede_cerrar %}
+    <form method="post"
+          action="{% url 'ventas:cierre_turno' %}"
+          class="turno-cerrar-form"
+          onsubmit="return confirm('¿Cerrar el turno ahora? Los totales quedarán congelados.');">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="cerrar">
+        <button type="submit" class="btn btn-kiosco">
+            <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Cerrar turno y contar caja
+        </button>
+    </form>
+    {% endif %}
+
+    {% else %}
+    <div class="kiosco-alert kiosco-alert-success mt-3" role="status">
+        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+        <span>
+            Turno cerrado. Contá el efectivo y compará con lo esperado en caja.
+        </span>
+    </div>
+
+    <form method="post" action="{% url 'ventas:cierre_turno' %}" class="mt-3">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="abrir">
+        <button type="submit" class="btn btn-kiosco">
+            <i class="bi bi-door-open" aria-hidden="true"></i> Abrir un turno nuevo
+        </button>
+    </form>
+    {% endif %}
+
+    {% else %}
+    <!-- ===== Sin turno abierto ===== -->
+    <div class="admin-empty">
+        <div class="empty-icon"><i class="bi bi-door-open"></i></div>
+        <h3>No tenés un turno abierto</h3>
+        <p>
+            Abrí el turno para empezar a cobrar: al cerrarlo vas a ver el
+            total en efectivo, en tarjeta y cuántas operaciones hiciste.
+        </p>
+        <form method="post" action="{% url 'ventas:cierre_turno' %}">
+            {% csrf_token %}
+            <input type="hidden" name="accion" value="abrir">
+            <button type="submit" class="btn btn-kiosco mt-3">
+                <i class="bi bi-door-open" aria-hidden="true"></i> Abrir turno
+            </button>
+        </form>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

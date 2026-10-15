@@ -1,5 +1,6 @@
 """
-Lógica de negocio del cobro (Sprint 3 - HU-07/08/09).
+Lógica de negocio del cobro (Sprint 3 - HU-07/08/09) y del cierre de
+turno (Sprint 4 - HU-10).
 
 El carrito vive en la sesión del navegador (`request.session["carrito"]`),
 como una lista de {"producto_id": ..., "cantidad": ...}. No se crea ninguna
@@ -9,9 +10,10 @@ ensuciando los reportes (que sí filtran por `finalizada`).
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Count, Q, Sum
+from django.utils import timezone
 
-from .models import DetalleVenta, Producto, Venta
+from .models import DetalleVenta, Producto, Turno, Venta
 
 CLAVE_CARRITO = "carrito"
 METODOS_PAGO_VALIDOS = {"efectivo", "tarjeta"}
@@ -252,3 +254,95 @@ def confirmar_venta(request, metodo_pago, monto_entregado):
 
     vaciar_carrito(request)
     return venta
+
+
+# ========== CIERRE DE TURNO (Sprint 4 - HU-10) ==========
+
+
+def turno_abierto(usuario):
+    """El turno del usuario que todavía no se cerró, si existe."""
+    return Turno.objects.filter(
+        usuario=usuario, fecha_cierre__isnull=True
+    ).first()
+
+
+def abrir_turno(usuario):
+    """
+    Abre un turno para el usuario. Si ya tiene uno abierto devuelve ese:
+    no puede haber dos turnos activos de la misma persona.
+    """
+    existente = turno_abierto(usuario)
+    if existente:
+        return existente
+    return Turno.objects.create(usuario=usuario)
+
+
+def ventas_del_turno(turno):
+    """
+    Ventas finalizadas del responsable del turno dentro de su franja:
+    desde la apertura hasta el cierre (o hasta ahora si sigue abierto).
+    """
+    ventas = Venta.objects.filter(
+        finalizada=True,
+        usuario=turno.usuario,
+        fecha__gte=turno.fecha_apertura,
+    )
+    if turno.fecha_cierre:
+        ventas = ventas.filter(fecha__lte=turno.fecha_cierre)
+    return ventas
+
+
+def totales_del_turno(turno):
+    """
+    Efectivo, tarjeta y cantidad de operaciones del turno.
+    Con el turno cerrado devuelve el snapshot congelado en el cierre;
+    mientras está abierto calcula en vivo para mostrar en pantalla.
+    """
+    if not turno.activo:
+        return {
+            "total_efectivo": turno.total_efectivo,
+            "total_tarjeta": turno.total_tarjeta,
+            "total_general": turno.total_general,
+            "cantidad_operaciones": turno.cantidad_operaciones,
+        }
+
+    agregados = ventas_del_turno(turno).aggregate(
+        efectivo=Sum("total", filter=Q(metodo_pago="efectivo")),
+        tarjeta=Sum("total", filter=Q(metodo_pago="tarjeta")),
+        operaciones=Count("pk"),
+    )
+    efectivo = agregados["efectivo"] or Decimal("0.00")
+    tarjeta = agregados["tarjeta"] or Decimal("0.00")
+    return {
+        "total_efectivo": efectivo,
+        "total_tarjeta": tarjeta,
+        "total_general": efectivo + tarjeta,
+        "cantidad_operaciones": agregados["operaciones"],
+    }
+
+
+def cerrar_turno(turno):
+    """
+    HU-10: cierra el turno guardando un snapshot de los totales del momento,
+    para que el histórico no cambie si después se registran más ventas.
+    Lanza ErrorCobro si el turno ya estaba cerrado.
+    """
+    with transaction.atomic():
+        turno = Turno.objects.select_for_update().get(pk=turno.pk)
+        if not turno.activo:
+            raise ErrorCobro("Ese turno ya está cerrado.")
+
+        totales = totales_del_turno(turno)
+        turno.fecha_cierre = timezone.now()
+        turno.total_efectivo = totales["total_efectivo"]
+        turno.total_tarjeta = totales["total_tarjeta"]
+        turno.cantidad_operaciones = totales["cantidad_operaciones"]
+        turno.save(
+            update_fields=[
+                "fecha_cierre",
+                "total_efectivo",
+                "total_tarjeta",
+                "cantidad_operaciones",
+            ]
+        )
+    return turno
