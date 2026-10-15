@@ -172,7 +172,9 @@ ingresar el monto entregado y que el sistema calcule el vuelto exacto.
   `usuario` (cajero responsable, `SET_NULL`), `monto_entregado` y `vuelto`.
 - **Auditoría**: cada venta confirmada se registra con
   `registrar_accion()`, y el comprobante es visible solo para quien la cobró
-  o para un administrador (403 si no).
+  o para un administrador (403 si no). El historial completo se consulta en
+  `/auditoria/` (solo Administrador), con filtros por fechas, tipo de evento
+  y búsqueda.
 
 ---
 
@@ -181,8 +183,8 @@ ingresar el monto entregado y que el sistema calcule el vuelto exacto.
 > "Cuando termina el turno o el día, quiero apretar un botón y que me tire
 > el total de plata que entró en efectivo, en tarjeta y cuántas ventas hice."
 
-**Estado:** 🟡 parcial — los **reportes de ventas y stock se entregaron
-adelantado** (05-10) con `administracion/reportes.py`; **HU-10** (cierre de
+**Estado:** 🟡 parcial — los **reportes de ventas y stock y el historial de
+auditoría se entregaron adelantado** (05-10 / 14-10); **HU-10** (cierre de
 turno) y **HU-12** (clientes) siguen pendientes para el 05-11.
 
 ### Historias de usuario
@@ -482,12 +484,16 @@ kiosco_sprint1/
 │   ├── tests_reportes.py             # 59 tests.
 │   └── templates → ../templates/administracion/ (8 templates).
 │
-├── auditoria/                        # Logs de auditoría.
+├── auditoria/                        # Logs de auditoría + su pantalla (RF-45).
 │   ├── models.py                     # RegistroAuditoria: usuario, acción,
 │   │                                 # detalle, fecha, IP.
 │   ├── signals.py                    # user_logged_in/out → crea registro.
 │   ├── utils.py                      # registrar_login/logout/accion(),
 │   │                                 # _obtener_ip().
+│   ├── views.py                      # historial(): listado con filtros y
+│   │                                 # paginación (solo Administrador).
+│   ├── urls.py                       # /auditoria/ → auditoria:historial.
+│   ├── tests.py                      # 23 tests.
 │   ├── admin.py                      # Solo lectura en el admin de Django.
 │   └── migrations/0001_initial.py
 │
@@ -512,6 +518,8 @@ kiosco_sprint1/
 │   │   ├── agregar_producto.html     # Alta (HU-04).
 │   │   ├── editar_producto.html      # Edición de precios y stock.
 │   │   └── eliminar_producto.html    # Confirmación de baja lógica.
+│   ├── auditoria/
+│   │   └── historial.html             # Auditoría (RF-45): tabla de eventos.
 │   └── administracion/               # Panel del equipo:
 │       ├── dashboard.html            # stats de usuarios + accesos rápidos.
 │       ├── listar_usuarios.html      # tabla con búsqueda/filtros.
@@ -609,6 +617,7 @@ Estado real al **05-10-2026** (unificado: tabla original + backlog nuevo).
 | Reporte top 10 de productos más vendidos (HU-11) | 4 | `administracion/reportes.py::top_productos` |
 | Consulta de ventas, stock, costos y reportes para el administrador | 4 | `/administracion/reportes/ventas/` y `/reportes/stock/` |
 | KPIs de negocio: ingresos, ganancia, margen, ticket promedio, stock valorizado | 4 | `reportes.py` (`resumen_ventas`, `resumen_stock`, `ventas_por_dia`) |
+| Historial de auditoría con filtros (fechas, tipo, búsqueda) y paginación | 4 | `/auditoria/` + botón "Auditoría" en la cabecera de ambos reportes |
 
 ### Pendiente
 

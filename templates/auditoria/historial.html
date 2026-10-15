@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% load pagination_tags %}
+{% block titulo %}Auditoría del Sistema{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-clock-history"></i> Auditoría del Sistema</h1>
+            <p class="admin-subtitle">Cambios, ventas y accesos registrados por el sistema</p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{% url 'administracion:reportes_ventas' %}" class="btn btn-admin-secondary">
+                <i class="bi bi-graph-up-arrow"></i> Ver ventas
+            </a>
+            <a href="{% url 'administracion:reportes_stock' %}" class="btn btn-admin-secondary">
+                <i class="bi bi-box-seam"></i> Ver stock
+            </a>
+        </div>
+    </div>
+
+    <!-- Resumen por tipo: la ficha aplica su filtro -->
+    <div class="stats-grid">
+        <a href="?{% param tipo=None page=None %}" class="stat-card stat-total stat-card-filtro">
+            <div class="stat-icon"><i class="bi bi-journal-text"></i></div>
+            <div class="stat-content">
+                <h3>{{ totales.total }}</h3>
+                <p>Registros</p>
+            </div>
+        </a>
+        <a href="?{% param tipo='ventas' page=None %}" class="stat-card stat-active stat-card-filtro">
+            <div class="stat-icon"><i class="bi bi-cart-check"></i></div>
+            <div class="stat-content">
+                <h3>{{ totales.ventas }}</h3>
+                <p>Ventas cobradas</p>
+            </div>
+        </a>
+        <a href="?{% param tipo='usuarios' page=None %}" class="stat-card stat-admin stat-card-filtro">
+            <div class="stat-icon"><i class="bi bi-people"></i></div>
+            <div class="stat-content">
+                <h3>{{ totales.usuarios }}</h3>
+                <p>Cambios en usuarios</p>
+            </div>
+        </a>
+        <a href="?{% param tipo='sesiones' page=None %}" class="stat-card stat-cashier stat-card-filtro">
+            <div class="stat-icon"><i class="bi bi-box-arrow-in-right"></i></div>
+            <div class="stat-content">
+                <h3>{{ totales.sesiones }}</h3>
+                <p>Accesos al sistema</p>
+            </div>
+        </a>
+    </div>
+
+    <!-- Filtros -->
+    <div class="admin-filters">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label class="info-label" for="desde">Desde</label>
+                <input type="date" name="desde" id="desde" value="{{ desde|date:'Y-m-d' }}" class="admin-input">
+            </div>
+            <div class="filter-group">
+                <label class="info-label" for="hasta">Hasta</label>
+                <input type="date" name="hasta" id="hasta" value="{{ hasta|date:'Y-m-d' }}" class="admin-input">
+            </div>
+            <div class="filter-group">
+                <label class="info-label" for="tipo">Tipo de evento</label>
+                <select name="tipo" id="tipo" class="admin-select">
+                    <option value="">Todos</option>
+                    {% for c in categorias %}
+                    <option value="{{ c.clave }}" {% if tipo == c.clave %}selected{% endif %}>{{ c.etiqueta }} ({{ c.total }})</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="info-label" for="q">Buscar</label>
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text" name="q" id="q" value="{{ busqueda }}" placeholder="Acción, detalle o usuario..." class="admin-input">
+                </div>
+            </div>
+            <button type="submit" class="btn btn-admin-filter">
+                <i class="bi bi-funnel"></i> Filtrar
+            </button>
+            {% if hay_filtros %}
+            <a href="{% url 'auditoria:historial' %}" class="btn btn-admin-clear">
+                <i class="bi bi-x-lg"></i> Limpiar
+            </a>
+            {% endif %}
+        </form>
+    </div>
+
+    <!-- Registros -->
+    <div class="admin-card">
+        <h2><i class="bi bi-list-ul"></i> Registros</h2>
+        {% if registros %}
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Acción</th>
+                        <th>Detalle</th>
+                        <th>IP</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for registro in registros %}
+                    <tr>
+                        <td>{{ registro.fecha|date:'d/m/Y H:i' }}</td>
+                        <td>
+                            {% if registro.usuario %}
+                            {{ registro.usuario.username }}
+                            {% else %}
+                            <span class="text-muted">Sistema</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="badge-auditoria badge-auditoria-{{ registro.categoria }}">{{ registro.accion }}</span>
+                        </td>
+                        <td>{{ registro.detalle|default:"—" }}</td>
+                        <td>{{ registro.ip|default:"—" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="reporte-nota">
+            Mostrando {{ registros|length }} de {{ page_obj.paginator.count }} registro(s).
+            Los registros son de solo lectura: no se pueden editar ni borrar.
+        </p>
+
+        {% if page_obj.has_other_pages %}
+        <nav class="kiosco-pagination">
+            <ul class="pagination mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% param page=page_obj.previous_page_number %}">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                </li>
+                {% endif %}
+
+                {% for num in paginas %}
+                {% if num == page_obj.number %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% else %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% param page=num %}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% param page=page_obj.next_page_number %}">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="admin-empty">
+            <div class="empty-icon"><i class="bi bi-clock-history"></i></div>
+            <h3>No hay registros para mostrar</h3>
+            <p>
+                {% if hay_filtros %}
+                Probá con otros filtros o limpiá la búsqueda.
+                {% else %}
+                El historial se va llenando a medida que se cobren ventas, se cambien usuarios y se inicien sesiones.
+                {% endif %}
+            </p>
+            {% if hay_filtros %}
+            <a href="{% url 'auditoria:historial' %}" class="btn btn-admin-clear">
+                <i class="bi bi-x-lg"></i> Limpiar filtros
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

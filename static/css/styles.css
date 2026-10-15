@@ -1647,6 +1647,19 @@ a.stat-card-link:hover {
   box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25), var(--shadow-md);
 }
 
+/* Fichas del historial de auditoría: al clickear aplican su filtro de tipo.
+   Amarillo (no rojo) porque no son alertas. */
+a.stat-card-filtro {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+a.stat-card-filtro:hover {
+  border-color: rgba(245, 166, 35, 0.5);
+  box-shadow: 0 0 0 1px rgba(245, 166, 35, 0.25), var(--shadow-md);
+}
+
 .stat-content {
   min-width: 0;
   flex: 1;
@@ -2119,6 +2132,37 @@ a.stat-card-link:hover {
 }
 
 .badge-none {
+  background: rgba(26, 26, 46, 0.08);
+  color: var(--text-muted);
+}
+
+/* --- Auditoría (RF-45): color del badge según el tipo de evento --- */
+.badge-auditoria {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25em 0.6em;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.badge-auditoria-ventas {
+  background: rgba(34, 197, 94, 0.15);
+  color: #16A34A;
+}
+
+.badge-auditoria-usuarios {
+  background: rgba(139, 92, 246, 0.15);
+  color: #8B5CF6;
+}
+
+.badge-auditoria-sesiones {
+  background: rgba(59, 130, 246, 0.15);
+  color: #3B82F6;
+}
+
+.badge-auditoria-otras {
   background: rgba(26, 26, 46, 0.08);
   color: var(--text-muted);
 }

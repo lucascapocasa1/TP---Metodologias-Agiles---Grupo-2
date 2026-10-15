@@ -8,9 +8,14 @@
             <h1><i class="bi bi-box-seam"></i> Reporte de Stock</h1>
             <p class="admin-subtitle">Valorización del inventario, faltantes y márgenes</p>
         </div>
-        <a href="{% url 'administracion:reportes_ventas' %}" class="btn btn-admin-secondary">
-            <i class="bi bi-graph-up"></i> Ver ventas
-        </a>
+        <div class="d-flex gap-2">
+            <a href="{% url 'auditoria:historial' %}" class="btn btn-admin-secondary">
+                <i class="bi bi-clock-history"></i> Auditoría
+            </a>
+            <a href="{% url 'administracion:reportes_ventas' %}" class="btn btn-admin-secondary">
+                <i class="bi bi-graph-up"></i> Ver ventas
+            </a>
+        </div>
     </div>
 
     <div class="admin-filters">

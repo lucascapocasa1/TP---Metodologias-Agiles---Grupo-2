@@ -80,7 +80,7 @@ flowchart LR
 | UI framework | Bootstrap 5.3.3 + Bootstrap Icons (CDN) | — | Grid y utilidades sin herramientas de build |
 | Tipografía | Google Fonts CDN (Alfa Slab One, Archivo, Bebas Neue, IBM Plex Mono, Righteous, Space Grotesk) | — | Identidad visual |
 | CSS | `static/css/styles.css` con custom properties (~3.200 líneas) | — | Design tokens, estilo neón y modo oscuro sin preprocesador |
-| Tests | Django test runner (`manage.py test`) | — | 148 tests, sin dependencias extra |
+| Tests | Django test runner (`manage.py test`) | — | 193 tests, sin dependencias extra |
 | Auditoría | Señales de Django (`user_logged_in/out`) | — | Sin tocar las vistas de login |
 
 **No se usa:** DRF, Celery, Redis, Docker, CI, bundler/`package.json`.
@@ -98,7 +98,7 @@ kiosco_sprint1/
 │                        #   (reportes.py: KPIs de ventas y stock)
 ├── ventas/              # Dominio: Categoria, Producto, Venta, DetalleVenta,
 │                        #   ProductoForm, services.py (carrito/cobro) y POS
-├── auditoria/           # Transversal: RegistroAuditoria + signals + utils (sin urls)
+├── auditoria/           # Transversal: RegistroAuditoria + signals + utils + historial (RF-45)
 ├── templates/           # base.html, 403/404 y templates por app (incl. parciales HTMX)
 ├── static/              # css/styles.css, img/favicon.svg
 ├── docs/                # PRD.md y ARD.md (este documento)
@@ -110,9 +110,9 @@ kiosco_sprint1/
 |---|---|---|---|---|
 | `config` | Configuración y ruteo raíz | — | `/admin/`, `/` → post_login | — |
 | `usuarios` | Identidad, sesiones, autorización por rol | — (usa `auth.User`) | 5 | 9 |
-| `administracion` | Gestión de usuarios, dashboard y **reportes** | — (usa `auth.User`/`Group`) | 9 | 22 + 57 |
-| `ventas` | Catálogo CRUD y cobro (POS) | `Categoria`, `Producto`, `Venta`, `DetalleVenta` | 10 | 60 |
-| `auditoria` | Trazabilidad de acciones | `RegistroAuditoria` | — (solo Django admin) | 0 |
+| `administracion` | Gestión de usuarios, dashboard y **reportes** | — (usa `auth.User`/`Group`) | 9 | 24 + 59 |
+| `ventas` | Catálogo CRUD y cobro (POS) | `Categoria`, `Producto`, `Venta`, `DetalleVenta` | 10 | 78 |
+| `auditoria` | Trazabilidad de acciones | `RegistroAuditoria` | 1 (historial) | 23 |
 
 Reglas estructurales:
 
@@ -122,8 +122,9 @@ Reglas estructurales:
 - `usuarios` y `administracion` no tienen modelos: reutilizan `auth.User`,
   `auth.Group` y las funciones puras de `administracion/reportes.py`
   (consultas ORM sin estado).
-- La auditoría **no expone URLs**: es un módulo de servicio consumido por
-  señales y por llamadas directas `registrar_accion()`.
+- La auditoría **se escribe** solo desde señales y `registrar_accion()`; su
+  única URL (`auditoria:historial`) es de **solo lectura** y queda reservada
+  al Administrador.
 - La lógica de catálogo valida en **forms** (`ventas/forms.py::ProductoForm`),
   no en las vistas.
 
@@ -272,6 +273,19 @@ en tiempo real con `hx-get` + `hx-trigger="input changed delay:300ms"`
 ⚠ = deuda abierta en el PRD (R-03: cambio de estado por GET). El Django admin
 (`/admin/`) queda como herramienta de respaldo.
 
+### 5.4 `auditoria` (`/auditoria/`)
+
+| Ruta | Nombre | Métodos | Control de acceso |
+|---|---|---|---|
+| `/auditoria/` | `auditoria:historial` | GET (`?desde=&hasta=&tipo=&q=&page=`) | `@rol_requerido("Administrador")` · solo lectura |
+
+El listado agrupa los eventos en tres tipos (`ventas`, `usuarios`, `sesiones`),
+pagina de a 20 registros y deja filtrar por rango de fechas (opcional: sin
+filtros se ve el historial completo) o por texto libre en acción, detalle o
+usuario. Las fichas del encabezado cuentan por tipo sobre el rango de fechas y
+al clickear aplican ese filtro. Ambos reportes enlazan a esta pantalla desde su
+cabecera.
+
 ---
 
 ## 6. Autenticación y autorización
@@ -361,8 +375,8 @@ sequenceDiagram
 - **Conservación:** `usuario` con `SET_NULL`; los registros sobreviven al
   borrado del usuario.
 - **Lectura:** `auditoria/admin.py` registra el modelo en **solo lectura**
-  (add/change/delete deshabilitados). No hay UI propia (RF-45 pendiente) ni
-  tests (R-08).
+  (add/change/delete deshabilitados) y `auditoria/views.py::historial`
+  expone el listado propio (RF-45) con filtros, paginación y 23 tests.
 
 ---
 
@@ -498,7 +512,7 @@ Comandos del proyecto:
   `top_productos`, `productos_mas_rentables`, `resumen_stock`,
   `stock_por_categoria`, `productos_bajo_margen`); las vistas solo orquestan
   y renderizan.
-- **Consecuencias:** lógica testeable sin HTTP (57 tests) y reutilizable en
+- **Consecuencias:** lógica testeable sin HTTP (59 tests) y reutilizable en
   el cierre de turno del Sprint 4.
 
 ### ADN-10 — Baja lógica de productos
@@ -531,18 +545,19 @@ Comandos del proyecto:
 | Archivo | Tests | Cubre |
 |---|---|---|
 | `usuarios/tests.py` | 9 | Login OK/inválido, acceso anónimo, 403 de cajero, acceso de admin, redirección `post_login` por rol |
-| `ventas/tests.py` | 60 | Pantalla de cobro (login/roles) + CRUD de productos (alta, edición, baja lógica, código de barras duplicado, búsqueda HTMX, 403, alerta de stock) + **Sprint 3**: carrito (agregar, duplicados, sumar/restar/quitar), cobro (efectivo con vuelto, pago exacto, tarjeta, stock insuficiente, auditoría), comprobante (formato de pesos, 403 de venta ajena) y búsqueda en tiempo real del escáner (desde 3 caracteres) |
-| `administracion/tests.py` | 22 | Dashboard (accesos, 403, estadísticas), listar con búsqueda/filtro, crear, editar, eliminar con protecciones, toggle, asignación de roles, costos invisibles para el cajero |
-| `administracion/tests_reportes.py` | 57 | Resumen de ventas, serie diaria, top 10, rentabilidad, rango de fechas, stock valorado, stock bajo, por categoría, margen bajo, permisos |
-| `auditoria/tests.py` | 0 | **Sin cobertura** (señales y utils sin tests) — R-08 |
-| **Total** | **148** | **`python manage.py test` → OK** |
+| `ventas/tests.py` | 69 | Pantalla de cobro (login/roles) + CRUD de productos (alta, edición, baja lógica, código de barras duplicado, búsqueda HTMX, 403, alerta de stock) + **Sprint 3**: carrito (agregar, duplicados, sumar/restar/quitar), cobro (efectivo con vuelto, pago exacto, tarjeta, stock insuficiente, auditoría), comprobante (formato de pesos, 403 de venta ajena) y búsqueda en tiempo real del escáner (desde 3 caracteres) |
+| `ventas/tests_cargar_demo.py` | 9 | Comando `cargar_demo`: productos, historial de ventas, idempotencia y `--limpiar` |
+| `administracion/tests.py` | 24 | Dashboard (accesos, 403, estadísticas), listar con búsqueda/filtro, crear, editar, eliminar con protecciones, toggle, asignación de roles, costos invisibles para el cajero |
+| `administracion/tests_reportes.py` | 59 | Resumen de ventas, serie diaria, top 10, rentabilidad, rango de fechas, stock valorado, stock bajo, por categoría, margen bajo, permisos |
+| `auditoria/tests.py` | 23 | Historial (RF-45): permisos (302/403/200), listado y orden, contadores por tipo, filtros (tipo, búsqueda, rango invertido), paginación que preserva filtros, botón en ambos reportes, señales de login/logout y `registrar_accion` |
+| **Total** | **193** | **`python manage.py test` → OK** |
 
 - Estilo: `django.test.TestCase` con `self.client` (peticiones HTTP reales,
   `assertTemplateUsed` y aserciones de contexto), datos de prueba en
   `setUp` (el cobro usa una base común `BaseCobro`).
 - Política: toda historia nueva suma tests; la suite completa debe quedar en
   verde antes de mergear (Definition of Done del PRD §8).
-- Cobertura pendiente: registro de usuarios, `sin_rol`, auditoría y el cierre
+- Cobertura pendiente: registro de usuarios, `sin_rol` y el cierre
   de caja del Sprint 4.
 
 ### 11.2 Requerimientos técnicos
@@ -554,7 +569,7 @@ Comandos del proyecto:
 | RT-03 | Seguridad | Pasar `DEBUG=False`, `SECRET_KEY` y `ALLOWED_HOSTS` a `.env` antes de cualquier despliegue (R-06) |
 | RT-04 | Seguridad | Convertir `toggle_usuario` a POST con CSRF (R-03) |
 | RT-05 | Datos | Backups de PostgreSQL y `setup_inicial` idempotente para recomponer el entorno |
-| RT-06 | Observabilidad | UI de auditoría (RF-45) antes de que el registro crezca |
+| RT-06 | Observabilidad | ✅ Resuelto: UI de auditoría (RF-45) en `/auditoria/` con filtros y paginación |
 | RT-07 | Consistencia | Filtros `activo=True` en el carrito y en reportes cuando aplique |
 
 ---
@@ -570,7 +585,7 @@ Comandos del proyecto:
 | ~~`Venta`/`DetalleVenta` sin lógica de negocio~~ | Bloqueaba HU-07/08/09 | ✅ Resuelto (05-10): `services.py` con transacción y descuento de stock |
 | ~~Pantalla de cobro placeholder~~ | — | ✅ Resuelto (05-10): carrito con HTMX/JS, vuelto, pago exacto, billetes |
 | Modelo `Turno` y `Cliente` inexistentes | Bloquea HU-10/12 | Sprint 4 |
-| Auditoría sin tests ni UI | — | Tests de señales; listado paginado |
+| ~~Auditoría sin tests ni UI~~ | — | ✅ Resuelto (14-10): `/auditoria/` (RF-45) + 23 tests |
 | Paginación y partial de buscador sin usar | — | Conectar `{% paginacion %}` a los listados |
 | Settings de producción (`DEBUG`, `SECRET_KEY`, `MAILERS`) | Bloquea despliegue y "olvidé mi contraseña" | Mover a `.env`; `MAILERS` → `EMAIL_BACKEND` |
 | Dashboard sin KPIs de negocio | Bajo | Los KPIs ya viven en `/reportes/`; opcional replicarlos |
@@ -590,3 +605,4 @@ Comandos del proyecto:
 | 1.0 | 24/09/2026 | Versión inicial (alcance Sprint 1 + 2 en curso) |
 | 2.0 | 05/10/2026 | CRUD de productos con HTMX, reportes, esquema ampliado (costo, código de barras, stock mínimo), 110 tests, endpoints y ADRs actualizados |
 | 2.1 | 05/10/2026 | Sprint 3: `Venta` ampliada (método de pago, cajero, vuelto), `services.py` de cobro, 5 endpoints de carrito, ADN-11 (carrito en sesión), búsqueda en tiempo real desde 3 letras, filtro `|montos`, 148 tests |
+| 2.2 | 14/10/2026 | Historial de auditoría (RF-45): `/auditoria/` con filtros por fechas/tipo/búsqueda, paginación y botón en ambos reportes; 193 tests |
