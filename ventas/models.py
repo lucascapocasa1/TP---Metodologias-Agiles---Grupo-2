@@ -103,6 +103,20 @@ class Venta(models.Model):
          blank=True,
          help_text="Monto entregado menos el total. Solo para efectivo.",
      )
+     cliente = models.ForeignKey(
+         "clientes.Cliente",
+         on_delete=models.SET_NULL,
+         null=True,
+         blank=True,
+         related_name="ventas",
+         verbose_name="Cliente asociado",
+         help_text="Cliente de la fidelidad (HU-12). Vacío si es consumidor final.",
+     )
+     puntos_ganados = models.PositiveIntegerField(
+         default=0,
+         verbose_name="Puntos de fidelidad ganados",
+         help_text="Puntos que sumó esta venta al cliente: 1 cada $100.",
+     )
 
      def __str__(self):
          return f"Venta N° {self.id} - {self.fecha.strftime('%d/%m/%Y')}"

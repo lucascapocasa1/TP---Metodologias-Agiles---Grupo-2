@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load formatos %}
+{% block titulo %}Dar de baja - {{ cliente.nombre_completo }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <a href="{% url 'clientes:listar_clientes' %}" class="btn-back">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h1><i class="bi bi-trash"></i> Dar de Baja Cliente</h1>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header card-header-danger">
+            <h2><i class="bi bi-exclamation-triangle"></i> Confirmar Baja</h2>
+        </div>
+        <div class="card-body">
+            <div class="delete-warning">
+                <div class="warning-icon">
+                    <i class="bi bi-person-dash-fill"></i>
+                </div>
+                <div class="warning-content">
+                    <h3>¿Dar de baja a este cliente?</h3>
+                    <p>
+                        El cliente <strong>{{ cliente.nombre_completo }}</strong> quedará
+                        inactivo y no se podrá asociar a nuevas ventas. Es una baja
+                        lógica: sus compras y puntos de fidelidad se conservan.
+                    </p>
+
+                    <div class="user-info-box">
+                        <div class="info-row">
+                            <span class="info-label">DNI/CUIT:</span>
+                            <span class="info-value">{{ cliente.dni }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Contacto:</span>
+                            <span class="info-value">
+                                {{ cliente.email|default:"—" }}{% if cliente.telefono %} · {{ cliente.telefono }}{% endif %}
+                            </span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Puntos:</span>
+                            <span class="info-value">{{ cliente.puntos }}</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Registrado:</span>
+                            <span class="info-value">{{ cliente.fecha_registro|date:"d/m/Y H:i" }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <form method="post" class="delete-form">
+                {% csrf_token %}
+                <div class="form-actions">
+                    <a href="{% url 'clientes:listar_clientes' %}" class="btn btn-admin-cancel">
+                        <i class="bi bi-x-lg"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-admin-danger">
+                        <i class="bi bi-person-dash"></i> Sí, dar de baja
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     # Apps propias del kiosco
     'usuarios',
+    'clientes',
     'ventas',
     'administracion',
     'auditoria',

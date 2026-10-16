@@ -6,6 +6,85 @@
 </div>
 {% endif %}
 
+<!-- ===== Cliente de la venta (HU-12: fidelidad) ===== -->
+<div class="cobro-cliente">
+    {% if cliente %}
+    <div class="cliente-barra cliente-barra-asociado">
+        <i class="bi bi-person-check-fill" aria-hidden="true"></i>
+        <div class="cliente-datos">
+            <strong>{{ cliente.nombre_completo }}</strong>
+            <span>
+                DNI {{ cliente.dni }} · {{ cliente.puntos }} puntos
+                {% if puntos_venta %}· con esta venta sumás +{{ puntos_venta }}{% endif %}
+            </span>
+        </div>
+        <button type="button"
+                class="btn-qty"
+                title="Quitar cliente de la venta"
+                aria-label="Quitar cliente {{ cliente.nombre_completo }} de la venta"
+                hx-post="{% url 'clientes:quitar' %}"
+                hx-target="#carrito-region"
+                hx-swap="innerHTML">
+            <i class="bi bi-x-lg" aria-hidden="true"></i>
+        </button>
+    </div>
+    {% else %}
+    <div class="cliente-barra cliente-barra-buscar">
+        <div class="search-box">
+            <i class="bi bi-person" aria-hidden="true"></i>
+            <input type="text"
+                   id="cliente-input"
+                   class="admin-input"
+                   placeholder="Asociar cliente: DNI, nombre o apellido..."
+                   aria-label="Buscar cliente para asociar a la venta"
+                   autocomplete="off"
+                   hx-get="{% url 'clientes:buscar' %}"
+                   hx-trigger="input changed delay:300ms"
+                   hx-vals="js:{q: document.getElementById('cliente-input').value}"
+                   hx-target="#cliente-resultados"
+                   hx-swap="innerHTML">
+        </div>
+    </div>
+    <div id="cliente-resultados" class="cobro-resultados" aria-live="polite"></div>
+
+    <details class="cliente-rapido" {% if form_rapido %}open{% endif %}>
+        <summary>
+            <i class="bi bi-person-plus" aria-hidden="true"></i>
+            Cliente nuevo · alta rápida
+        </summary>
+        <form class="cliente-rapido-form"
+              hx-post="{% url 'clientes:alta_rapida' %}"
+              hx-target="#carrito-region"
+              hx-swap="innerHTML">
+            {% csrf_token %}
+            <div class="form-row form-row-2">
+                <input type="text" name="nombre" class="admin-input"
+                       placeholder="Nombre *" required autocomplete="off"
+                       value="{{ form_rapido.nombre.value|default_if_none:'' }}">
+                <input type="text" name="apellido" class="admin-input"
+                       placeholder="Apellido *" required autocomplete="off"
+                       value="{{ form_rapido.apellido.value|default_if_none:'' }}">
+            </div>
+            <input type="text" name="dni" class="admin-input"
+                   placeholder="DNI/CUIT * (sin puntos ni guiones)" required
+                   inputmode="numeric" autocomplete="off"
+                   value="{{ form_rapido.dni.value|default_if_none:'' }}">
+            {% if form_rapido %}
+                {% if form_rapido.errors %}
+                <span class="field-error">
+                    {{ form_rapido.errors.nombre.0 }}{{ form_rapido.errors.apellido.0 }}{{ form_rapido.errors.dni.0 }}
+                </span>
+                {% endif %}
+            {% endif %}
+            <button type="submit" class="btn btn-kiosco">
+                <i class="bi bi-person-check" aria-hidden="true"></i> Crear y asociar
+            </button>
+        </form>
+    </details>
+    {% endif %}
+</div>
+<!-- ===== /Cliente de la venta ===== -->
+
 {% if items %}
 <div class="admin-table-container">
     <table class="admin-table">

@@ -31,6 +31,9 @@
                     {{ venta.fecha|date:"d/m/Y H:i" }} ·
                     {{ venta.get_metodo_pago_display }} ·
                     Cajero: {{ venta.usuario|default:"—" }}
+                    {% if venta.cliente_id %}
+                    · Cliente: {{ venta.cliente.nombre_completo }} (DNI {{ venta.cliente.dni }})
+                    {% endif %}
                 </p>
             </div>
         </div>
@@ -58,6 +61,12 @@
 
         <div class="cobro-totales">
             <div class="cobro-total-linea"><span>Total</span><strong>${{ venta.total|montos }}</strong></div>
+            {% if venta.puntos_ganados %}
+            <div class="cobro-total-linea cobro-vuelto">
+                <span>Puntos de fidelidad</span>
+                <strong>+{{ venta.puntos_ganados }}</strong>
+            </div>
+            {% endif %}
             {% if venta.metodo_pago == "efectivo" %}
             <div class="cobro-total-linea"><span>Entregado</span><strong>${{ venta.monto_entregado|montos }}</strong></div>
             <div class="cobro-total-linea cobro-vuelto"><span>Vuelto</span><strong>${{ venta.vuelto|montos }}</strong></div>
@@ -204,6 +213,20 @@
         if (e.target.name !== 'metodo_pago') return;
         var bloque = document.getElementById('bloque-monto');
         if (bloque) bloque.hidden = (e.target.value !== 'efectivo');
+    });
+
+    // Después de cada cambio del carrito (HTMX) vuelve el foco al escáner.
+    // No se roba el foco mientras se tipea en el buscador de clientes, ni si
+    // el alta rápida volvió con errores (el form sigue en pantalla).
+    document.addEventListener('htmx:afterRequest', function (e) {
+        if (e.detail && e.detail.successful === false) return;
+        var origen = e.target;
+        if (!origen || !origen.closest) return;
+        if (origen.closest('#cliente-input')) return;
+        if (origen.closest('.cliente-rapido-form') && document.querySelector('.cliente-rapido-form')) return;
+        if (!origen.closest('#carrito-region')) return;
+        var scanner = document.getElementById('codigo-input');
+        if (scanner) scanner.focus();
     });
 })();
 </script>

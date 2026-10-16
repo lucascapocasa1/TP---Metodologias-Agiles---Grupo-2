@@ -6,6 +6,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from auditoria.utils import registrar_accion
+from clientes import services as fidelidad
 from usuarios.decorators import es_administrador, rol_requerido
 
 from . import services
@@ -14,13 +15,19 @@ from .models import Categoria, Producto, Venta
 from .services import ErrorCobro
 
 
-def _contexto_cobro(request, error=None):
-    """Items, total y métodos de pago para la pantalla (y sus parciales)."""
+def contexto_cobro(request, error=None, form_rapido=None):
+    """Items, total, métodos de pago y cliente (HU-12) para la pantalla."""
     items = services.items_del_carrito(request)
+    cliente = fidelidad.cliente_de_sesion(request)
+    total = services.total_del_carrito(items)
     return {
         "items": items,
-        "total": services.total_del_carrito(items),
+        "total": total,
         "metodos_pago": Venta.METODO_PAGO,
+        "cliente": cliente,
+        "puntos_venta": fidelidad.puntos_por_monto(total),
+        "puntos_regla": fidelidad.PUNTOS_POR_PESO,
+        "form_rapido": form_rapido,
         "error": error,
     }
 
@@ -33,7 +40,7 @@ def pantalla_cobro(request):
     (HU-08) y cobrar en efectivo o tarjeta con vuelto (HU-09).
     Con `?venta=<id>` muestra el comprobante de una venta ya confirmada.
     """
-    contexto = _contexto_cobro(request)
+    contexto = contexto_cobro(request)
 
     venta_id = request.GET.get("venta")
     if venta_id:
@@ -61,7 +68,7 @@ def cobro_agregar(request):
     except ErrorCobro as exc:
         error = str(exc)
 
-    contexto = _contexto_cobro(request, error=error)
+    contexto = contexto_cobro(request, error=error)
     if request.headers.get("HX-Request"):
         return render(request, "ventas/_carrito.html", contexto)
     return render(request, "ventas/pantalla_cobro.html", contexto)
@@ -107,7 +114,7 @@ def cobro_cantidad(request):
     except (ValueError, ErrorCobro) as exc:
         error = str(exc)
 
-    contexto = _contexto_cobro(request, error=error)
+    contexto = contexto_cobro(request, error=error)
     if request.headers.get("HX-Request"):
         return render(request, "ventas/_carrito.html", contexto)
     return render(request, "ventas/pantalla_cobro.html", contexto)
@@ -129,21 +136,34 @@ def cobro_confirmar(request):
         return render(
             request,
             "ventas/pantalla_cobro.html",
-            _contexto_cobro(request, error=str(exc)),
+            contexto_cobro(request, error=str(exc)),
         )
 
+    detalle = (
+        f"Venta N° {venta.pk} por {services.formatear_monto(venta.total)} "
+        f"({venta.get_metodo_pago_display()})"
+    )
+    if venta.cliente_id:
+        detalle += (
+            f" · Cliente: {venta.cliente.nombre_completo} "
+            f"(+{venta.puntos_ganados} pts)"
+        )
     registrar_accion(
         request.user,
         "Venta confirmada",
-        f"Venta N° {venta.pk} por {services.formatear_monto(venta.total)} "
-        f"({venta.get_metodo_pago_display()})",
+        detalle,
         request,
     )
-    messages.success(
-        request,
+    mensaje = (
         f"Venta N° {venta.pk} confirmada. "
-        f"Total: {services.formatear_monto(venta.total)}.",
+        f"Total: {services.formatear_monto(venta.total)}."
     )
+    if venta.cliente_id:
+        mensaje += (
+            f" {venta.cliente.nombre_completo} sumó "
+            f"{venta.puntos_ganados} puntos."
+        )
+    messages.success(request, mensaje)
     return redirect(f"{reverse('ventas:pantalla_cobro')}?venta={venta.pk}")
 
 

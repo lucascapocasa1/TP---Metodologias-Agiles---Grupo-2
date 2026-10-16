@@ -11,6 +11,8 @@ from decimal import Decimal, InvalidOperation
 from django.db import transaction
 from django.db.models import F
 
+from clientes import services as fidelidad
+
 from .models import DetalleVenta, Producto, Venta
 
 CLAVE_CARRITO = "carrito"
@@ -182,7 +184,9 @@ def confirmar_venta(request, metodo_pago, monto_entregado):
     """
     HU-09: cierra la venta en una única transacción:
     crea Venta + DetalleVenta (precio y costo congelados), descuenta el stock
-    y devuelve la Venta. Limpia el carrito solo si todo salió bien.
+    y devuelve la Venta. Si había un cliente asociado (HU-12), lo vincula y
+    le acumula los puntos de fidelidad de la compra.
+    Limpia el carrito solo si todo salió bien.
     """
     items = items_del_carrito(request)
     if not items:
@@ -210,6 +214,11 @@ def confirmar_venta(request, metodo_pago, monto_entregado):
     producto_ids = [item["producto"].pk for item in items]
 
     with transaction.atomic():
+        # Cliente de la fidelidad (HU-12): bloqueado para que dos cobros
+        # simultáneos no acumen los puntos pisándose entre sí.
+        cliente = fidelidad.cliente_para_venta(request)
+        puntos_ganados = fidelidad.puntos_por_monto(total) if cliente else 0
+
         # Bloqueo los productos para que dos cajeros no vendan el mismo stock.
         productos_bloqueados = {
             p.pk: p
@@ -235,6 +244,8 @@ def confirmar_venta(request, metodo_pago, monto_entregado):
             usuario=request.user if request.user.is_authenticated else None,
             monto_entregado=monto_final,
             vuelto=vuelto,
+            cliente=cliente,
+            puntos_ganados=puntos_ganados,
         )
 
         for item in items:
@@ -250,5 +261,9 @@ def confirmar_venta(request, metodo_pago, monto_entregado):
                 stock=F("stock") - item["cantidad"]
             )
 
+        if cliente is not None:
+            fidelidad.sumar_puntos(cliente, puntos_ganados)
+
     vaciar_carrito(request)
+    fidelidad.quitar_cliente_de_sesion(request)
     return venta

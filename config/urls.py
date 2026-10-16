@@ -8,6 +8,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', RedirectView.as_view(pattern_name='usuarios:post_login'), name='home'),
     path('usuarios/', include('usuarios.urls')),
+    path('clientes/', include('clientes.urls')),
     path('ventas/', include('ventas.urls')),
     path('administracion/', include('administracion.urls')),
 ]

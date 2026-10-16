@@ -3331,3 +3331,94 @@ a.stat-card-link:hover {
   font-size: 0.85rem;
   color: var(--texto-suave);
 }
+
+/* --- Cliente en el cobro (HU-12): barra de fidelidad sobre el carrito --- */
+.cobro-cliente {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.cliente-barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--papel);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza-chica);
+}
+
+.cliente-barra .search-box {
+  flex: 1;
+  min-width: 0;
+}
+
+.cliente-barra-asociado {
+  background: color-mix(in srgb, var(--verde) 14%, var(--superficie));
+  border-color: var(--verde);
+}
+
+.cliente-barra-asociado > i {
+  font-size: 1.3rem;
+  color: var(--verde);
+}
+
+.cliente-datos {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.cliente-datos strong {
+  font-family: var(--font-ui);
+  overflow-wrap: anywhere;
+}
+
+.cliente-datos span {
+  font-size: 0.8rem;
+  color: var(--texto-suave);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ventanita rápida del cobro: crear el cliente sin salir de la venta */
+.cliente-rapido summary {
+  cursor: pointer;
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+.cliente-rapido summary::-webkit-details-marker {
+  display: none;
+}
+
+.cliente-rapido[open] summary {
+  color: var(--texto);
+}
+
+.cliente-rapido-form {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px;
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+}
+
+.cliente-rapido-form .form-row {
+  margin-bottom: 0;
+}
+
+.cliente-rapido-form .btn-kiosco {
+  justify-self: end;
+}

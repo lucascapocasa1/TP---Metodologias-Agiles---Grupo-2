@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block titulo %}Clientes{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-person-heart"></i> Clientes</h1>
+            <p class="admin-subtitle">Fidelidad: fecha de registro, compras y puntos de cada cliente (HU-12)</p>
+        </div>
+        <a href="{% url 'clientes:crear_cliente' %}" class="btn btn-admin-primary">
+            <i class="bi bi-person-plus"></i> Nuevo Cliente
+        </a>
+    </div>
+
+    <!-- Búsqueda en tiempo real: HTMX reemplaza solo la tabla -->
+    <div class="admin-filters">
+        <form class="filter-form" role="search" onsubmit="return false">
+            <div class="filter-group">
+                <div class="search-box">
+                    <i class="bi bi-search"></i>
+                    <input type="text"
+                           name="buscar"
+                           value="{{ busqueda }}"
+                           placeholder="Buscar por nombre, apellido, DNI o email..."
+                           class="admin-input"
+                           autocomplete="off"
+                           hx-get="{% url 'clientes:listar_clientes' %}"
+                           hx-trigger="keyup changed delay:300ms, search"
+                           hx-target="#contenedor-tabla"
+                           hx-swap="innerHTML">
+                </div>
+            </div>
+            <div class="filter-group">
+                <select name="estado" class="admin-select"
+                        onchange="this.form.submit()">
+                    <option value="">Todos los estados</option>
+                    <option value="activos" {% if filtro_estado == 'activos' %}selected{% endif %}>Activos</option>
+                    <option value="inactivos" {% if filtro_estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <div class="admin-table-container" id="contenedor-tabla">
+        {% include "clientes/_clientes_tabla.html" %}
+    </div>
+</div>
+{% endblock %}

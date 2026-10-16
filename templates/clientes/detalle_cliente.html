@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% load formatos %}
+{% block titulo %}Ficha de {{ cliente.nombre_completo }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <a href="{% url 'clientes:listar_clientes' %}" class="btn-back">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h1><i class="bi bi-person-heart"></i> {{ cliente.nombre_completo }}</h1>
+            <p class="admin-subtitle">
+                DNI {{ cliente.dni }} ·
+                {% if cliente.activo %}
+                <span class="status-badge status-active"><i class="bi bi-check-circle-fill"></i> Activo</span>
+                {% else %}
+                <span class="status-badge status-inactive"><i class="bi bi-x-circle-fill"></i> Inactivo</span>
+                {% endif %}
+            </p>
+        </div>
+        <a href="{% url 'clientes:editar_cliente' cliente.pk %}" class="btn btn-admin-primary">
+            <i class="bi bi-pencil"></i> Editar
+        </a>
+    </div>
+
+    <!-- Resumen de fidelidad -->
+    <div class="stats-grid">
+        <div class="stat-card stat-admin">
+            <div class="stat-icon"><i class="bi bi-star-fill"></i></div>
+            <div class="stat-content">
+                <h3>{{ cliente.puntos }}</h3>
+                <p>Puntos de fidelidad</p>
+            </div>
+        </div>
+        <div class="stat-card stat-total">
+            <div class="stat-icon"><i class="bi bi-bag-check"></i></div>
+            <div class="stat-content">
+                <h3>{{ total_compras }}</h3>
+                <p>Compras realizadas</p>
+            </div>
+        </div>
+        <div class="stat-card stat-active">
+            <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+            <div class="stat-content">
+                <h3>${{ total_gastado|montos }}</h3>
+                <p>Total gastado</p>
+            </div>
+        </div>
+        <div class="stat-card stat-cashier">
+            <div class="stat-icon"><i class="bi bi-calendar-check"></i></div>
+            <div class="stat-content">
+                <h3>{{ cliente.fecha_registro|date:"d/m/Y" }}</h3>
+                <p>Fecha de registro</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header">
+            <h2><i class="bi bi-telephone"></i> Datos de contacto</h2>
+        </div>
+        <div class="card-body">
+            <div class="user-info-box">
+                <div class="info-row">
+                    <span class="info-label">Email:</span>
+                    <span class="info-value">{{ cliente.email|default:"No especificado" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Teléfono:</span>
+                    <span class="info-value">{{ cliente.telefono|default:"No especificado" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Registrado:</span>
+                    <span class="info-value">{{ cliente.fecha_registro|date:"d/m/Y H:i" }}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Regla de puntos:</span>
+                    <span class="info-value">1 punto cada ${{ puntos_regla|montos }} comprados</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header">
+            <h2><i class="bi bi-receipt"></i> Historial de compras</h2>
+        </div>
+        <div class="card-body">
+            {% if ventas %}
+            <div class="admin-table-container">
+                <table class="admin-table">
+                    <thead>
+                        <tr>
+                            <th>Venta</th>
+                            <th>Fecha</th>
+                            <th>Método</th>
+                            <th>Cajero</th>
+                            <th>Puntos</th>
+                            <th>Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for v in ventas %}
+                        <tr>
+                            <td>N° {{ v.pk }}</td>
+                            <td>{{ v.fecha|date:"d/m/Y H:i" }}</td>
+                            <td>{{ v.get_metodo_pago_display }}</td>
+                            <td>{{ v.usuario|default:"—" }}</td>
+                            <td>
+                                {% if v.puntos_ganados %}
+                                <span class="badge-stock"><i class="bi bi-star-fill"></i> +{{ v.puntos_ganados }}</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td><strong>${{ v.total|montos }}</strong></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="admin-empty">
+                <div class="empty-icon"><i class="bi bi-bag-x"></i></div>
+                <h3>Sin compras registradas</h3>
+                <p>Asociá este cliente en la pantalla de cobro y sus compras van a aparecer acá.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

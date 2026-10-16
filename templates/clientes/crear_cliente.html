@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block titulo %}Crear Cliente{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <a href="{% url 'clientes:listar_clientes' %}" class="btn-back">
+                <i class="bi bi-arrow-left"></i>
+            </a>
+            <h1><i class="bi bi-person-plus"></i> Crear Cliente</h1>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header">
+            <h2><i class="bi bi-person-badge"></i> Datos del Cliente</h2>
+        </div>
+        <div class="card-body">
+            {% if form.errors %}
+            <div class="admin-alert admin-alert-danger">
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <span>Revisá los campos marcados en rojo.</span>
+            </div>
+            {% endif %}
+
+            <form method="post" class="admin-form">
+                {% csrf_token %}
+
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-person"></i> Nombre *
+                        </label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                            <span class="field-error">{{ form.nombre.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-person"></i> Apellido *
+                        </label>
+                        {{ form.apellido }}
+                        {% if form.apellido.errors %}
+                            <span class="field-error">{{ form.apellido.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-row form-row-2">
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-card-heading"></i> DNI/CUIT *
+                        </label>
+                        {{ form.dni }}
+                        {% if form.dni.errors %}
+                            <span class="field-error">{{ form.dni.errors.0 }}</span>
+                        {% endif %}
+                        <span class="help-text">Sin puntos ni guiones. No puede repetirse.</span>
+                    </div>
+                    <div class="form-group">
+                        <label class="admin-label">
+                            <i class="bi bi-telephone"></i> Teléfono
+                        </label>
+                        {{ form.telefono }}
+                        {% if form.telefono.errors %}
+                            <span class="field-error">{{ form.telefono.errors.0 }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="admin-label">
+                        <i class="bi bi-envelope"></i> Email
+                    </label>
+                    {{ form.email }}
+                    {% if form.email.errors %}
+                        <span class="field-error">{{ form.email.errors.0 }}</span>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <div class="checkbox-group">
+                        {{ form.activo }}
+                        <label class="admin-label checkbox-label">Cliente activo</label>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'clientes:listar_clientes' %}" class="btn btn-admin-cancel">
+                        <i class="bi bi-x-lg"></i> Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-admin-primary">
+                        <i class="bi bi-check-lg"></i> Crear Cliente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

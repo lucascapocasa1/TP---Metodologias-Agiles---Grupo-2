@@ -1,0 +1,84 @@
+{% load formatos %}
+{% if clientes %}
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>Cliente</th>
+            <th>DNI/CUIT</th>
+            <th>Contacto</th>
+            <th>Compras</th>
+            <th>Total gastado</th>
+            <th>Puntos</th>
+            <th>Estado</th>
+            <th>Registrado</th>
+            <th class="actions-col">Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for c in clientes %}
+        <tr class="{% if not c.activo %}row-inactive{% endif %}">
+            <td>
+                <div class="user-cell">
+                    <div class="user-avatar">{{ c.nombre|first|upper }}</div>
+                    <a href="{% url 'clientes:detalle_cliente' c.pk %}" class="user-username">
+                        {{ c.nombre_completo }}
+                    </a>
+                </div>
+            </td>
+            <td>{{ c.dni }}</td>
+            <td>
+                {% if c.email %}{{ c.email }}{% endif %}
+                {% if c.email and c.telefono %}<br>{% endif %}
+                {% if c.telefono %}{{ c.telefono }}{% endif %}
+                {% if not c.email and not c.telefono %}—{% endif %}
+            </td>
+            <td>{{ c.total_compras }}</td>
+            <td>${{ c.total_gastado|montos }}</td>
+            <td>
+                <span class="badge-stock" title="1 punto cada ${{ puntos_regla|default:100 }}">
+                    <i class="bi bi-star-fill"></i> {{ c.puntos }}
+                </span>
+            </td>
+            <td>
+                {% if c.activo %}
+                    <span class="status-badge status-active">
+                        <i class="bi bi-check-circle-fill"></i> Activo
+                    </span>
+                {% else %}
+                    <span class="status-badge status-inactive">
+                        <i class="bi bi-x-circle-fill"></i> Inactivo
+                    </span>
+                {% endif %}
+            </td>
+            <td>{{ c.fecha_registro|date:"d/m/Y" }}</td>
+            <td class="actions-cell">
+                <div class="action-buttons">
+                    <a href="{% url 'clientes:detalle_cliente' c.pk %}" class="btn-action btn-roles" title="Ficha y fidelidad">
+                        <i class="bi bi-eye"></i>
+                    </a>
+                    <a href="{% url 'clientes:editar_cliente' c.pk %}" class="btn-action btn-edit" title="Editar">
+                        <i class="bi bi-pencil"></i>
+                    </a>
+                    {% if c.activo %}
+                    <a href="{% url 'clientes:eliminar_cliente' c.pk %}" class="btn-action btn-delete" title="Dar de baja">
+                        <i class="bi bi-trash"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<div class="admin-empty">
+    <div class="empty-icon"><i class="bi bi-person-heart"></i></div>
+    <h3>No se encontraron clientes</h3>
+    <p>{% if busqueda or filtro_estado %}Probá con otros filtros de búsqueda{% else %}Cargá tu primer cliente para empezar la fidelidad{% endif %}</p>
+    {% if not busqueda and not filtro_estado %}
+    <a href="{% url 'clientes:crear_cliente' %}" class="btn btn-admin-primary">
+        <i class="bi bi-person-plus"></i> Crear primer cliente
+    </a>
+    {% endif %}
+</div>
+{% endif %}
