@@ -6,9 +6,10 @@ El cliente elegido en el cobro vive en la sesión del navegador
 ningún vínculo hasta que el cajero confirma la venta.
 """
 from decimal import Decimal
+import unicodedata
 
 from django.db import transaction
-from django.db.models import F
+from django.db.models import F, Q
 
 from usuarios.templatetags.formatos import montos
 
@@ -16,6 +17,9 @@ from .models import Cliente, PagoCuentaCorriente
 
 CLAVE_CLIENTE = "cliente_id"
 PUNTOS_POR_PESO = 100  # 1 punto por cada $100 comprados
+MIN_CARACTERES_BUSQUEDA = 2  # con menos no se busca: es ruido, no ayuda
+MAX_RESULTADOS_BUSQUEDA = 8
+MAX_CLIENTES_REVISADOS = 500  # tope del repaso sin acentos (es un kiosco)
 
 
 class ErrorCuentaCorriente(Exception):
@@ -71,6 +75,85 @@ def cliente_para_venta(request):
     if cliente is None:
         quitar_cliente_de_sesion(request)
     return cliente
+
+
+def cliente_bloqueado(cliente):
+    """Como `cliente_para_venta`, pero para un cliente que ya se eligió
+    (por ejemplo, el de un pedido de WhatsApp que se entrega en el local).
+
+    Devuelve el cliente con la fila bloqueada, para que dos cobros
+    simultáneos no accumulen puntos ni deuda a la vez. Si no hay cliente,
+    devuelve None.
+    """
+    if cliente is None:
+        return None
+    return Cliente.objects.select_for_update().get(pk=cliente.pk)
+
+
+def _sin_acentos(texto):
+    """'Méndez' → 'mendez'.
+
+    En el mostrador nadie escribe los acentos: el cajero tipea "mendez" o
+    "costa" y tiene que encontrar al cliente igual. Postgres compara los
+    acentos, así que la búsqueda exacta no alcanza y hace falta un segundo
+    repaso sin acentos.
+    """
+    descompuesto = unicodedata.normalize("NFKD", texto or "")
+    return "".join(
+        caracter for caracter in descompuesto if not unicodedata.combining(caracter)
+    ).lower()
+
+
+def buscar_clientes(consulta):
+    """Busca clientes activos por DNI, nombre o apellido.
+
+    La usan el POS (asociar cliente a la venta en curso) y el panel de
+    pedidos (cobrar la entrega de un pedido de WhatsApp): es la misma
+    búsqueda en los dos lados, así que el kiosquero no ve dos criterios
+    distintos para encontrar a un cliente.
+
+    Busca **sin acentos** además de la búsqueda literal: en el mostrador
+    nadie escribe tildes, así que "perez" tiene que encontrar a "Pérez".
+
+    Con menos de `MIN_CARACTERES_BUSQUEDA` letras no devuelve nada: con una
+    sola letra la lista es larguísima y no ayuda a encontrar a nadie.
+    """
+    consulta = (consulta or "").strip()
+    if len(consulta) < MIN_CARACTERES_BUSQUEDA:
+        return []
+
+    coincidencias = list(
+        Cliente.objects.filter(activo=True)
+        .filter(
+            Q(dni__icontains=consulta)
+            | Q(nombre__icontains=consulta)
+            | Q(apellido__icontains=consulta)
+        )
+        .order_by("apellido", "nombre")
+    )
+
+    consulta_normalizada = _sin_acentos(consulta)
+    if not consulta_normalizada:
+        return coincidencias[:MAX_RESULTADOS_BUSQUEDA]
+
+    # Segundo repaso: sin acentos y en minúsculas.
+    vistos = {cliente.pk for cliente in coincidencias}
+    candidatos = (
+        Cliente.objects.filter(activo=True)
+        .order_by("apellido", "nombre")[:MAX_CLIENTES_REVISADOS]
+    )
+    for cliente in candidatos:
+        if cliente.pk in vistos:
+            continue
+        if (
+            consulta_normalizada in _sin_acentos(cliente.dni)
+            or consulta_normalizada in _sin_acentos(cliente.nombre)
+            or consulta_normalizada in _sin_acentos(cliente.apellido)
+        ):
+            coincidencias.append(cliente)
+            vistos.add(cliente.pk)
+
+    return coincidencias[:MAX_RESULTADOS_BUSQUEDA]
 
 
 def sumar_puntos(cliente, puntos):

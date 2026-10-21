@@ -1,0 +1,38 @@
+{% if coincidencias %}
+<div class="admin-table-container">
+    <table class="admin-table">
+        <tbody>
+            {% for c in coincidencias %}
+            <tr>
+                <td>
+                    <div class="user-cell">
+                        <span class="user-username">{{ c.nombre_completo }}</span>
+                        <span class="cobro-codigo">DNI {{ c.dni }} · {{ c.puntos }} pts</span>
+                    </div>
+                </td>
+                <td class="actions-cell">
+                    <div class="action-buttons">
+                        <button type="button"
+                                class="btn btn-admin-primary"
+                                title="Elegir este cliente para el cobro"
+                                data-cliente-id="{{ c.pk }}"
+                                data-nombre="{{ c.nombre_completo }}"
+                                data-dni="{{ c.dni }}"
+                                data-puntos="{{ c.puntos }}"
+                                data-cuenta-corriente="{% if c.tiene_cuenta_corriente %}1{% else %}0{% endif %}"
+                                data-limite="{{ c.limite_credito }}"
+                                data-deuda="{{ c.saldo_deuda }}">
+                            <i class="bi bi-person-check"></i> Elegir
+                        </button>
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% elif consulta|length >= 2 %}
+<div class="admin-empty">
+    <p>No hay clientes para «{{ consulta }}».</p>
+</div>
+{% endif %}

@@ -224,18 +224,7 @@ def registrar_pago(request, cliente_id):
 def buscar_cliente(request):
     """Búsqueda en tiempo real del cobro (HTMX) por DNI, nombre o apellido."""
     consulta = request.GET.get("q", "").strip()
-    coincidencias = []
-
-    if len(consulta) >= 2:
-        coincidencias = (
-            Cliente.objects.filter(activo=True)
-            .filter(
-                Q(dni__icontains=consulta)
-                | Q(nombre__icontains=consulta)
-                | Q(apellido__icontains=consulta)
-            )
-            .order_by("apellido", "nombre")[:8]
-        )
+    coincidencias = services.buscar_clientes(consulta)
 
     return render(
         request,

@@ -70,15 +70,32 @@
                 {% endif %}
             </div>
 
+            {% if pedido.fue_cobrado %}
+            <div class="info-grid pedido-cobro-resumen">
+                <div class="info-item">
+                    <span class="info-label">Venta:</span>
+                    <span class="info-value">
+                        N° {{ pedido.venta.pk }} ·
+                        {{ pedido.venta.get_metodo_pago_display }} ·
+                        ${{ pedido.venta.total|montos }}
+                    </span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Cliente del kiosco:</span>
+                    <span class="info-value">
+                        {% if pedido.cliente %}
+                            {{ pedido.cliente.nombre_completo }} ·
+                            {{ pedido.venta.puntos_ganados }} pts
+                        {% else %}
+                            Consumidor final (sin cliente asociado)
+                        {% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+
             {% if pedido.esta_pendiente %}
             <div class="pedido-acciones-estado">
-                <form method="post"
-                      action="{% url 'pedidos:cambiar_estado' pedido.pk 'entregado' %}">
-                    {% csrf_token %}
-                    <button type="submit" class="btn-kiosco btn-ancho">
-                        <i class="bi bi-check-lg"></i> Marcar como entregado
-                    </button>
-                </form>
                 <form method="post"
                       action="{% url 'pedidos:cambiar_estado' pedido.pk 'cancelado' %}">
                     {% csrf_token %}
@@ -88,11 +105,241 @@
                 </form>
             </div>
             {% else %}
-            <p class="texto-suave">
+            <p class="page-subtitle">
                 Este pedido ya está {{ pedido.get_estado_display|lower }}.
             </p>
             {% endif %}
         </div>
     </div>
+
+    {% if pedido.esta_pendiente %}
+    <!-- ===== Entrega: el cliente retira y paga en el mostrador ===== -->
+    <div class="admin-card pedido-entrega-card">
+        <h2><i class="bi bi-cash-coin"></i> Entregar y cobrar</h2>
+        <p class="admin-subtitle">
+            El cliente pidió por WhatsApp y viene a retirar: cobrale lo que
+            pidió, con el precio que quedó congelado en el pedido. La venta
+            se genera con las mismas reglas del POS (descuenta stock, suma
+            puntos y, si es cuenta corriente, acumula la deuda).
+        </p>
+
+        <form method="post"
+              action="{% url 'pedidos:entregar' pedido.pk %}"
+              id="form-entrega"
+              class="pedido-entrega-form">
+            {% csrf_token %}
+            <input type="hidden" name="cliente_id" id="id_cliente_id" value="">
+
+            <!-- ===== Cliente (opcional) ===== -->
+            <div class="cobro-cliente">
+                <div id="cliente-elegido"
+                     class="cliente-barra cliente-barra-asociado"
+                     hidden>
+                    <i class="bi bi-person-check-fill" aria-hidden="true"></i>
+                    <div class="cliente-datos">
+                        <strong id="cliente-elegido-nombre"></strong>
+                        <span id="cliente-elegido-detalle"></span>
+                    </div>
+                    <button type="button"
+                            class="btn-qty"
+                            id="cliente-elegido-quitar"
+                            title="Quitar cliente del cobro"
+                            aria-label="Quitar cliente del cobro">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i>
+                    </button>
+                </div>
+
+                <div id="cliente-buscador" class="cliente-barra cliente-barra-buscar">
+                    <div class="search-box">
+                        <i class="bi bi-person" aria-hidden="true"></i>
+                        <input type="text"
+                               id="cliente-input"
+                               class="admin-input"
+                               placeholder="Asociar cliente: DNI, nombre o apellido..."
+                               aria-label="Buscar cliente para el cobro del pedido"
+                               autocomplete="off"
+                               hx-get="{% url 'pedidos:buscar_cliente' %}"
+                               hx-trigger="input changed delay:300ms"
+                               hx-vals="js:{q: document.getElementById('cliente-input').value}"
+                               hx-target="#cliente-resultados"
+                               hx-swap="innerHTML">
+                    </div>
+                </div>
+                <div id="cliente-resultados" class="cobro-resultados" aria-live="polite"></div>
+
+                <p class="page-subtitle pedido-nota">
+                    <i class="bi bi-info-circle" aria-hidden="true"></i>
+                    Sin cliente, la entrega queda como venta de consumidor final
+                    (sin puntos ni cuenta corriente).
+                </p>
+            </div>
+
+            <!-- ===== Método de pago ===== -->
+            <div class="cobro-metodos" role="radiogroup" aria-label="Método de pago">
+                {% for valor, etiqueta in metodos_pago %}
+                <label class="cobro-metodo {% if forloop.first %}activo{% endif %}">
+                    <input type="radio" name="metodo_pago" value="{{ valor }}"
+                           {% if forloop.first %}checked{% endif %}>
+                    <i class="bi {% if valor == 'efectivo' %}bi-cash{% elif valor == 'tarjeta' %}bi-credit-card{% else %}bi-journal-text{% endif %}"
+                       aria-hidden="true"></i>
+                    {{ etiqueta }}
+                </label>
+                {% endfor %}
+            </div>
+
+            <div id="cuenta-corriente-aviso"
+                 class="cuenta-corriente-barra cuenta-corriente-bloqueada"
+                 role="status"
+                 hidden>
+                <i class="bi bi-journal-x" aria-hidden="true"></i>
+                <span id="cuenta-corriente-texto"></span>
+            </div>
+
+            <!-- ===== Monto entregado (solo efectivo) ===== -->
+            <div id="bloque-monto">
+                <label class="cobro-label" for="monto">Monto entregado</label>
+                <input type="text"
+                       id="monto"
+                       name="monto_entregado"
+                       class="admin-input"
+                       inputmode="decimal"
+                       placeholder="0.00"
+                       value="{{ pedido.total }}"
+                       autocomplete="off">
+                <div id="vuelto-preview" class="cobro-vuelto-preview" data-total="{{ pedido.total }}"></div>
+
+                <div class="cobro-billetes">
+                    <button type="button" class="btn-billete" data-monto-boton="1000">$1000</button>
+                    <button type="button" class="btn-billete" data-monto-boton="500">$500</button>
+                    <button type="button" class="btn-billete" data-monto-boton="200">$200</button>
+                    <button type="button" class="btn-billete" data-monto-boton="100">$100</button>
+                    <button type="button" class="btn-billete btn-exacto"
+                            data-monto-boton="exacto"
+                            data-total="{{ pedido.total }}">Pago exacto</button>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-kiosco cobro-confirmar">
+                <i class="bi bi-check2-circle" aria-hidden="true"></i>
+                Entregar y cobrar · ${{ pedido.total|montos }}
+            </button>
+        </form>
+    </div>
+    {% endif %}
 </div>
+
+<script>
+(function () {
+    // Los totales llegan con coma decimal (locale es-ar): para los cálculos
+    // en JS hace falta pasarlos a punto.
+    function aNumero(texto) {
+        var v = (texto || '0').toString().trim().replace('$', '');
+        if (v.indexOf(',') !== -1) v = v.replace(/\./g, '').replace(',', '.');
+        return parseFloat(v);
+    }
+
+    // Formato de pesos: 26600 → "26.600"; 26600.5 → "26.600,50".
+    function aTexto(valor) {
+        var redondeado = Math.round(valor * 100) / 100;
+        var signo = redondeado < 0 ? '-' : '';
+        var abs = Math.abs(redondeado).toFixed(2).split('.');
+        var entero = abs[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return signo + entero + (abs[1] === '00' ? '' : ',' + abs[1]);
+    }
+
+    var inputCliente = document.getElementById('id_cliente_id');
+    var barraElegido = document.getElementById('cliente-elegido');
+    var buscador = document.getElementById('cliente-buscador');
+    var opcionFiado = document.querySelector('input[name="metodo_pago"][value="cuenta_corriente"]');
+    var avisoFiado = document.getElementById('cuenta-corriente-aviso');
+    var textoFiado = document.getElementById('cuenta-corriente-texto');
+
+    // Elegir un cliente de los resultados de la búsqueda.
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-cliente-id]');
+        if (!btn) return;
+
+        if (inputCliente) inputCliente.value = btn.getAttribute('data-cliente-id');
+
+        var nombre = document.getElementById('cliente-elegido-nombre');
+        var detalle = document.getElementById('cliente-elegido-detalle');
+        if (nombre) nombre.textContent = btn.getAttribute('data-nombre');
+        if (detalle) {
+            detalle.textContent = 'DNI ' + btn.getAttribute('data-dni') +
+                ' · ' + btn.getAttribute('data-puntos') + ' pts';
+        }
+
+        if (barraElegido) barraElegido.hidden = false;
+        if (buscador) buscador.hidden = true;
+
+        // La cuenta corriente solo se puede usar con clientes que la tengan.
+        var tieneFiado = btn.getAttribute('data-cuenta-corriente') === '1';
+        if (opcionFiado) {
+            opcionFiado.disabled = !tieneFiado;
+            if (!tieneFiado && opcionFiado.checked) opcionFiado.checked = false;
+        }
+        if (avisoFiado && textoFiado) {
+            if (tieneFiado) {
+                avisoFiado.hidden = true;
+                avisoFiado.className = 'cuenta-corriente-barra cuenta-corriente-ok';
+            } else {
+                avisoFiado.hidden = false;
+                avisoFiado.className = 'cuenta-corriente-barra cuenta-corriente-bloqueada';
+                textoFiado.textContent = 'Este cliente no tiene cuenta corriente ' +
+                    'habilitada: no se le puede fiar.';
+            }
+        }
+    });
+
+    // Sacar el cliente: la entrega queda como consumidor final.
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('#cliente-elegido-quitar');
+        if (!btn) return;
+        if (inputCliente) inputCliente.value = '';
+        if (barraElegido) barraElegido.hidden = true;
+        if (buscador) buscador.hidden = false;
+        if (opcionFiado) {
+            opcionFiado.disabled = false;
+        }
+        if (avisoFiado) avisoFiado.hidden = true;
+    });
+
+    // Billetes y pago exacto.
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('[data-monto-boton]');
+        if (!btn) return;
+        var monto = document.getElementById('monto');
+        if (!monto) return;
+        monto.value = btn.getAttribute('data-monto-boton') === 'exacto'
+            ? btn.getAttribute('data-total')
+            : btn.getAttribute('data-monto-boton');
+        monto.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+
+    // Vista previa del vuelto mientras se tipea el monto entregado.
+    document.addEventListener('input', function (e) {
+        if (e.target.id !== 'monto') return;
+        var cont = document.getElementById('vuelto-preview');
+        if (!cont) return;
+        var total = aNumero(cont.getAttribute('data-total'));
+        var entregado = aNumero(e.target.value);
+        if (isNaN(entregado) || entregado < total) {
+            cont.textContent = entregado > 0
+                ? 'Falta ingresar $' + aTexto(total - entregado)
+                : '';
+            cont.classList.toggle('cobro-vuelto-negativo', entregado > 0);
+            return;
+        }
+        cont.textContent = 'Vuelto: $' + aTexto(entregado - total);
+        cont.classList.remove('cobro-vuelto-negativo');
+    });
+
+    // Efectivo / tarjeta: el monto entregado solo aplica a efectivo.
+    document.addEventListener('change', function (e) {
+        if (e.target.name !== 'metodo_pago') return;
+        var bloque = document.getElementById('bloque-monto');
+        if (bloque) bloque.hidden = (e.target.value !== 'efectivo');
+    });
+})();
+</script>
 {% endblock %}

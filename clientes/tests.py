@@ -1,10 +1,12 @@
 from decimal import Decimal
 
 from django.contrib.auth.models import Group, User
+from django.db.models import Sum
 from django.test import TestCase
 from django.urls import reverse
 
 from auditoria.models import RegistroAuditoria
+from pedidos.models import Pedido
 from ventas.models import Categoria, Producto, Venta
 
 from .models import Cliente
@@ -293,6 +295,24 @@ class CobroConClienteTests(BaseClientes):
         self.login_cajero()
         respuesta = self.client.get(reverse("clientes:buscar"), {"q": "zzzz"})
         self.assertContains(respuesta, "No hay clientes")
+
+    def test_la_busqueda_ignora_los_acentos(self):
+        """En el mostrador nadie escribe tildes: "perez" tiene que
+        encontrar a "Pérez"."""
+        self.login_cajero()
+        respuesta = self.client.get(reverse("clientes:buscar"), {"q": "pere"})
+        self.assertContains(respuesta, "Ana Pérez")
+
+    def test_la_busqueda_ignora_los_acentos_del_apellido(self):
+        self.login_cajero()
+        respuesta = self.client.get(reverse("clientes:buscar"), {"q": "pere"})
+        self.assertContains(respuesta, "Ana Pérez")
+
+    def test_la_busqueda_devuelve_al_cliente_bien_acentuado(self):
+        """Con la tilde también tiene que funcionar."""
+        self.login_cajero()
+        respuesta = self.client.get(reverse("clientes:buscar"), {"q": "Pérez"})
+        self.assertContains(respuesta, "Ana Pérez")
 
     def test_asociar_guarda_el_cliente_en_sesion(self):
         self.login_cajero()
@@ -892,3 +912,145 @@ class LimiteEnFormularioTests(BaseCuentaCorriente):
         )
         self.cliente.refresh_from_db()
         self.assertEqual(self.cliente.saldo_deuda, Decimal("800.00"))
+
+
+class DemoClientesTests(TestCase):
+    """La demo de clientes tiene que ser coherente de punta a punta.
+
+    Es la que se usa para mostrar el sistema: si un cliente "existe" pero no
+    tiene compras, o si un pedido entregado no tiene venta, la demo miente.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self._catalogo()
+
+    def _catalogo(self):
+        """Los productos que usa la demo, con los precios del catálogo."""
+        from ventas.management.commands.cargar_demo import CATALOGO
+
+        categorias = {}
+        for nombre, categoria, precio, costo, stock, _minimo in CATALOGO:
+            if categoria not in categorias:
+                categorias[categoria], _ = Categoria.objects.get_or_create(
+                    nombre=categoria
+                )
+            Producto.objects.create(
+                nombre=nombre,
+                categoria=categorias[categoria],
+                precio=Decimal(precio),
+                costo=Decimal(costo),
+                stock=stock,
+            )
+
+    def _cargar(self):
+        from django.core.management import call_command
+
+        call_command("cargar_demo_clientes", verbosity=0)
+
+    def test_todo_cliente_cargado_tiene_compras(self):
+        self._cargar()
+        self.assertTrue(Cliente.objects.exists())
+        for cliente in Cliente.objects.all():
+            self.assertTrue(
+                cliente.ventas.filter(finalizada=True).exists(),
+                f"{cliente.nombre_completo} quedó cargado sin compras.",
+            )
+
+    def test_la_deuda_es_lo_fiado_menos_lo_pagado(self):
+        self._cargar()
+        for cliente in Cliente.objects.all():
+            fiado = (
+                cliente.ventas.filter(
+                    finalizada=True, metodo_pago="cuenta_corriente"
+                ).aggregate(s=Sum("total"))["s"]
+                or Decimal("0.00")
+            )
+            pagado = cliente.pagos.aggregate(s=Sum("monto"))["s"] or Decimal(
+                "0.00"
+            )
+            self.assertEqual(cliente.saldo_deuda, fiado - pagado)
+            self.assertLessEqual(cliente.saldo_deuda, cliente.limite_credito)
+
+    def test_los_puntos_suman_las_ventas(self):
+        self._cargar()
+        for cliente in Cliente.objects.all():
+            ganados = (
+                cliente.ventas.filter(finalizada=True).aggregate(
+                    s=Sum("puntos_ganados")
+                )["s"]
+                or 0
+            )
+            self.assertEqual(cliente.puntos, ganados)
+
+    def test_los_pedidos_pendientes_no_son_clientes(self):
+        self._cargar()
+        pendientes = Pedido.objects.filter(estado="pendiente")
+        self.assertTrue(pendientes.exists())
+        for pedido in pendientes:
+            self.assertIsNone(pedido.cliente_id)
+            self.assertIsNone(pedido.venta_id)
+
+    def test_los_pedidos_entregados_cobran_de_verdad(self):
+        self._cargar()
+        entregados = Pedido.objects.filter(estado="entregado")
+        self.assertTrue(entregados.exists())
+        for pedido in entregados:
+            self.assertIsNotNone(pedido.venta_id)
+            self.assertIsNotNone(pedido.cliente_id)
+            venta = pedido.venta
+            self.assertTrue(venta.finalizada)
+            self.assertEqual(venta.total, pedido.total)
+            self.assertEqual(venta.cliente_id, pedido.cliente_id)
+            # El pedido entregado tiene que tener una compra en la ficha.
+            self.assertTrue(
+                pedido.cliente.ventas.filter(finalizada=True).exists()
+            )
+
+    def test_no_deja_productos_en_stock_negativo(self):
+        self._cargar()
+        for producto in Producto.objects.all():
+            self.assertGreaterEqual(producto.stock, 0, producto.nombre)
+
+    def test_limpiar_devuelve_el_stock_y_borra_la_demo(self):
+        """Borrar la demo tiene que dejar el stock como estaba."""
+        from clientes.management.commands.cargar_demo_clientes import Command
+
+        stock_inicial = {
+            producto.nombre: producto.stock
+            for producto in Producto.objects.all()
+        }
+        self._cargar()
+
+        Command()._limpiar()
+
+        for producto in Producto.objects.all():
+            self.assertEqual(
+                producto.stock,
+                stock_inicial[producto.nombre],
+                f"«{producto.nombre}» no volvió a su stock original.",
+            )
+        self.assertFalse(Cliente.objects.exists())
+        self.assertFalse(Pedido.objects.exists())
+        self.assertFalse(Venta.objects.exists())
+
+    def test_limpiar_vuelve_a_cargar_la_misma_demo(self):
+        """`--limpiar` es idempotente: no duplica clientes ni ventas."""
+        from django.core.management import call_command
+
+        self._cargar()
+        clientes = Cliente.objects.count()
+        ventas = Venta.objects.count()
+        pedidos = Pedido.objects.count()
+        stock = {
+            producto.nombre: producto.stock
+            for producto in Producto.objects.all()
+        }
+
+        call_command("cargar_demo_clientes", "--limpiar", verbosity=0)
+
+        self.assertEqual(Cliente.objects.count(), clientes)
+        self.assertEqual(Venta.objects.count(), ventas)
+        self.assertEqual(Pedido.objects.count(), pedidos)
+        for producto in Producto.objects.all():
+            self.assertEqual(producto.stock, stock[producto.nombre])

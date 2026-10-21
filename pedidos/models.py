@@ -14,9 +14,14 @@ from django.db import models
 class Pedido(models.Model):
     """Pedido para retiro (take away) armado desde el catálogo público.
 
-    No es una `Venta`: todavía no entró plata ni se descontó stock. Es una
-    comanda: el kiosquero la marca como entregada recién cuando el cliente
-    pasa por el local y paga.
+    Es una **comanda**: todavía no entró plata ni se descontó stock. Cuando el
+    cliente pasa por el local y paga, el kiosquero lo entrega y el sistema
+    registra el cobro como una `Venta` (POS) que queda vinculada acá.
+
+    - `cliente`: el cliente del kiosco asociado (fidelidad y cuenta corriente).
+      Lo puede haber pedido por WhatsApp sin estar registrado antes.
+    - `venta`: la venta que se generó al entregarlo. Es lo que permite
+      trazar el pedido de punta a punta: quién pidió → qué se cobró.
     """
 
     ESTADOS = [
@@ -54,6 +59,27 @@ class Pedido(models.Model):
     fecha = models.DateTimeField(
         auto_now_add=True, verbose_name="Fecha del pedido"
     )
+    cliente = models.ForeignKey(
+        "clientes.Cliente",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pedidos",
+        verbose_name="Cliente del kiosco",
+        help_text="Se llena al entregar el pedido: el cliente de fidelidad "
+                  "asociado (puede no existir todavía y darse de alta al "
+                  "momento de retirar).",
+    )
+    venta = models.ForeignKey(
+        "ventas.Venta",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="pedidos",
+        verbose_name="Venta del cobro",
+        help_text="Venta generada al entregar el pedido (vacío si todavía no "
+                  "se cobró).",
+    )
 
     class Meta:
         ordering = ["-fecha"]
@@ -75,6 +101,11 @@ class Pedido(models.Model):
     @property
     def esta_pendiente(self):
         return self.estado == "pendiente"
+
+    @property
+    def fue_cobrado(self):
+        """True si el pedido ya tiene una venta (se entregó y se cobró)."""
+        return self.venta_id is not None
 
 
 class ItemPedido(models.Model):

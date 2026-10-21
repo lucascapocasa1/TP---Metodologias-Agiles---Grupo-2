@@ -185,27 +185,46 @@ def _parsear_monto(valor):
     return monto
 
 
-def confirmar_venta(request, metodo_pago, monto_entregado):
-    """
-    HU-09: cierra la venta en una única transacción:
-    crea Venta + DetalleVenta (precio y costo congelados), descuenta el stock
-    y devuelve la Venta. Si había un cliente asociado (HU-12), lo vincula y
-    le acumula los puntos de fidelidad de la compra.
-    HU-14: si el pago es a cuenta corriente, valida el límite del cliente y
-    le suma la deuda (todo dentro de la misma transacción).
-    Limpia el carrito solo si todo salió bien.
-    """
-    items = items_del_carrito(request)
-    if not items:
-        raise ErrorCobro("El carrito está vacío.")
+def _precio_de_item(item, producto):
+    """Precio unitario a cobrar de un item.
 
+    Si el item trae "precio" se cobra ese (el congelado: es lo que el
+    cliente vio cuando armó el pedido de WhatsApp); si no, se cobra el
+    precio actual del producto, como en el POS.
+    """
+    precio = item.get("precio")
+    if precio is None:
+        return producto.precio
+    return Decimal(str(precio))
+
+
+def _crear_venta(items, metodo_pago, cliente, usuario, monto_entregado):
+    """
+    Núcleo de la venta: valida el cobro, crea la Venta con sus DetalleVenta
+    (precio y costo congelados), descuenta el stock y acumula los puntos
+    (y la deuda, si es cuenta corriente).
+
+    NO abre su propia transacción: la tiene que abrir quien la llama, para
+    que el bloqueo de filas del cliente y de los productos valga para todo
+    el cobro. `cliente` tiene que venir ya bloqueado (`select_for_update`).
+
+    `items` es una lista de dicts {"producto", "cantidad"} y, opcionalmente,
+    "precio" (el congelado, que usa el pedido de WhatsApp).
+    """
     if metodo_pago not in METODOS_PAGO_VALIDOS:
         raise ErrorCobro(
             "Elegí un método de pago válido (efectivo, tarjeta o cuenta "
             "corriente)."
         )
 
-    total = total_del_carrito(items)
+    total = sum(
+        (
+            _precio_de_item(item, item["producto"]) * item["cantidad"]
+            for item in items
+        ),
+        Decimal("0.00"),
+    )
+
     monto = _parsear_monto(monto_entregado)
     monto_final = None
     vuelto = None
@@ -221,75 +240,114 @@ def confirmar_venta(request, metodo_pago, monto_entregado):
         monto_final = monto
         vuelto = monto - total
 
+    # HU-12: 1 punto cada $100 comprados.
+    puntos_ganados = fidelidad.puntos_por_monto(total) if cliente else 0
+
+    # HU-14: a cuenta corriente solo se puede cobrar con cliente y dentro
+    # de su límite. Se valida con el cliente ya bloqueado.
+    if metodo_pago == "cuenta_corriente":
+        try:
+            fidelidad.validar_fiado(cliente, total)
+        except fidelidad.ErrorCuentaCorriente as exc:
+            raise ErrorCobro(str(exc))
+
+    # Bloqueo los productos para que dos cajeros no vendan el mismo stock.
     producto_ids = [item["producto"].pk for item in items]
+    productos_bloqueados = {
+        p.pk: p
+        for p in Producto.objects.select_for_update().filter(
+            pk__in=producto_ids
+        )
+    }
+
+    for item in items:
+        producto = productos_bloqueados.get(item["producto"].pk)
+        if producto is None:
+            raise ErrorCobro("Un producto del carrito ya no existe.")
+        if producto.stock < item["cantidad"]:
+            raise ErrorCobro(
+                f"Stock insuficiente de «{producto.nombre}»: "
+                f"quedan {producto.stock} unidades."
+            )
+
+    venta = Venta.objects.create(
+        total=total,
+        finalizada=True,
+        metodo_pago=metodo_pago,
+        usuario=usuario if (usuario and usuario.is_authenticated) else None,
+        monto_entregado=monto_final,
+        vuelto=vuelto,
+        cliente=cliente,
+        puntos_ganados=puntos_ganados,
+    )
+
+    for item in items:
+        producto = productos_bloqueados[item["producto"].pk]
+        DetalleVenta.objects.create(
+            venta=venta,
+            producto=producto,
+            cantidad=item["cantidad"],
+            precio_unitario=_precio_de_item(item, producto),
+            costo_unitario=producto.costo,
+        )
+        Producto.objects.filter(pk=producto.pk).update(
+            stock=F("stock") - item["cantidad"]
+        )
+
+    if cliente is not None:
+        fidelidad.sumar_puntos(cliente, puntos_ganados)
+        # HU-14: lo fiado engrosa la deuda del cliente en la misma
+        # transacción. Si algo falla después, la venta y la deuda se
+        # revierten juntas.
+        if metodo_pago == "cuenta_corriente":
+            fidelidad.sumar_deuda(cliente, total)
+
+    return venta
+
+
+def confirmar_venta(request, metodo_pago, monto_entregado):
+    """
+    HU-09: cierra la venta en una única transacción:
+    crea Venta + DetalleVenta (precio y costo congelados), descuenta el stock
+    y devuelve la Venta. Si había un cliente asociado (HU-12), lo vincula y
+    le acumula los puntos de fidelidad de la compra.
+    HU-14: si el pago es a cuenta corriente, valida el límite del cliente y
+    le suma la deuda (todo dentro de la misma transacción).
+    Limpia el carrito solo si todo salió bien.
+    """
+    items = items_del_carrito(request)
+    if not items:
+        raise ErrorCobro("El carrito está vacío.")
 
     with transaction.atomic():
         # Cliente de la fidelidad (HU-12): bloqueado para que dos cobros
         # simultáneos no acumen los puntos pisándose entre sí.
         cliente = fidelidad.cliente_para_venta(request)
-        puntos_ganados = fidelidad.puntos_por_monto(total) if cliente else 0
-
-        # HU-14: a cuenta corriente solo se puede cobrar con cliente y
-        # dentro de su límite. Se valida con el cliente ya bloqueado.
-        if metodo_pago == "cuenta_corriente":
-            try:
-                fidelidad.validar_fiado(cliente, total)
-            except fidelidad.ErrorCuentaCorriente as exc:
-                raise ErrorCobro(str(exc))
-
-        # Bloqueo los productos para que dos cajeros no vendan el mismo stock.
-        productos_bloqueados = {
-            p.pk: p
-            for p in Producto.objects.select_for_update().filter(
-                pk__in=producto_ids
-            )
-        }
-
-        for item in items:
-            producto = productos_bloqueados.get(item["producto"].pk)
-            if producto is None:
-                raise ErrorCobro("Un producto del carrito ya no existe.")
-            if producto.stock < item["cantidad"]:
-                raise ErrorCobro(
-                    f"Stock insuficiente de «{producto.nombre}»: "
-                    f"quedan {producto.stock} unidades."
-                )
-
-        venta = Venta.objects.create(
-            total=total,
-            finalizada=True,
-            metodo_pago=metodo_pago,
-            usuario=request.user if request.user.is_authenticated else None,
-            monto_entregado=monto_final,
-            vuelto=vuelto,
-            cliente=cliente,
-            puntos_ganados=puntos_ganados,
+        venta = _crear_venta(
+            items, metodo_pago, cliente, request.user, monto_entregado
         )
-
-        for item in items:
-            producto = productos_bloqueados[item["producto"].pk]
-            DetalleVenta.objects.create(
-                venta=venta,
-                producto=producto,
-                cantidad=item["cantidad"],
-                precio_unitario=producto.precio,
-                costo_unitario=producto.costo,
-            )
-            Producto.objects.filter(pk=producto.pk).update(
-                stock=F("stock") - item["cantidad"]
-            )
-
-        if cliente is not None:
-            fidelidad.sumar_puntos(cliente, puntos_ganados)
-            # HU-14: lo fiado engrosa la deuda del cliente en la misma
-            # transacción. Si algo falla después, la venta y la deuda se
-            # revierten juntas.
-            if metodo_pago == "cuenta_corriente":
-                fidelidad.sumar_deuda(cliente, total)
 
     vaciar_carrito(request)
     fidelidad.quitar_cliente_de_sesion(request)
     return venta
+
+
+def registrar_venta_desde_items(
+    items, metodo_pago, cliente, usuario, monto_entregado=None
+):
+    """
+    Crea una venta a partir de una lista de items ya armada.
+
+    La usa el pedido de WhatsApp (HU-13): el cliente armó el pedido desde el
+    catálogo público y al retirar en el local se le cobra lo que pidió, con
+    el precio que quedó congelado en el pedido. Es el mismo núcleo del POS,
+    así que el stock, los puntos y el fiado se comportan exactamente igual.
+    """
+    with transaction.atomic():
+        cliente_bloqueado = fidelidad.cliente_bloqueado(cliente)
+        return _crear_venta(
+            items, metodo_pago, cliente_bloqueado, usuario, monto_entregado
+        )
 
 
 # ========== CIERRE DE TURNO (Sprint 4 - HU-10) ==========

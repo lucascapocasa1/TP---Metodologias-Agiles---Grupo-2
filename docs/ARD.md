@@ -4,9 +4,9 @@
 
 | Campo | Valor |
 |---|---|
-| Documento | ARD v2.5 |
-| Fecha | 19/10/2026 |
-| Versión del código documentado | `main` @ `10bc092` (19-10-2026) + HU-13 + HU-14, Sprint 4 completo · 299 tests OK |
+| Documento | ARD v2.6 |
+| Fecha | 21/10/2026 |
+| Versión del código documentado | `main` (21-10-2026) + HU-13 con el flujo de entrega cerrado, Sprint 4 completo · 340 tests OK |
 | Documento relacionado | [PRD — Documento de Requerimientos de Producto](PRD.md) |
 
 > El PRD define el **qué**; este documento define el **cómo**: stack,
@@ -22,7 +22,10 @@
 > link a WhatsApp configurable y panel de pedidos; **v2.5** agrega la cuenta
 > corriente (HU-14): `Cliente.limite_credito`/`saldo_deuda`,
 > `PagoCuentaCorriente`, cobro fiado desde el POS con validación de límite y la
-> deuda otorgada informada aparte de la caja y de los ingresos.
+> deuda otorgada informada aparte de la caja y de los ingresos; **v2.6** cierra
+> el círculo del pedido por WhatsApp (HU-13): **entregar es cobrar**, con
+> `Pedido.cliente`/`Pedido.venta`, un servicio de entrega que reutiliza el
+> núcleo de venta del POS y la pantalla "Entregar y cobrar".
 
 ---
 
@@ -105,7 +108,7 @@ flowchart LR
 | UI framework | Bootstrap 5.3.3 + Bootstrap Icons (CDN) | — | Grid y utilidades sin herramientas de build |
 | Tipografía | Google Fonts CDN (Righteous, Space Grotesk) | — | Identidad visual (neón cian) |
 | CSS | `static/css/styles.css` con custom properties (~3.400 líneas) | — | Design tokens, estilo neón y modo oscuro sin preprocesador |
-| Tests | Django test runner (`manage.py test`; se usa `--keepdb`) | — | 299 tests, sin dependencias extra |
+| Tests | Django test runner (`manage.py test`; se usa `--keepdb`) | — | 340 tests, sin dependencias extra |
 | Cierre de turno | Modelo `Turno` + `services` de apertura/cierre (snapshot) | — | HU-10: totales de caja por método y responsable |
 | Catálogo público | App `pedidos/`: vistas sin login + `wa.me` del lado del navegador | — | HU-13: vitrina y pedido para retirar; la config del local sale de `.env` |
 | Cuenta corriente | Campos en `Cliente` + `PagoCuentaCorriente` + `services` transaccionales | — | HU-14: límite y deuda por cliente; lo fiado queda fuera de caja e ingresos |
@@ -129,10 +132,13 @@ kiosco_sprint1/
 │                        #   ProductoForm, services.py (carrito/cobro/cierre de turno) y POS
 ├── clientes/            # Fidelidad (HU-12) + cuenta corriente (HU-14): Cliente,
 │                        #   PagoCuentaCorriente, ClienteForm, services.py
-│                        #   (puntos, cliente en sesión, validar_fiado, registrar_pago)
+│                        #   (puntos, cliente en sesión, validar_fiado,
+│                        #   registrar_pago, buscar_clientes, cliente_bloqueado),
+│                        #   demo_data.py + comando cargar_demo_clientes
 │                        #   y CRUD + asociación en el cobro + cobro de pagos
 ├── pedidos/             # Integración externa (HU-13): catálogo público sin login,
-│                        #   Pedido/ItemPedido, services.py (carrito de pedido en sesión)
+│                        #   Pedido/ItemPedido, services.py (carrito de pedido en
+│                        #   sesión y registrar_entrega)
 │                        #   y config.py (KIOSCO_NOMBRE/KIOSCO_WHATSAPP desde .env)
 ├── auditoria/           # Transversal: RegistroAuditoria + signals + utils (sin urls)
 ├── templates/           # base.html, 403/404 y templates por app (incl. parciales HTMX)
@@ -148,9 +154,9 @@ kiosco_sprint1/
 | `config` | Configuración y ruteo raíz | — | `/admin/`, `/` → post_login | — |
 | `usuarios` | Identidad, sesiones, autorización por rol | — (usa `auth.User`) | 5 | 9 |
 | `administracion` | Gestión de usuarios, dashboard y **reportes** | — (usa `auth.User`/`Group`) | 9 | 24 + 65 |
-| `ventas` | Catálogo CRUD y cobro (POS) + cierre de turno | `Categoria`, `Producto`, `Venta`, `DetalleVenta`, `Turno` | 10 | 89 + 9 (`cargar_demo`) |
-| `clientes` | Fidelidad y cuenta corriente: identificación y fiado en el cobro | `Cliente`, `PagoCuentaCorriente` | 10 | 71 |
-| `pedidos` | Integración externa: vitrina pública y pedido por WhatsApp | `Pedido`, `ItemPedido` | 7 | 32 |
+| `ventas` | Catálogo CRUD y cobro (POS) + cierre de turno | `Categoria`, `Producto`, `Venta`, `DetalleVenta`, `Turno` | 10 | 108 |
+| `clientes` | Fidelidad y cuenta corriente: identificación y fiado en el cobro | `Cliente`, `PagoCuentaCorriente` | 10 | 82 |
+| `pedidos` | Integración externa: vitrina pública y pedido por WhatsApp | `Pedido`, `ItemPedido` | 9 | 52 |
 | `auditoria` | Trazabilidad de acciones | `RegistroAuditoria` | — (solo Django admin) | 0 |
 
 Reglas estructurales:
@@ -171,6 +177,14 @@ Reglas estructurales:
   `clientes/services.py`. `ventas/services.py` la consume como proveedor de
   fidelidad dentro de la transacción de cobro, sin importar `clientes` desde el
   módulo de ventas más allá de eso.
+- **El núcleo de venta es uno solo**: `ventas/services.py::registrar_venta_desde_items`
+  (descuento de stock, puntos y fiado) lo usan el POS (`confirmar_venta`) y la
+  entrega de un pedido (`pedidos/services.py::registrar_entrega`). `pedidos`
+  **no** reimplementa el cobro: si mañana cambia la regla de puntos o de fiado,
+  cambia en un solo lugar (ADN-18).
+- La **búsqueda de clientes** (`clientes/services.py::buscar_clientes`) también
+  es una sola: la usan el POS y el panel de pedidos, e **ignora los acentos**
+  (en el mostrador nadie escribe tildes).
 
 ---
 
@@ -190,6 +204,8 @@ erDiagram
     User ||--o{ Turno : "está a cargo"
     Pedido ||--|{ ItemPedido : "contiene"
     Producto ||--o{ ItemPedido : "se pide (opcional)"
+    Pedido }o--o| Cliente : "se cobra a (opcional)"
+    Pedido }o--o| Venta : "genera al entregar (opcional)"
 
     Categoria {
         int id PK
@@ -267,6 +283,8 @@ erDiagram
         varchar(10) estado "pendiente|entregado|cancelado"
         decimal(10,2) total "congelado al confirmar"
         datetime fecha "auto_now_add"
+        int cliente_id FK "SET_NULL, null, se llena al cobrar"
+        int venta_id FK "SET_NULL, null, la venta del cobro"
     }
     ItemPedido {
         int id PK
@@ -300,7 +318,9 @@ y `Venta.metodo_pago` ampliado a 20 para `cuenta_corriente`).
 `0002_cliente_limite_credito_cliente_saldo_deuda_and_more` (HU-14:
 `Cliente.limite_credito`, `Cliente.saldo_deuda` y modelo
 `PagoCuentaCorriente`).
-`pedidos`: `0001_initial` (HU-13: modelos `Pedido` e `ItemPedido`).
+`pedidos`: `0001_initial` (HU-13: modelos `Pedido` e `ItemPedido`) ·
+`0002_pedido_cliente_pedido_venta` (cierre de HU-13: `Pedido.cliente` y
+`Pedido.venta`, con dependencia de `clientes 0002` y `ventas 0007`).
 
 Notas de diseño:
 
@@ -327,6 +347,14 @@ Notas de diseño:
 - **El pedido público no es una venta**: el catálogo genera un `Pedido`, no una
   `Venta`. La venta real (y el descuento de stock) siguen ocurriendo en el POS
   cuando el cliente pasa por el local a retirar.
+- **Entregar es cobrar (cierre de HU-13):** `Pedido.cliente` y `Pedido.venta`
+  (ambos `SET_NULL`) son el vínculo entre el pedido de WhatsApp y el cobro real
+  en el mostrador. La referencia va **de `pedidos` hacia `ventas.Venta`** (y no
+  al revés) para no crear una dependencia circular de migraciones: `ventas` no
+  sabe nada de `pedidos`. Ver ADN-18.
+- **El precio del pedido manda:** al entregar se cobra el
+  `ItemPedido.precio_unitario` congelado (lo que el cliente vio), no el
+  `Producto.precio` del momento.
 - **Campos del Sprint 3** (PRD RF-41, riesgo R-04 ✅): `Venta.metodo_pago`
   (choices `efectivo`/`tarjeta`), `Venta.usuario` (`SET_NULL`, cajero
   responsable), `monto_entregado` y `vuelto`.
@@ -354,9 +382,10 @@ Notas de diseño:
   como *deuda otorgada* (ver ADN-17).
 - Las consignas nuevas de la cátedra quedaron **completas**: el **catálogo
   público (HU-13)** tiene modelos propios (`Pedido`/`ItemPedido` en la app
-  `pedidos`) y no toca `Venta` (el pedido se cobra recién en el POS); la
-  **cuenta corriente (HU-14)** vive en `clientes` + `ventas` y no agrega tablas
-  nuevas fuera de `PagoCuentaCorriente`.
+  `pedidos`) y se vincula a la `Venta` del cobro **desde `pedidos`**
+  (`Pedido.venta`), sin que `ventas` dependa de `pedidos`; la **cuenta corriente
+  (HU-14)** vive en `clientes` + `ventas` y no agrega tablas nuevas fuera de
+  `PagoCuentaCorriente`.
 - `usuarios` y `administracion` no agregan tablas: usan `auth_user`,
   `auth_group` y `auth_user_groups`.
 
@@ -445,8 +474,10 @@ en la misma transacción (`clientes/services.py::validar_fiado`/`sumar_deuda`).
 | `/catalogo/quitar/` | `pedidos:pedido_quitar` | POST (HTMX) | Público · quita un ítem del pedido en curso |
 | `/catalogo/confirmar/` | `pedidos:pedido_confirmar` | POST | Público · persiste el `Pedido` y muestra el paso a WhatsApp (`?accion=vaciar` limpia el pedido) |
 | `/catalogo/panel/` | `pedidos:lista_pedidos` | GET (`?estado=&buscar=`) | `@rol_requerido("Administrador")` · partial `_pedidos_tabla.html` si `HX-Request` |
-| `/catalogo/panel/<id>/` | `pedidos:detalle_pedido` | GET | `@rol_requerido("Administrador")` |
-| `/catalogo/panel/<id>/estado/<estado>/` | `pedidos:cambiar_estado` | POST | `@rol_requerido("Administrador")` · marca entregado/cancelado (auditado) |
+| `/catalogo/panel/<id>/` | `pedidos:detalle_pedido` | GET | `@rol_requerido("Administrador")` · muestra el formulario "Entregar y cobrar" si el pedido está pendiente |
+| `/catalogo/panel/clientes/buscar/` | `pedidos:buscar_cliente` | GET (`?q=`) | `@rol_requerido("Administrador")` · partial `_resultados_cliente.html` (HTMX) · búsqueda **sin acentos** |
+| `/catalogo/panel/<id>/entregar/` | `pedidos:entregar` | POST | `@rol_requerido("Administrador")` · cobra el pedido y lo marca entregado (auditado) |
+| `/catalogo/panel/<id>/estado/<estado>/` | `pedidos:cambiar_estado` | POST | `@rol_requerido("Administrador")` · solo **cancelar** (auditado) · el estado `entregado` se rechaza: para entregar hay que cobrar |
 
 El catálogo es la **única superficie pública** además del login: no lleva
 decorador de rol y muestra la disponibilidad como **"Disponible" / "Agotado"**
@@ -454,6 +485,15 @@ decorador de rol y muestra la disponibilidad como **"Disponible" / "Agotado"**
 `session["pedido"]`, separado del carrito del POS (`session["carrito"]`). El
 teléfono del local se lee de `pedidos/config.py` (`KIOSCO_WHATSAPP`); el link
 `wa.me` se arma en el servidor y lo abre el navegador.
+
+**Entregar es cobrar:** el pedido no tiene un botón "marcar entregado". El
+Administrador cobra en el mostrador (cliente opcional, método de pago y monto)
+y esa acción crea la `Venta`, descuenta el stock, suma los puntos y, si es
+cuenta corriente, valida el límite y suma la deuda — con el mismo servicio que
+usa el POS (`ventas.services.registrar_venta_desde_items`). El pedido queda
+`entregado` con `Pedido.venta` y `Pedido.cliente` ya seteados. Todo ocurre en
+una sola transacción con el pedido bloqueado (`select_for_update`): o se cobra
+y se entrega, o no pasa nada.
 
 ⚠ = deuda abierta en el PRD (R-03: cambio de estado por GET). El Django admin
 (`/admin/`) queda como herramienta de respaldo.
@@ -552,6 +592,9 @@ sequenceDiagram
 - **Manual:** `registrar_accion()` invocado desde las vistas de
   `administracion` en cada operación de escritura (crear, editar, eliminar,
   roles, toggle) y desde `clientes` en el alta/edición/baja de un cliente.
+- **Entrega de pedidos:** `pedidos:entregar` audita con
+  `registrar_accion("Pedido #N entregado")` y un detalle con el número de
+  venta, el importe, el método de pago y el cliente (más los puntos ganados).
 - **Conservación:** `usuario` con `SET_NULL`; los registros sobreviven al
   borrado del usuario.
 - **Lectura:** `auditoria/admin.py` registra el modelo en **solo lectura**
@@ -566,9 +609,10 @@ sequenceDiagram
 |---|---|
 | Layout | `templates/base.html` con blocks `titulo` y `contenido`; navbar solo si `user.is_authenticated` (marca, usuario, badge de rol, botón de tema, logout POST, filete de toldo) |
 | Estructura de templates | `templates/<app>/…` en paralelo a las apps; páginas de error globales `403.html` / `404.html` |
-| Plantillas de página | `templates/ventas/cierre_turno.html` (apertura, totales en vivo, deuda otorgada y resumen del turno); `templates/clientes/detalle_cliente.html` (ficha con puntos, historial de ventas, cuenta corriente e historial de pagos); `templates/pedidos/catalogo.html` (vitrina pública), `pedidos/pedido_confirmado.html` (paso a WhatsApp), `pedidos/lista_pedidos.html` y `pedidos/detalle_pedido.html` (panel interno) |
-| Parciales HTMX | `ventas/_productos_tabla.html` (búsqueda/orden), `ventas/_carrito.html` (carrito + form de pago del POS, con la opción "FIAR" y la barra de cuenta corriente), `ventas/_cobro_resultados.html` (sugerencias del escáner), `clientes/_clientes_tabla.html` (lista de clientes con la deuda o el límite), `clientes/_resultados_cobro.html` (búsqueda + alta rápida del cliente), `pedidos/_carrito_pedido.html` (pedido público) y `pedidos/_pedidos_tabla.html` (panel de pedidos), `usuarios/tags/paginacion.html` y `usuarios/tags/buscador.html` |
+| Plantillas de página | `templates/ventas/cierre_turno.html` (apertura, totales en vivo, deuda otorgada y resumen del turno); `templates/clientes/detalle_cliente.html` (ficha con puntos, historial de ventas, cuenta corriente e historial de pagos); `templates/pedidos/catalogo.html` (vitrina pública), `pedidos/pedido_confirmado.html` (paso a WhatsApp), `pedidos/lista_pedidos.html` y `pedidos/detalle_pedido.html` (panel interno, con la card **"Entregar y cobrar"**: buscador de cliente, métodos de pago, monto entregado y vuelto en vivo) |
+| Parciales HTMX | `ventas/_productos_tabla.html` (búsqueda/orden), `ventas/_carrito.html` (carrito + form de pago del POS, con la opción "FIAR" y la barra de cuenta corriente), `ventas/_cobro_resultados.html` (sugerencias del escáner), `clientes/_clientes_tabla.html` (lista de clientes con la deuda o el límite), `clientes/_resultados_cobro.html` (búsqueda + alta rápida del cliente), `pedidos/_carrito_pedido.html` (pedido público), `pedidos/_pedidos_tabla.html` (panel de pedidos), `pedidos/_resultados_cliente.html` (buscador de cliente del panel de pedidos), `usuarios/tags/paginacion.html` y `usuarios/tags/buscador.html` |
 | Cuenta corriente en la UI | Barra de crédito en el cobro (deuda, límite y disponible), opción "Cobrar a Cuenta Corriente" solo si el cliente puede fiar, tarjeta de deuda e historial de pagos en la ficha del cliente, y "Deuda otorgada (FIAR)" aparte en el cierre de turno y en los reportes (aviso de que no es plata en caja) |
+| Entrega de un pedido (HU-13) | Card "Entregar y cobrar" en `pedidos/detalle_pedido.html`: buscador de cliente por HTMX (**sin acentos**), métodos de pago (efectivo/tarjeta/cuenta corriente), monto entregado con **vuelto en vivo** y botón "Entregar y cobrar · $total". El bloque del monto se oculta solo con efectivo. La opción "Cobrar a cuenta corriente" solo se habilita si el cliente elegido tiene cuenta corriente habilitada. El cliente es **opcional**: sin cliente, la venta queda como consumidor final |
 | HTMX | CDN `htmx.org@1.9.12` al final de `base.html`; las vistas detectan `request.headers.get("HX-Request")` y devuelven solo el partial |
 | Búsqueda de productos | `hx-get` al input con `hx-trigger="keyup changed delay:300ms, search"` y `hx-target="#contenedor-tabla"` (sin recarga) |
 | Estilos | **Un solo estilo: neón cian**, forzado con `data-tema="neon"` en el `<head>` de `base.html`; las paletas Cartelera y Ticket fueron eliminadas |
@@ -593,6 +637,7 @@ sequenceDiagram
 | Correo | bloque `MAILERS` (no es un setting válido de Django) | Sin `EMAIL_BACKEND` → no hay envío de mails (R-10) |
 | Seed | `python manage.py setup_inicial` | Crea grupos + `admin`/`cajero1`; idempotente |
 | Datos de demo | `python manage.py cargar_demo [--limpiar] [--ventas-por-dia N]` | 56 productos + ventas desde el 20/09/2026 con semilla fija |
+| Datos de demo de clientes | `python manage.py cargar_demo_clientes [--limpiar]` | Clientes **con compras reales** + pedidos de WhatsApp (los entregados se cobran con `registrar_entrega`). Va **después** de `cargar_demo` |
 
 Comandos del proyecto:
 
@@ -601,6 +646,7 @@ Comandos del proyecto:
 | Migraciones | `python manage.py migrate` |
 | Seed | `python manage.py setup_inicial` |
 | Datos de demo | `python manage.py cargar_demo --limpiar` |
+| Datos de demo de clientes y pedidos | `python manage.py cargar_demo_clientes --limpiar` (después de `cargar_demo`) |
 | Servidor | `python manage.py runserver 8001` (puerto fijo del equipo) |
 | Tests | `python manage.py test --keepdb` |
 
@@ -815,6 +861,35 @@ Comandos del proyecto:
   (ADN-15). La regla queda centralizada en una constante, así que sumar mañana
   otro método cobrable es un cambio de una línea.
 
+### ADN-18 - Entregar un pedido es cobrarlo (no hay "marcar entregado")
+
+- **Contexto:** con el flujo viejo (ADN-16) el pedido público se cobraba en el
+  POS, pero el panel tenía un botón "Marcar como entregado" que solo cambiaba
+  el estado. Eso dejaba dos verdades: un pedido podía quedar "entregado" sin
+  ninguna `Venta` (y sin stock descontado), y la demo mostraba clientes cargados
+  sin ninguna compra real.
+- **Decisión:** **no existe el estado "entregado" sin venta**. La entrega pasa
+  por `pedidos.services.registrar_entrega`, que:
+  1. bloquea el pedido (`select_for_update`) y valida que siga pendiente;
+  2. arma los ítems con el **precio congelado** del pedido (`ItemPedido.precio_unitario`)
+     y el **costo actual** del producto;
+  3. llama al **núcleo de venta del POS** (`ventas.services.registrar_venta_desde_items`),
+     que descuenta stock, suma los puntos y, si es cuenta corriente, valida el
+     límite y suma la deuda;
+  4. deja el pedido `entregado` con `Pedido.venta` y `Pedido.cliente` seteados.
+  Todo en **una sola transacción**: si el cobro falla, el pedido sigue
+  pendiente. El botón "marcar como entregado" se elimina y
+  `pedidos:cambiar_estado` rechaza ese estado con un mensaje que deriva a
+  "Entregar y cobrar".
+- **Consecuencias:** el pedido, la venta y el cliente quedan **siempre
+  consistentes** entre sí; el panel no puede mentir. El núcleo de venta se
+  comparte entre POS y entrega, así que las reglas de stock, puntos y fiado no
+  están duplicadas. La referencia `Pedido.venta` va **de `pedidos` hacia
+  `ventas`** (no al revés) para no crear una dependencia circular de
+  migraciones. La demo se puede regenerar con
+  `manage.py cargar_demo_clientes`, que cobra los pedidos entregados **con este
+  mismo servicio**.
+
 ---
 
 ## 11. Requerimientos técnicos de calidad
@@ -824,14 +899,14 @@ Comandos del proyecto:
 | Archivo | Tests | Cubre |
 |---|---|---|
 | `usuarios/tests.py` | 9 | Login OK/inválido, acceso anónimo, 403 de cajero, acceso de admin, redirección `post_login` por rol |
-| `ventas/tests.py` | 89 | Pantalla de cobro (login/roles) + CRUD de productos (alta, edición, baja lógica, código de barras duplicado, búsqueda HTMX, 403, alerta de stock, orden por columna) + **Sprint 3**: carrito (agregar, duplicados, sumar/restar/quitar), cobro (efectivo con vuelto, pago exacto, tarjeta, stock insuficiente, auditoría), comprobante (formato de pesos, 403 de venta ajena) y búsqueda en tiempo real del escáner (desde 3 caracteres) + **Sprint 4**: cierre de turno (apertura, no dos turnos a la vez, totales en vivo, snapshot congelado, franja y responsable, 403 del turno ajeno, auditoría) + **HU-14**: lo fiado no entra a la caja, la pantalla muestra la deuda otorgada y el cierre la congela |
+| `ventas/tests.py` | 108 | Pantalla de cobro (login/roles) + CRUD de productos (alta, edición, baja lógica, código de barras duplicado, búsqueda HTMX, 403, alerta de stock, orden por columna) + **Sprint 3**: carrito (agregar, duplicados, sumar/restar/quitar), cobro (efectivo con vuelto, pago exacto, tarjeta, stock insuficiente, auditoría), comprobante (formato de pesos, 403 de venta ajena) y búsqueda en tiempo real del escáner (desde 3 caracteres) + **Sprint 4**: cierre de turno (apertura, no dos turnos a la vez, totales en vivo, snapshot congelado, franja y responsable, 403 del turno ajeno, auditoría) + **HU-14**: lo fiado no entra a la caja, la pantalla muestra la deuda otorgada y el cierre la congela |
 | `ventas/tests_cargar_demo.py` | 9 | Seed `cargar_demo`: catálogo con códigos únicos, ventas desde el 20/09/2026 sin fechas futuras, precios/costos congelados, vuelto solo en efectivo, no duplica sin `--limpiar`, regenera idéntico, no pisa productos a mano y totales no múltiplos de 100 (regresión de un loop infinito) |
-| `clientes/tests.py` | 71 | Acceso (cajero no entra al CRUD, sí busca/asocia), DNI único y normalizado (puntos, guiones, letras), baja lógica que conserva ventas y puntos, asociación al carrito, puntos (1 cada $100), comprobante con cliente, alta rápida y ficha con historial + **HU-14**: propiedades de la cuenta corriente (crédito disponible, al límite), fiado en el cobro (dentro/fuera del límite, sin cliente, sin cuenta corriente, el carrito no se vacía), registro de pagos (baja el saldo, rechaza monto ≤ 0 y mayor a la deuda, 403 del cajero), ficha con cuenta corriente y validación del límite en el formulario |
+| `clientes/tests.py` | 82 | Acceso (cajero no entra al CRUD, sí busca/asocia), DNI único y normalizado (puntos, guiones, letras), baja lógica que conserva ventas y puntos, asociación al carrito, puntos (1 cada $100), comprobante con cliente, alta rápida y ficha con historial + **HU-14**: propiedades de la cuenta corriente (crédito disponible, al límite), fiado en el cobro (dentro/fuera del límite, sin cliente, sin cuenta corriente, el carrito no se vacía), registro de pagos (baja el saldo, rechaza monto ≤ 0 y mayor a la deuda, 403 del cajero), ficha con cuenta corriente y validación del límite en el formulario + **búsqueda sin acentos** ("perez" encuentra a "Pérez") + **demo**: todo cliente cargado tiene compras, la deuda es lo fiado menos lo pagado, los puntos suman las ventas, los pedidos pendientes no son clientes, los entregados cobran de verdad, no queda stock negativo y `--limpiar` devuelve el stock y recarga la misma demo |
 | `administracion/tests.py` | 24 | Dashboard (accesos, 403, estadísticas, KPI de stock bajo), listar con búsqueda/filtro, crear, editar, eliminar con protecciones, toggle, asignación de roles, costos invisibles para el cajero |
 | `administracion/tests_reportes.py` | 65 | Resumen de ventas, serie diaria, top 10, rentabilidad, rango de fechas, stock valorado, stock bajo, por categoría, margen bajo, permisos, badge `status-bajo` y ancla `#stock-bajo` + **HU-14**: ingresos, serie, top y rentabilidad excluyen lo fiado; `deuda_otorgada()` lo suma aparte y el listado puede incluirlas |
-| `pedidos/tests.py` | 32 | Catálogo público (visible sin login, nunca expone el stock exacto, marca agotados, solo productos activos), armado del pedido (agregar, duplicados, cantidad inválida, agotado, quitar, baja lógica), confirmación (`Pedido` + ítems, precio congelado, valida nombre/ítems, vaciar), WhatsApp (texto y URL, normalización del teléfono, placeholder no cuenta como configurado) y panel (403 del cajero, admin lista/filtra/detalle, cambio de estado auditado, POST obligatorio) |
+| `pedidos/tests.py` | 52 | Catálogo público (visible sin login, nunca expone el stock exacto, marca agotados, solo productos activos), armado del pedido (agregar, duplicados, cantidad inválida, agotado, quitar, baja lógica), confirmación (`Pedido` + ítems, precio congelado, valida nombre/ítems, vaciar), WhatsApp (texto y URL, normalización del teléfono, placeholder no cuenta como configurado) y panel (403 del cajero, admin lista/filtra/detalle, cambio de estado auditado, POST obligatorio) + **cierre de HU-13**: "entregado" exige cobrar, la entrega crea la `Venta` con el precio congelado y vincula cliente y venta, no se puede cobrar dos veces, busca cliente **sin acentos** y audita la entrega |
 | `auditoria/tests.py` | 0 | **Sin cobertura** (señales y utils sin tests) — R-08 |
-| **Total** | **299** | **`python manage.py test --keepdb` → OK** |
+| **Total** | **340** | **`python manage.py test --keepdb` → OK** |
 
 - Estilo: `django.test.TestCase` con `self.client` (peticiones HTTP reales,
   `assertTemplateUsed` y aserciones de contexto), datos de prueba en
@@ -898,3 +973,4 @@ Comandos del proyecto:
 | 2.3 | 19/10/2026 | Cierre de turno (HU-10): modelo `Turno` (migración `0006`), servicios `abrir/cerrar_turno` con snapshot congelado, endpoint `/ventas/turno/cierre/` y pantalla propia, ADN-15 (snapshot del cierre) y mapa de autorización del turno; Sprint 4 marcado completo; 224 tests |
 | 2.4 | 19/10/2026 | Integración externa (HU-13): app `pedidos/` con catálogo público sin login (`/catalogo/`), modelos `Pedido`/`ItemPedido` (migración `0001`), carrito de pedido en sesión, link `wa.me` configurable desde `.env` y panel interno de pedidos; ADN-16 (el pedido no es una venta); 7 endpoints nuevos; 256 tests |
 | 2.5 | 19/10/2026 | Cuenta corriente (HU-14): `Cliente.limite_credito`/`saldo_deuda` y `PagoCuentaCorriente` (migración `clientes/0002`), `Venta.metodo_pago` con `cuenta_corriente` y `Turno.deuda_otorgada` (migración `ventas/0007`), endpoint `clientes:registrar_pago`, validación del límite dentro de la transacción de cobro y `reportes.deuda_otorgada()`; ADN-14 reescrito y ADN-17 (deuda otorgada fuera de caja e ingresos); 299 tests |
+| 2.6 | 21/10/2026 | Cierre del flujo de pedidos (HU-13): `Pedido.cliente`/`Pedido.venta` (migración `pedidos/0002`), `ventas.services.registrar_venta_desde_items` como núcleo de venta compartido entre POS y entrega, `pedidos.services.registrar_entrega` (precio congelado, todo en una transacción con el pedido bloqueado), endpoints `pedidos:entregar` y `pedidos:buscar_cliente`, pantalla "Entregar y cobrar", "entregado" ya no se marca a mano, búsqueda de clientes sin acentos y comando `cargar_demo_clientes`; ADN-18 (entregar es cobrar); 340 tests |

@@ -9,6 +9,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
 
+from clientes.models import Cliente
 from ventas.models import Producto
 
 from .models import ItemPedido, Pedido
@@ -102,7 +103,8 @@ def agregar_al_pedido(request, producto, cantidad=1):
     """Suma (o crea) una línea del carrito del pedido.
 
     Valida contra el stock *al momento de armar*, pero el descuento real
-    recién ocurre en el cobro del POS: acá solo se avisa.
+    recién ocurre cuando el pedido se cobra en el mostrador
+    (`registrar_entrega`): acá solo se avisa.
     """
     cantidad = _cantidad_valida(cantidad)
     carrito = leer_pedido(request)
@@ -196,3 +198,92 @@ def texto_para_whatsapp(pedido):
     lineas.append("")
     lineas.append("Lo retiro por el local. ¡Gracias!")
     return "\n".join(lineas)
+
+
+# ========== ENTREGA DEL PEDIDO (cierra el círculo WhatsApp → venta) ==========
+
+
+def items_del_pedido_para_cobro(pedido):
+    """Convierte los ítems del pedido en items listos para cobrar.
+
+    Usa el **precio congelado** del pedido (lo que el cliente vio cuando lo
+    armó), no el precio actual del catálogo.
+    """
+    items = []
+    for detalle in pedido.detalles.select_related("producto").all():
+        if detalle.producto_id is None:
+            raise ErrorPedido(
+                f"El producto «{detalle.nombre_producto}» ya no está en el "
+                "catálogo: no se puede cobrar el pedido."
+            )
+        if not detalle.producto.activo:
+            raise ErrorPedido(
+                f"El producto «{detalle.nombre_producto}» está dado de baja: "
+                "no se puede cobrar el pedido."
+            )
+        items.append(
+            {
+                "producto": detalle.producto,
+                "cantidad": detalle.cantidad,
+                "precio": detalle.precio_unitario,
+            }
+        )
+    return items
+
+
+def registrar_entrega(pedido, cliente, metodo_pago, usuario, monto_entregado=None):
+    """Entrega el pedido y registra el cobro (HU-13 → HU-09).
+
+    El cliente pidió por WhatsApp y viene a retirar: en el mostrador se le
+    cobra lo que pidió, con el precio que quedó congelado en el pedido. La
+    venta se crea con el mismo núcleo del POS, así que el stock se descuenta,
+    los puntos se acumulan y el fiado (cuenta corriente) se valida exactamente
+    igual que en una venta normal. La `Venta` queda vinculada al pedido.
+
+    Todo en una sola transacción: o se cobra y el pedido queda entregado, o
+    no pasa nada. Lanza `ErrorPedido` con un mensaje para el kiosquero.
+    """
+    from ventas import services as cobros
+
+    with transaction.atomic():
+        # Bloqueo el pedido: dos kiosqueros no pueden cobrarlo dos veces.
+        pedido = Pedido.objects.select_for_update().get(pk=pedido.pk)
+
+        if pedido.estado != "pendiente" or pedido.venta_id is not None:
+            raise ErrorPedido(
+                f"El pedido #{pedido.pk} ya está "
+                f"{pedido.get_estado_display().lower()}: no se puede volver a cobrar."
+            )
+
+        if cliente is not None:
+            cliente = (
+                Cliente.objects.select_for_update()
+                .filter(pk=cliente.pk, activo=True)
+                .first()
+            )
+            if cliente is None:
+                raise ErrorPedido(
+                    "El cliente no existe o está dado de baja: no se le puede cobrar."
+                )
+
+        items = items_del_pedido_para_cobro(pedido)
+        if not items:
+            raise ErrorPedido("Este pedido no tiene productos para cobrar.")
+
+        try:
+            venta = cobros.registrar_venta_desde_items(
+                items,
+                metodo_pago=metodo_pago,
+                cliente=cliente,
+                usuario=usuario,
+                monto_entregado=monto_entregado,
+            )
+        except cobros.ErrorCobro as exc:
+            raise ErrorPedido(str(exc))
+
+        pedido.cliente = cliente
+        pedido.venta = venta
+        pedido.estado = "entregado"
+        pedido.save(update_fields=["cliente", "venta", "estado"])
+
+    return venta

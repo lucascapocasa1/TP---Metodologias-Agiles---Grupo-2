@@ -14,6 +14,16 @@ urlpatterns = [
     path("panel/", views.lista_pedidos, name="lista_pedidos"),
     path("panel/<int:pedido_id>/", views.detalle_pedido, name="detalle_pedido"),
     path(
+        "panel/clientes/buscar/",
+        views.buscar_cliente_pedido,
+        name="buscar_cliente",
+    ),
+    path(
+        "panel/<int:pedido_id>/entregar/",
+        views.entregar_pedido,
+        name="entregar",
+    ),
+    path(
         "panel/<int:pedido_id>/estado/<str:estado>/",
         views.cambiar_estado_pedido,
         name="cambiar_estado",

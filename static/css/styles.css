@@ -3901,6 +3901,28 @@ a.stat-card-link:hover {
   margin-top: 16px;
 }
 
+/* ===== Entrega del pedido: cobrar en el mostrador ===== */
+.pedido-entrega-card {
+  margin-top: 20px;
+}
+
+.pedido-entrega-form {
+  display: grid;
+  gap: 14px;
+  margin-top: 16px;
+}
+
+.pedido-nota {
+  font-size: 0.9rem;
+  margin: 0;
+}
+
+.pedido-cobro-resumen {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: var(--borde);
+}
+
 .btn-peligro {
   color: var(--caramelo);
   border-color: var(--caramelo);

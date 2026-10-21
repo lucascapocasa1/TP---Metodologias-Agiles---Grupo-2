@@ -14,7 +14,8 @@ from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from auditoria.models import RegistroAuditoria
-from ventas.models import Categoria, Producto
+from clientes.models import Cliente
+from ventas.models import Categoria, Producto, Venta
 
 from . import config, services
 from .models import ItemPedido, Pedido
@@ -274,14 +275,16 @@ class PanelPedidosTests(BasePedidos):
         )
         self.assertNotContains(respuesta, "Lucía Gómez")
 
-    def test_cambiar_estado_a_entregado(self):
+    def test_cambiar_estado_a_entregado_exige_cobrar(self):
+        """"Entregado" ya no se marca a mano: para entregar hay que cobrar."""
         pedido = self._pedido()
         self.login_admin()
         self.client.post(
             reverse("pedidos:cambiar_estado", args=[pedido.pk, "entregado"])
         )
         pedido.refresh_from_db()
-        self.assertEqual(pedido.estado, "entregado")
+        self.assertEqual(pedido.estado, "pendiente")
+        self.assertIsNone(pedido.venta_id)
 
     def test_cambiar_estado_queda_auditado(self):
         pedido = self._pedido()
@@ -320,3 +323,239 @@ class PanelPedidosTests(BasePedidos):
             reverse("pedidos:detalle_pedido", args=[pedido.pk])
         )
         self.assertContains(respuesta, "Coca 500ml")
+
+
+class EntregaPedidoTests(BasePedidos):
+    """Entregar un pedido de WhatsApp = cobrarlo en el mostrador.
+
+    El pedido arma el cliente desde afuera; cuando viene a retirar, el
+    kiosquero lo cobra. La venta que se genera usa el mismo núcleo del POS:
+    descuenta stock, suma puntos y, si es cuenta corriente, acumula la deuda.
+    """
+
+    def setUp(self):
+        super().setUp()
+        self.cliente = Cliente.objects.create(
+            nombre="Pablo",
+            apellido="Méndez",
+            dni="30111222",
+            telefono="1155556666",
+            limite_credito=Decimal("10000.00"),
+        )
+        self.armar_pedido(cantidad=2)
+        self.confirmar(nombre="Pablo Méndez")
+        self.pedido = Pedido.objects.get()
+
+    def _entregar(self, **extra):
+        datos = {"metodo_pago": "efectivo", "monto_entregado": "3000"}
+        datos.update(extra)
+        return self.client.post(
+            reverse("pedidos:entregar", args=[self.pedido.pk]), datos
+        )
+
+    # ===== Cobro =====
+
+    def test_entregar_crea_la_venta_y_vincula_el_pedido(self):
+        self.login_admin()
+        self._entregar(cliente_id=self.cliente.pk)
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.estado, "entregado")
+        self.assertIsNotNone(self.pedido.venta_id)
+        self.assertEqual(self.pedido.cliente_id, self.cliente.pk)
+
+        venta = self.pedido.venta
+        self.assertTrue(venta.finalizada)
+        self.assertEqual(venta.total, Decimal("3000.00"))
+        self.assertEqual(venta.metodo_pago, "efectivo")
+        self.assertEqual(venta.cliente_id, self.cliente.pk)
+
+    def test_entregar_descuenta_el_stock(self):
+        self.login_admin()
+        self._entregar(cliente_id=self.cliente.pk)
+
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 8)  # 10 - 2
+
+    def test_entregar_suma_los_puntos_de_fidelidad(self):
+        self.login_admin()
+        self._entregar(cliente_id=self.cliente.pk)
+
+        self.cliente.refresh_from_db()
+        self.assertEqual(self.cliente.puntos, 30)  # $3.000 → 30 puntos
+
+    def test_entregar_cobra_el_precio_congelado_del_pedido(self):
+        """Si el precio del catálogo cambia después del pedido, se cobra el
+        precio que el cliente vio cuando lo armó."""
+        self.producto.precio = Decimal("2500.00")
+        self.producto.save(update_fields=["precio"])
+
+        self.login_admin()
+        self._entregar(cliente_id=self.cliente.pk)
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.venta.total, Decimal("3000.00"))
+
+    def test_entregar_sin_cliente_lo_deja_como_consumidor_final(self):
+        self.login_admin()
+        self._entregar()
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.estado, "entregado")
+        self.assertIsNone(self.pedido.cliente_id)
+        self.assertIsNone(self.pedido.venta.cliente_id)
+        self.assertEqual(self.pedido.venta.total, Decimal("3000.00"))
+
+    def test_entregar_con_tarjeta_no_pide_monto(self):
+        self.login_admin()
+        self._entregar(metodo_pago="tarjeta", monto_entregado="")
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.venta.metodo_pago, "tarjeta")
+        self.assertIsNone(self.pedido.venta.monto_entregado)
+
+    def test_entregar_calcula_el_vuelto(self):
+        self.login_admin()
+        self._entregar(monto_entregado="5000")
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.venta.monto_entregado, Decimal("5000.00"))
+        self.assertEqual(self.pedido.venta.vuelto, Decimal("2000.00"))
+
+    # ===== Cuenta corriente (HU-14) =====
+
+    def test_entregar_a_cuenta_corriente_suma_la_deuda(self):
+        self.login_admin()
+        self._entregar(metodo_pago="cuenta_corriente", cliente_id=self.cliente.pk)
+
+        self.cliente.refresh_from_db()
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.venta.metodo_pago, "cuenta_corriente")
+        self.assertEqual(self.cliente.saldo_deuda, Decimal("3000.00"))
+
+    def test_entregar_a_cuenta_corriente_sin_limite_no_cobra(self):
+        cliente = Cliente.objects.create(
+            nombre="Sin", apellido="Fiado", dni="29999888"
+        )
+        self.login_admin()
+        self._entregar(metodo_pago="cuenta_corriente", cliente_id=cliente.pk)
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.estado, "pendiente")
+        self.assertIsNone(self.pedido.venta_id)
+        cliente.refresh_from_db()
+        self.assertEqual(cliente.saldo_deuda, Decimal("0.00"))
+
+    def test_entregar_a_cuenta_corriente_respeta_el_limite(self):
+        self.login_admin()
+        self._entregar(metodo_pago="cuenta_corriente", cliente_id=self.cliente.pk)
+        # Ya debe $3.000 de un límite de $10.000: le quedan $7.000, así que
+        # un pedido de $7.500 (5 unidades) se pasa y no se cobra.
+        self.producto.stock = 100
+        self.producto.save(update_fields=["stock"])
+
+        pedido2 = self._nuevo_pedido(cantidad=5)  # 5 x $1.500 = $7.500
+        self.client.post(
+            reverse("pedidos:entregar", args=[pedido2.pk]),
+            {
+                "metodo_pago": "cuenta_corriente",
+                "cliente_id": self.cliente.pk,
+            },
+        )
+
+        self.cliente.refresh_from_db()
+        self.assertEqual(self.cliente.saldo_deuda, Decimal("3000.00"))
+        pedido2.refresh_from_db()
+        self.assertEqual(pedido2.estado, "pendiente")
+
+    # ===== Reglas =====
+
+    def test_no_se_puede_cobrar_dos_veces_el_mismo_pedido(self):
+        self.login_admin()
+        self._entregar(cliente_id=self.cliente.pk)
+        self._entregar(cliente_id=self.cliente.pk)
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.estado, "entregado")
+        # Sigue habiendo una sola venta: el stock se descontó una vez.
+        self.assertEqual(Venta.objects.count(), 1)
+        self.producto.refresh_from_db()
+        self.assertEqual(self.producto.stock, 8)
+
+    def test_no_se_cobra_un_pedido_cancelado(self):
+        self.pedido.estado = "cancelado"
+        self.pedido.save(update_fields=["estado"])
+
+        self.login_admin()
+        self._entregar(cliente_id=self.cliente.pk)
+
+        self.pedido.refresh_from_db()
+        self.assertEqual(self.pedido.estado, "cancelado")
+        self.assertIsNone(self.pedido.venta_id)
+
+    def test_entregar_por_get_se_bloquea(self):
+        self.login_admin()
+        self.assertEqual(
+            self.client.get(
+                reverse("pedidos:entregar", args=[self.pedido.pk])
+            ).status_code,
+            403,
+        )
+
+    def test_cajero_no_puede_entregar(self):
+        self.login_cajero()
+        self.assertEqual(
+            self.client.post(
+                reverse("pedidos:entregar", args=[self.pedido.pk]),
+                {"metodo_pago": "efectivo", "monto_entregado": "3000"},
+            ).status_code,
+            403,
+        )
+
+    def test_entregar_queda_auditado(self):
+        self.login_admin()
+        self._entregar(cliente_id=self.cliente.pk)
+
+        self.assertTrue(
+            RegistroAuditoria.objects.filter(
+                accion__contains="entregado"
+            ).exists()
+        )
+
+    def test_el_detalle_muestra_el_formulario_de_entrega(self):
+        self.login_admin()
+        respuesta = self.client.get(
+            reverse("pedidos:detalle_pedido", args=[self.pedido.pk])
+        )
+        self.assertContains(respuesta, "Entregar y cobrar")
+
+    def test_buscar_clientes_del_panel(self):
+        self.login_admin()
+        respuesta = self.client.get(
+            reverse("pedidos:buscar_cliente"), {"q": "Méndez"}
+        )
+        self.assertContains(respuesta, "Pablo Méndez")
+
+    def test_buscar_clientes_del_panel_ignora_los_acentos(self):
+        """En el mostrador nadie escribe tildes."""
+        self.login_admin()
+        respuesta = self.client.get(
+            reverse("pedidos:buscar_cliente"), {"q": "mendez"}
+        )
+        self.assertContains(respuesta, "Pablo Méndez")
+
+    def test_buscar_clientes_sin_login_va_al_login(self):
+        self.assertEqual(
+            self.client.get(reverse("pedidos:buscar_cliente")).status_code, 302
+        )
+
+    def test_cajero_no_busca_clientes_del_panel(self):
+        self.login_cajero()
+        self.assertEqual(
+            self.client.get(reverse("pedidos:buscar_cliente")).status_code, 403
+        )
+
+    def _nuevo_pedido(self, cantidad=2):
+        self.armar_pedido(cantidad=cantidad)
+        self.confirmar(nombre="Otro pedido")
+        return Pedido.objects.exclude(pk=self.pedido.pk).order_by("-pk").first()

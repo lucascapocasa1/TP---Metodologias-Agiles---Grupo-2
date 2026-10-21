@@ -4,11 +4,11 @@
 
 | Campo | Valor |
 |---|---|
-| Documento | PRD v2.5 |
-| Fecha | 19/10/2026 |
-| Versión del código documentado | `main` @ `10bc092` (19-10-2026) + HU-13 + HU-14, Sprint 4 completo |
+| Documento | PRD v2.6 |
+| Fecha | 21/10/2026 |
+| Versión del código documentado | `main` (21-10-2026) + HU-13 con el flujo de entrega cerrado, Sprint 4 completo |
 | Proyecto | Sistema Kiosco — TP Metodologías Ágiles (UNAB) |
-| Estado del producto | **Sprint 1 ✅ · Sprint 2 ✅ · Sprint 3 ✅ · Sprint 4 ✅ (reportes + clientes + cierre de turno) · HU-13 ✅ (catálogo público + WhatsApp) · HU-14 ✅ (cuenta corriente "FIAR") · 299 tests en verde** |
+| Estado del producto | **Sprint 1 ✅ · Sprint 2 ✅ · Sprint 3 ✅ · Sprint 4 ✅ (reportes + clientes + cierre de turno) · HU-13 ✅ (catálogo público + WhatsApp **y entrega cobrada**) · HU-14 ✅ (cuenta corriente "FIAR") · 340 tests en verde** |
 | Documento relacionado | [ARD — Arquitectura y requerimientos técnicos](ARD.md) |
 
 > Historial: v1.0 (24-09) documentaba el alcance de Sprints 1 y 2 en curso.
@@ -32,6 +32,11 @@
 > 19-10: saldo de deuda por cliente con límite, cobro fiado desde el POS,
 > registro de pagos solo para el Administrador y la deuda otorgada mostrada
 > aparte de la caja y de los ingresos); suite en 299 tests.
+> v2.6 cierra el círculo del pedido por WhatsApp: **entregar es cobrar**. El
+> pedido entregado genera la `Venta` con su cliente y queda vinculado a ella
+> (precio congelado, stock, puntos y fiado con las mismas reglas del POS);
+> además la demo de clientes queda reproducible y coherente con
+> `manage.py cargar_demo_clientes`; suite en 340 tests.
 
 ---
 
@@ -132,7 +137,7 @@ provoca:
 - Aplicación **web** (navegador), sin app nativa; se usa en PC del kiosco y
   eventualmente en celular/tablet.
 - Trabajo en equipo con merge a `main`; los artefactos deben poder integrarse
-  sin romper los tests existentes (299 en verde).
+  sin romper los tests existentes (340 en verde).
 - Idioma y formato argentinos: español rioplatense, moneda ARS, horario
   `America/Argentina/Buenos_Aires`.
 - El servidor de desarrollo corre en el puerto **8001** (conservar ese puerto
@@ -296,6 +301,20 @@ Estado verificado contra el código el 19-10-2026 (`main` @ `b043f1f`).
 | RF-83 | El listado de clientes muestra la cuenta corriente (deuda o "al día" con el límite) | S | HU-14 | ✅ Hecho (`_clientes_tabla.html`) |
 | RF-84 | Lo fiado **no** cuenta como ingreso ni entra a la caja del turno: se informa aparte como **"Deuda otorgada"**, guardada también en el cierre del turno (`Turno.deuda_otorgada`) | M | HU-14 | ✅ Hecho (`METODOS_EN_CAJA`, `reportes.deuda_otorgada`, `totales_del_turno`/`cerrar_turno`) |
 
+### 4.12 Entrega del pedido: del WhatsApp a la venta (cierre de HU-13)
+
+| ID | Requerimiento | Prioridad | HU | Estado |
+|---|---|---|---|---|
+| RF-85 | Un pedido **no se puede marcar como entregado a mano**: entregar es cobrar. El pedido entregado genera una `Venta` con su cliente, su método de pago y su total, y queda **vinculado** al pedido (`Pedido.venta`, `Pedido.cliente`) | M | HU-13 | ✅ Hecho (`pedidos.services.registrar_entrega`, `pedidos:entregar`) |
+| RF-86 | Al entregar se cobra **el precio congelado del pedido** (lo que el cliente vio cuando lo armó), no el precio actual del catálogo | M | HU-13 | ✅ Hecho (`ventas.services._precio_de_item` + `ItemPedido.precio_unitario`) |
+| RF-87 | La entrega usa **el mismo núcleo de venta del POS**: descuenta stock, suma los puntos de fidelidad y, si es cuenta corriente, valida el límite y suma la deuda — todo en una sola transacción | M | HU-13 | ✅ Hecho (`ventas.services.registrar_venta_desde_items`) |
+| RF-88 | La entrega es **atómica**: o se cobra y el pedido queda entregado, o no pasa nada (si falla el cobro, el pedido sigue pendiente) | M | HU-13 | ✅ Hecho (`transaction.atomic()` + `select_for_update` del pedido) |
+| RF-89 | El panel de pedidos permite **asociar un cliente** al cobrar (búsqueda por DNI, nombre o apellido, **sin depender de los acentos**) o entregar como **consumidor final** (sin puntos ni deuda) | M | HU-13 | ✅ Hecho (`pedidos:buscar_cliente`, `clientes.services.buscar_clientes`) |
+| RF-90 | Un pedido ya entregado o cancelado **no se puede volver a cobrar** | M | HU-13 | ✅ Hecho (`registrar_entrega` valida el estado con el pedido bloqueado) |
+| RF-91 | La entrega queda **auditada** (quién entregó, qué se cobró, con qué cliente y cuántos puntos) | S | HU-13 | ✅ Hecho (`registrar_accion` en `pedidos:entregar`) |
+| RF-92 | Los pedidos **pendientes no son clientes**: el cliente del kiosco recién existe cuando retira y paga; los que retiraron quedaron con su ficha, sus puntos y su venta | M | HU-13 | ✅ Hecho (`cargar_demo_clientes` + `Pedido.cliente`) |
+| RF-93 | La demo de clientes y pedidos es **reproducible con un comando** (`manage.py cargar_demo_clientes`), no a mano: todo cliente cargado tiene compras reales, los pedidos entregados se cobran con el flujo real y `--limpiar` borra, repone el stock y recarga | M | HU-13 | ✅ Hecho (`clientes/management/commands/cargar_demo_clientes.py` + `clientes/demo_data.py`) |
+
 ---
 
 ## 5. Requerimientos no funcionales
@@ -311,7 +330,7 @@ Estado verificado contra el código el 19-10-2026 (`main` @ `b043f1f`).
 | RNF-07 | Integridad | Bajas de producto **lógicas**: nunca borrar registros referenciados por ventas |
 | RNF-08 | Disponibilidad | Idempotencia del seed de datos (`setup_inicial`) para poder reejecutarlo sin romper el entorno |
 | RNF-09 | Rendimiento | Respuesta interactiva en CRUD y búsquedas; la búsqueda de productos no recarga la página (HTMX) |
-| RNF-10 | Mantenibilidad | Suite de tests automatizados verde antes de cada entrega (**299 tests** hoy) |
+| RNF-10 | Mantenibilidad | Suite de tests automatizados verde antes de cada entrega (**340 tests** hoy) |
 | RNF-11 | Mantenibilidad | Convención de nombres y comentarios en español; estructura de apps por dominio |
 | RNF-12 | Portabilidad | Corre en Windows con Python 3.10+; PostgreSQL principal con fallback automático a SQLite |
 | RNF-13 | Localización | Español rioplatense (`es-ar`), huso horario Argentina, formato de fecha/hora local |
@@ -422,18 +441,26 @@ el monto entregado y que el sistema calcule el vuelto exacto.
 
 ### Consignas nuevas de la cátedra
 
-**HU-13 — Catálogo online con pedido para retirar (take away)** — ✅ **Hecho (19-10-2026).**
+**HU-13 — Catálogo online con pedido para retirar (take away)** — ✅ **Hecho (19-10-2026), flujo cerrado (21-10-2026).**
 Como vecino, quiero ver el catálogo del kiosco con el stock y los precios
 actuales, armar mi pedido y enviarlo por WhatsApp, para pasar a retirarlo sin
 hacer cola.
 - CA: la vista es pública (sin login); solo muestra productos activos y con
   stock; el mensaje del pedido y el link a WhatsApp usan el teléfono del local
   configurable.
+- CA: cuando el cliente retira, se le **cobra** en el mostrador y el pedido
+  queda con su venta y su cliente (nunca queda "entregado" sin cobrar).
 - *Implementado con la app `pedidos/`: catálogo público en `/catalogo/`, carrito
   de pedido en sesión, `Pedido` + `ItemPedido` registrados en el sistema, link
   `wa.me` con el mensaje armado y panel interno de pedidos para el
   Administrador (marcar entregado/cancelado). El stock se muestra como
   **"Disponible" / "Agotado"**, nunca la cantidad exacta. 32 tests.*
+- *Cierre del flujo (21-10-2026): entregar un pedido **es cobrarlo**. El panel
+  pide cliente (opcional), método de pago y monto; se crea la `Venta` con el
+  **precio congelado** del pedido usando el mismo núcleo del POS (stock,
+  puntos y fiado), y el pedido queda vinculado a la venta y al cliente
+  (`Pedido.cliente` / `Pedido.venta`, migración `pedidos/0002`). 19 tests
+  nuevos + 8 de la demo.*
 
 **HU-14 — Cuenta corriente ("FIAR") para clientes frecuentes** — ✅ **Hecho (19-10-2026).**
 Como administrador, quiero que un cliente registrado pueda llevarse productos
@@ -522,7 +549,28 @@ vecinos de confianza.
       y ve el saldo y el historial actualizados (HU-14).
 - [x] Lo fiado no entra a la caja ni a los ingresos: se informa aparte como
       **deuda otorgada** (HU-14).
-- [x] Los tests previos siguen en verde y se suman los nuevos (299 en total).
+- [x] Los tests previos siguen en verde y se suman los nuevos (340 en total).
+
+**Criterios de aceptación del cierre de HU-13 (cumplidos el 21-10-2026):**
+
+- [x] Un pedido **no se puede marcar como entregado a mano**: para entregarlo
+      hay que cobrarlo (RF-85, RF-90).
+- [x] La entrega genera la `Venta` con el cliente, el método de pago y el
+      total, y el pedido queda **vinculado** a ella (RF-85).
+- [x] Se cobra el **precio congelado** del pedido, no el precio actual del
+      catálogo (RF-86).
+- [x] La entrega usa el **mismo núcleo de venta del POS**: stock, puntos y
+      fiado con las mismas reglas, sin duplicar lógica (RF-87).
+- [x] La entrega es **atómica**: si el cobro falla, el pedido sigue pendiente
+      (RF-88).
+- [x] El panel permite **asociar un cliente** (búsqueda sin depender de los
+      acentos) o entregar como **consumidor final** (RF-89).
+- [x] La entrega queda **auditada** (RF-91).
+- [x] Los pedidos **pendientes no son clientes**: el cliente del kiosco recién
+      existe cuando retira y paga (RF-92).
+- [x] La demo es **reproducible** con un comando (`cargar_demo_clientes`) y
+      todos los clientes cargados tienen compras reales (RF-93).
+- [x] Los tests previos siguen en verde y se suman los nuevos (340 en total).
 
 ---
 
@@ -535,6 +583,7 @@ vecinos de confianza.
 | 3 | 15-10 | Carrito con lector de código de barras, edición de carrito, cobro efectivo/tarjeta con vuelto, método de pago, descuento de stock | ✅ Completo (cerrado 05-10) |
 | 4 | 05-11 | **Reportes (HU-11) ✅** · **Clientes frecuentes (HU-12) ✅ (17-10)** · **Cierre de turno (HU-10) ✅ (19-10)** | ✅ Completo |
 | - | sin fecha | **Consignas nuevas de la cátedra:** catálogo online + pedido por WhatsApp (HU-13) ✅ (19-10) y cuenta corriente "FIAR" (HU-14) ✅ (19-10) | ✅ 2/2 |
+| - | 21-10 | **Cierre del flujo de HU-13:** entregar un pedido **es cobrarlo** (pedido ↔ venta ↔ cliente), precio congelado, núcleo de venta compartido con el POS y demo reproducible | ✅ Completo |
 
 ---
 
@@ -556,6 +605,7 @@ vecinos de confianza.
 | R-12 | Supuesto | El local dispone de PC con navegador moderno y conexión local al servidor | — | Fallback a SQLite para demo sin PostgreSQL |
 | R-13 | ~~Riesgo~~ | Los pedidos del catálogo público (HU-13) llegan por WhatsApp y no quedan registrados en el sistema | Medio | ✅ **Resuelto (19-10):** cada pedido se guarda como `Pedido` + `ItemPedido` y el kiosquero lo ve en el panel de pedidos |
 | R-14 | ~~Riesgo~~ | Lo fiado por cuenta corriente (HU-14) no es plata que entra a la caja | Medio | ✅ **Resuelto (19-10):** `METODOS_EN_CAJA = ("efectivo", "tarjeta")`; lo fiado se muestra aparte como **deuda otorgada** (en el turno y en los reportes) y no suma a los ingresos |
+| R-15 | ~~Riesgo~~ | Un pedido de WhatsApp podía quedar **"entregado" sin cobrarse** (ni venta, ni stock descontado, ni cliente con compras) | Medio | ✅ **Resuelto (21-10):** entregar **es cobrar** (`pedidos.services.registrar_entrega`): el pedido queda con su `Venta` y su `Cliente`, y "entregado" ya no se marca a mano |
 | D-01 | Dependencia | Consignas/entregas del TP con fechas fijas (Sprint 4: 05-11) | — | ✅ Cumplida: Sprint 4 cerrado el 19-10 |
 | D-02 | ~~Dependencia~~ | HU-13 requería el teléfono del kiosco configurable | — | ✅ **Resuelto (19-10):** `KIOSCO_WHATSAPP`/`KIOSCO_NOMBRE` en `.env` (con `.env.example`), leídos por `pedidos/config.py` |
 
@@ -563,9 +613,9 @@ vecinos de confianza.
 
 ## 11. Criterios de éxito y métricas
 
-| Métrica | Objetivo | Valor al 19-10-2026 |
+| Métrica | Objetivo | Valor al 21-10-2026 |
 |---|---|---|
-| Tests automatizados en verde | 100% de la suite | **299/299 OK** (usuarios 9, ventas 98 —incluye 9 de `cargar_demo`—, clientes 71, pedidos 32, administración 89 —24 + 65 de reportes—, auditoría 0) |
+| Tests automatizados en verde | 100% de la suite | **340/340 OK** (usuarios 9, ventas 108 —incluye 9 de `cargar_demo`—, clientes 82 —73 + 9 de la demo—, pedidos 52, administración 89 —24 + 65 de reportes—, auditoría 0) |
 | Historias Sprint 1 | 3/3 | 3/3 ✅ |
 | Historias Sprint 2 | 3/3 | 3/3 ✅ (HU-04, HU-05, HU-06 cerradas) |
 | Historias Sprint 3 | 3/3 al 15-10 | 3/3 ✅ (HU-07, HU-08, HU-09 cerradas el 05-10) |
@@ -587,3 +637,4 @@ vecinos de confianza.
 | 2.3 | 19/10/2026 | Cierre del Sprint 4 (HU-10) ✅: modelo `Turno` con snapshot de totales, RF-54 a RF-58, pantalla de apertura/cierre y control de responsable; reenumerados los RF de auditoría (RF-59…) y UX (RF-63…); Sprint 4 marcado completo; 224 tests |
 | 2.4 | 19/10/2026 | Integración externa (HU-13) ✅: app `pedidos/` con catálogo público sin login, `Pedido`/`ItemPedido` registrados, link a WhatsApp configurable y panel interno de pedidos; RF-70 a RF-74; riesgos R-13/D-02 resueltos; 256 tests |
 | 2.5 | 19/10/2026 | Cuenta corriente "FIAR" (HU-14) ✅: `Cliente.limite_credito`/`saldo_deuda` + `PagoCuentaCorriente`, cobro fiado desde el POS con validación de límite, pagos solo para el Administrador, deuda otorgada fuera de la caja y de los ingresos (`Turno.deuda_otorgada`); RF-75 a RF-84; riesgo R-14 resuelto; consignas de la cátedra 2/2; 299 tests |
+| 2.6 | 21/10/2026 | Cierre del flujo de pedidos (HU-13): entregar un pedido **es cobrarlo**. `Pedido.cliente` + `Pedido.venta` (migración `pedidos/0002`), servicio `registrar_entrega` con el núcleo de venta del POS (stock, puntos y fiado) y el **precio congelado** del pedido, pantalla "Entregar y cobrar" con búsqueda de cliente (sin depender de los acentos), "entregado" ya no se marca a mano y la entrega queda auditada. RF-85 a RF-93. Demo reproducible con `manage.py cargar_demo_clientes` (clientes con compras reales + pedidos de WhatsApp, los entregados cobrados con el flujo real); 340 tests |
