@@ -1,1184 +1,228 @@
-from datetime import timedelta
+"""
+Tests del Sprint 2 — POS (pantalla del cajero, carrito y vuelto).
+
+Cubren el funcionamiento del carrito en sesión, el cobro con efectivo
+(validación del monto recibido y vuelto en billetes) y el acceso por rol.
+"""
+import json
 from decimal import Decimal
 
 from django.contrib.auth.models import Group, User
 from django.test import TestCase
 from django.urls import reverse
 
-from auditoria.models import RegistroAuditoria
+from ventas.models import DetalleVenta, Producto, Venta
+from ventas.vuelto import desglosar, desglosar_vuelto
 
-from .models import Categoria, DetalleVenta, Producto, Turno, Venta
+
+class VueltoTests(TestCase):
+    def test_desglosa_usando_billetes_grandes_primero(self):
+        self.assertEqual(desglosar(2350), {2000: 1, 200: 1, 100: 1, 50: 1})
+
+    def test_desglosa_cero_sin_piezas(self):
+        self.assertEqual(desglosar(0), {})
+
+    def test_desglosa_con_monedas(self):
+        self.assertEqual(desglosar(7), {5: 1, 2: 1})
+
+    def test_desglosa_vuelto_con_centavos(self):
+        piezas, centavos = desglosar_vuelto(Decimal("2485.50"))
+        self.assertEqual(centavos, 50)
+        self.assertEqual(piezas, {2000: 1, 200: 2, 50: 1, 20: 1, 10: 1, 5: 1})
 
 
-class PantallaCobroTests(TestCase):
+class PoscTestsBase(TestCase):
     def setUp(self):
         self.grupo_cajero = Group.objects.create(name="Cajero")
         self.grupo_admin = Group.objects.create(name="Administrador")
 
-        self.cajero = User.objects.create_user(
-            username="cajero_test", password="claveSegura123"
-        )
+        self.cajero = User.objects.create_user(username="cajero_pos", password="claveSegura123")
         self.cajero.groups.add(self.grupo_cajero)
 
-        self.admin = User.objects.create_user(
-            username="admin_test", password="claveSegura123", is_staff=True
-        )
+        self.admin = User.objects.create_user(username="admin_pos", password="claveSegura123")
         self.admin.groups.add(self.grupo_admin)
 
-    def test_acceso_requiere_login(self):
-        respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
-        self.assertEqual(respuesta.status_code, 302)
-        self.assertIn("login", respuesta.url)
-
-    def test_cajero_puede_acceder(self):
-        self.client.login(username="cajero_test", password="claveSegura123")
-        respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
-        self.assertEqual(respuesta.status_code, 200)
-
-    def test_administrador_puede_acceder(self):
-        self.client.login(username="admin_test", password="claveSegura123")
-        respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
-        self.assertEqual(respuesta.status_code, 200)
-
-    def test_usa_template_correcto(self):
-        self.client.login(username="cajero_test", password="claveSegura123")
-        respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
-        self.assertTemplateUsed(respuesta, "ventas/pantalla_cobro.html")
-
-
-class BaseCatalogo(TestCase):
-    """Usuarios y datos base para todo el catálogo de productos (Sprint 2)."""
-
-    def setUp(self):
-        self.grupo_cajero = Group.objects.create(name="Cajero")
-        self.grupo_admin = Group.objects.create(name="Administrador")
-
-        self.cajero = User.objects.create_user(
-            username="cajero_cat", password="claveSegura123"
+        self.coca = Producto.objects.create(
+            nombre="Coca-Cola 1.5L",
+            codigo_barras="7790895000997",
+            precio=Decimal("3200.00"),
         )
-        self.cajero.groups.add(self.grupo_cajero)
-
-        self.admin = User.objects.create_user(
-            username="admin_cat", password="claveSegura123"
-        )
-        self.admin.groups.add(self.grupo_admin)
-
-        self.categoria = Categoria.objects.create(nombre="Bebidas")
-        self.producto = Producto.objects.create(
-            nombre="Coca 500ml",
-            descripcion="Gaseosa cola",
-            codigo_barras="7790000000001",
-            precio=Decimal("1500.00"),
-            costo=Decimal("900.00"),
-            stock=10,
-            stock_minimo=5,
-            categoria=self.categoria,
+        self.agua = Producto.objects.create(
+            nombre="Agua mineral 500ml",
+            codigo_barras="7794000500005",
+            precio=Decimal("1200.00"),
         )
 
+    def login_cajero(self):
+        return self.client.login(username="cajero_pos", password="claveSegura123")
 
-class CatalogoAccesoTests(BaseCatalogo):
-    """HU-02/HU-04: el catálogo es del administrador, el cajero no entra."""
-
-    def test_anonimo_redirige_a_login(self):
-        for nombre in ("ventas:lista_productos", "ventas:agregar_producto"):
-            respuesta = self.client.get(reverse(nombre))
-            self.assertEqual(respuesta.status_code, 302, nombre)
-            self.assertIn("login", respuesta.url)
-
-    def test_cajero_recibe_403_en_lista(self):
-        self.client.login(username="cajero_cat", password="claveSegura123")
-        respuesta = self.client.get(reverse("ventas:lista_productos"))
-        self.assertEqual(respuesta.status_code, 403)
-
-    def test_cajero_recibe_403_en_alta(self):
-        self.client.login(username="cajero_cat", password="claveSegura123")
-        respuesta = self.client.get(reverse("ventas:agregar_producto"))
-        self.assertEqual(respuesta.status_code, 403)
-
-    def test_cajero_recibe_403_en_edicion_y_baja(self):
-        self.client.login(username="cajero_cat", password="claveSegura123")
-        url_edicion = reverse("ventas:editar_producto", args=[self.producto.id])
-        url_baja = reverse("ventas:eliminar_producto", args=[self.producto.id])
-        self.assertEqual(self.client.get(url_edicion).status_code, 403)
-        self.assertEqual(self.client.get(url_baja).status_code, 403)
-        self.assertEqual(self.client.post(url_baja).status_code, 403)
-
-    def test_admin_accede_a_todo(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        self.assertEqual(
-            self.client.get(reverse("ventas:lista_productos")).status_code, 200
-        )
-        self.assertEqual(
-            self.client.get(reverse("ventas:agregar_producto")).status_code, 200
-        )
-        url_edicion = reverse("ventas:editar_producto", args=[self.producto.id])
-        self.assertEqual(self.client.get(url_edicion).status_code, 200)
-
-    def test_usa_los_templates_nuevos(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        self.assertTemplateUsed(
-            self.client.get(reverse("ventas:lista_productos")),
-            "ventas/lista_productos.html",
-        )
-        self.assertTemplateUsed(
-            self.client.get(reverse("ventas:agregar_producto")),
-            "ventas/agregar_producto.html",
-        )
-
-
-class AltaProductoTests(BaseCatalogo):
-    """HU-04: alta rápida con código de barras, costo, precio y stock."""
-
-    def _datos(self, **extra):
-        datos = {
-            "nombre": "Agua Villavicencio 500ml",
-            "codigo_barras": "7791111111111",
-            "descripcion": "Agua mineral",
-            "costo": "700.00",
-            "precio": "1200.00",
-            "stock": "20",
-            "stock_minimo": "4",
-            "categoria": str(self.categoria.id),
-        }
-        datos.update(extra)
-        return datos
-
-    def test_alta_crea_producto_con_costo_y_codigo(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.post(
-            reverse("ventas:agregar_producto"), self._datos()
-        )
-        self.assertEqual(respuesta.status_code, 302)
-        producto = Producto.objects.get(codigo_barras="7791111111111")
-        self.assertEqual(producto.costo, Decimal("700.00"))
-        self.assertEqual(producto.precio, Decimal("1200.00"))
-        self.assertEqual(producto.stock, 20)
-        self.assertEqual(producto.stock_minimo, 4)
-        self.assertTrue(producto.activo)
-
-    def test_codigo_de_barras_duplicado_no_se_crea(self):
-        """CA de HU-04: si el código ya existe, error y no permite el duplicado."""
-        self.client.login(username="admin_cat", password="claveSegura123")
-        datos = self._datos(codigo_barras=self.producto.codigo_barras)
-        respuesta = self.client.post(reverse("ventas:agregar_producto"), datos)
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertFormError(
-            respuesta.context["form"],
-            "codigo_barras",
-            "Ese código de barras ya está registrado en otro producto.",
-        )
-        self.assertEqual(
-            Producto.objects.filter(codigo_barras="7790000000001").count(), 1
-        )
-
-    def test_precio_de_venta_cero_rechazado(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.post(
-            reverse("ventas:agregar_producto"), self._datos(precio="0")
-        )
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertIn("precio", respuesta.context["form"].errors)
-
-    def test_categoria_nueva_se_crea_al_guardar(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        datos = self._datos()
-        datos["categoria"] = ""
-        datos["nueva_categoria"] = "Snacks"
-        self.client.post(reverse("ventas:agregar_producto"), datos)
-        self.assertTrue(Categoria.objects.filter(nombre="Snacks").exists())
-
-
-class EdicionYBajaTests(BaseCatalogo):
-    """HU-04: modificaciones y bajas de productos."""
-
-    def test_editar_modifica_precio_y_stock(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        url = reverse("ventas:editar_producto", args=[self.producto.id])
-        self.client.post(
-            url,
-            {
-                "nombre": self.producto.nombre,
-                "codigo_barras": self.producto.codigo_barras,
-                "descripcion": "",
-                "costo": "950.00",
-                "precio": "1700.00",
-                "stock": "3",
-                "stock_minimo": "5",
-                "categoria": str(self.categoria.id),
-                "activo": "on",
-            },
-        )
-        self.producto.refresh_from_db()
-        self.assertEqual(self.producto.precio, Decimal("1700.00"))
-        self.assertEqual(self.producto.costo, Decimal("950.00"))
-        self.assertEqual(self.producto.stock, 3)
-
-    def test_editar_no_permite_codigo_duplicado_de_otro_producto(self):
-        otro = Producto.objects.create(
-            nombre="Pepsi 500ml",
-            codigo_barras="7792222222222",
-            precio=Decimal("1400.00"),
-            costo=Decimal("850.00"),
-            categoria=self.categoria,
-        )
-        self.client.login(username="admin_cat", password="claveSegura123")
-        url = reverse("ventas:editar_producto", args=[otro.id])
-        respuesta = self.client.post(
-            url,
-            {
-                "nombre": otro.nombre,
-                "codigo_barras": self.producto.codigo_barras,  # ya usado
-                "descripcion": "",
-                "costo": "850.00",
-                "precio": "1400.00",
-                "stock": "1",
-                "stock_minimo": "5",
-                "categoria": str(self.categoria.id),
-                "activo": "on",
-            },
-        )
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertIn("codigo_barras", respuesta.context["form"].errors)
-
-    def test_baja_logica_desactiva_el_producto(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        url = reverse("ventas:eliminar_producto", args=[self.producto.id])
-
-        confirmacion = self.client.get(url)
-        self.assertEqual(confirmacion.status_code, 200)
-        self.assertTemplateUsed(confirmacion, "ventas/eliminar_producto.html")
-
-        respuesta = self.client.post(url)
-        self.assertEqual(respuesta.status_code, 302)
-        self.producto.refresh_from_db()
-        self.assertFalse(self.producto.activo)
-
-
-class BusquedaStockTests(BaseCatalogo):
-    """HU-05 (búsqueda con HTMX) y HU-06 (alerta de stock bajo)."""
-
-    def test_busqueda_por_nombre_filtra(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:lista_productos"), {"buscar": "Coca"}
-        )
-        nombres = [p.nombre for p in respuesta.context["productos"]]
-        self.assertIn("Coca 500ml", nombres)
-        self.assertEqual(len(nombres), 1)
-
-    def test_busqueda_por_codigo_de_barras(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:lista_productos"), {"buscar": "7790000"}
-        )
-        self.assertEqual(len(respuesta.context["productos"]), 1)
-
-    def test_con_htmx_devuelve_solo_el_partial(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:lista_productos"),
-            {"buscar": "Coca"},
+    def agregar_al_carrito(self, codigo=None, producto_id=None, cantidad=1):
+        data = {"cantidad": cantidad}
+        if codigo:
+            data["codigo"] = codigo
+        if producto_id:
+            data["producto"] = producto_id
+        return self.client.post(
+            reverse("ventas:agregar_al_carrito"),
+            data,
             HTTP_HX_REQUEST="true",
         )
-        self.assertTemplateUsed(respuesta, "ventas/_productos_tabla.html")
-        self.assertTemplateNotUsed(respuesta, "ventas/lista_productos.html")
 
-    def test_stock_bajo_se_marca_cuando_llega_al_minimo(self):
-        bajo = Producto.objects.create(
-            nombre="Alfajor Triple",
-            precio=Decimal("900.00"),
-            costo=Decimal("500.00"),
-            stock=3,
-            stock_minimo=5,
-            categoria=self.categoria,
-        )
-        self.assertTrue(bajo.stock_bajo)
-        self.assertFalse(self.producto.stock_bajo)
-
-    def test_template_marca_el_stock_bajo(self):
-        Producto.objects.create(
-            nombre="Alfajor Triple",
-            precio=Decimal("900.00"),
-            costo=Decimal("500.00"),
-            stock=3,
-            stock_minimo=5,
-            categoria=self.categoria,
-        )
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.get(reverse("ventas:lista_productos"))
-        self.assertContains(respuesta, "badge-stock-bajo")
-
-
-class OrdenamientoTests(BaseCatalogo):
-    """Ordenamiento por columna asc/desc desde el encabezado de la tabla."""
-
-    def setUp(self):
-        super().setUp()
-        # Tres productos con valores bien distintos para poder comparar.
-        self.alfajor = Producto.objects.create(
-            nombre="Alfajor Triple",
-            precio=Decimal("900.00"),
-            costo=Decimal("500.00"),
-            stock=3,
-            stock_minimo=5,
-            categoria=self.categoria,
-        )
-        self.papas = Producto.objects.create(
-            nombre="Papas Fritas",
-            precio=Decimal("2500.00"),
-            costo=Decimal("1600.00"),
-            stock=25,
-            stock_minimo=5,
-            categoria=self.categoria,
-        )
-        self.client.login(username="admin_cat", password="claveSegura123")
-
-    def _nombres(self, **params):
-        respuesta = self.client.get(reverse("ventas:lista_productos"), params)
-        return [p.nombre for p in respuesta.context["productos"]]
-
-    def test_por_defecto_ordena_por_nombre_ascendente(self):
-        self.assertEqual(
-            self._nombres(),
-            ["Alfajor Triple", "Coca 500ml", "Papas Fritas"],
-        )
-
-    def test_stock_ascendente(self):
-        self.assertEqual(
-            self._nombres(orden="stock", direccion="asc"),
-            ["Alfajor Triple", "Coca 500ml", "Papas Fritas"],
-        )
-
-    def test_stock_descendente(self):
-        self.assertEqual(
-            self._nombres(orden="stock", direccion="desc"),
-            ["Papas Fritas", "Coca 500ml", "Alfajor Triple"],
-        )
-
-    def test_precio_descendente(self):
-        self.assertEqual(
-            self._nombres(orden="precio", direccion="desc"),
-            ["Papas Fritas", "Coca 500ml", "Alfajor Triple"],
-        )
-
-    def test_costo_ascendente(self):
-        self.assertEqual(
-            self._nombres(orden="costo", direccion="asc"),
-            ["Alfajor Triple", "Coca 500ml", "Papas Fritas"],
-        )
-
-    def test_columna_desconocida_cae_en_el_default(self):
-        self.assertEqual(
-            self._nombres(orden="activo", direccion="asc"),
-            ["Alfajor Triple", "Coca 500ml", "Papas Fritas"],
-        )
-
-    def test_direccion_invalida_se_toma_como_asc(self):
-        self.assertEqual(
-            self._nombres(orden="stock", direccion="cualquiera"),
-            ["Alfajor Triple", "Coca 500ml", "Papas Fritas"],
-        )
-
-    def test_el_orden_convive_con_la_busqueda(self):
-        nombres = self._nombres(buscar="Papas", orden="stock", direccion="desc")
-        self.assertEqual(nombres, ["Papas Fritas"])
-
-    def test_el_encabezado_marca_la_columna_activa(self):
-        respuesta = self.client.get(
-            reverse("ventas:lista_productos"), {"orden": "stock", "direccion": "desc"}
-        )
-        self.assertContains(respuesta, "th-sort-activo")
-        # El icono de la columna activa en desc apunta para abajo.
-        self.assertContains(respuesta, "bi-arrow-down")
-
-
-class BaseCobro(TestCase):
-    """Usuarios y catálogo base para el cobro (Sprint 3 - HU-07/08/09)."""
-
-    def setUp(self):
-        self.grupo_cajero = Group.objects.create(name="Cajero")
-        self.grupo_admin = Group.objects.create(name="Administrador")
-
-        self.cajero = User.objects.create_user(
-            username="cajero_cobro", password="claveSegura123"
-        )
-        self.cajero.groups.add(self.grupo_cajero)
-
-        self.admin = User.objects.create_user(
-            username="admin_cobro", password="claveSegura123", is_staff=True
-        )
-        self.admin.groups.add(self.grupo_admin)
-
-        self.categoria = Categoria.objects.create(nombre="Bebidas")
-        self.producto = Producto.objects.create(
-            nombre="Coca 500ml",
-            codigo_barras="7790000000001",
-            precio=Decimal("1500.00"),
-            costo=Decimal("900.00"),
-            stock=10,
-            stock_minimo=5,
-            categoria=self.categoria,
-        )
-        self.otro = Producto.objects.create(
-            nombre="Agua Villavicencio 500ml",
-            codigo_barras="7791111111111",
-            precio=Decimal("1200.00"),
-            costo=Decimal("700.00"),
-            stock=8,
-            stock_minimo=5,
-            categoria=self.categoria,
-        )
-
-    def login_cajero(self):
-        self.client.login(username="cajero_cobro", password="claveSegura123")
-
-    def login_admin(self):
-        self.client.login(username="admin_cobro", password="claveSegura123")
-
-    def agregar(self, codigo, hx=False):
-        kwargs = {"HTTP_HX_REQUEST": "true"} if hx else {}
+    def registrar_venta(self, metodo="EFECTIVO", monto_recibido="0"):
         return self.client.post(
-            reverse("ventas:cobro_agregar"), {"codigo": codigo}, **kwargs
+            reverse("ventas:registrar_venta"),
+            {"metodo_pago": metodo, "monto_recibido": monto_recibido},
+            HTTP_HX_REQUEST="true",
         )
 
-    def cambiar_cantidad(self, producto, accion, hx=True):
-        kwargs = {"HTTP_HX_REQUEST": "true"} if hx else {}
-        return self.client.post(
-            reverse("ventas:cobro_cantidad"),
-            {"producto_id": producto.pk, "accion": accion},
-            **kwargs,
-        )
 
-    def confirmar(self, metodo="efectivo", monto="0.00"):
-        return self.client.post(
-            reverse("ventas:cobro_confirmar"),
-            {"metodo_pago": metodo, "monto_entregado": monto},
-        )
+class CarritoTests(PoscTestsBase):
+    def test_animo_no_puede_agregar_productos(self):
+        respuesta = self.agregar_al_carrito(codigo=self.coca.codigo_barras)
+        self.assertEqual(respuesta.status_code, 302)  # redirige a login
 
-    def carrito(self):
-        return self.client.session.get("carrito", [])
-
-
-class CarritoTests(BaseCobro):
-    """HU-07 (carga por código) y HU-08 (editar el carrito)."""
-
-    def test_anonimo_redirige_a_login(self):
-        for nombre in (
-            "ventas:pantalla_cobro",
-            "ventas:cobro_agregar",
-            "ventas:cobro_cantidad",
-            "ventas:cobro_confirmar",
-        ):
-            if nombre == "ventas:cobro_agregar":
-                respuesta = self.client.post(reverse(nombre), {"codigo": "x"})
-            elif nombre == "ventas:cobro_cantidad":
-                respuesta = self.client.post(reverse(nombre), {})
-            elif nombre == "ventas:cobro_confirmar":
-                respuesta = self.client.post(reverse(nombre), {})
-            else:
-                respuesta = self.client.get(reverse(nombre))
-            self.assertEqual(respuesta.status_code, 302, nombre)
-            self.assertIn("login", respuesta.url)
-
-    def test_agregar_por_codigo_de_barras(self):
+    def test_cajero_agrega_producto_por_codigo_de_barras(self):
         self.login_cajero()
-        self.agregar("7790000000001")
-        carrito = self.carrito()
-        self.assertEqual(len(carrito), 1)
-        self.assertEqual(carrito[0]["producto_id"], self.producto.pk)
-        self.assertEqual(carrito[0]["cantidad"], 1)
+        producto_id = str(self.coca.pk)
+        respuesta = self.agregar_al_carrito(codigo=self.coca.codigo_barras)
 
-    def test_agregar_por_nombre_unico(self):
-        self.login_cajero()
-        self.agregar("Villavicencio")
-        self.assertEqual(self.carrito()[0]["producto_id"], self.otro.pk)
-
-    def test_codigo_repetido_suma_cantidad_y_no_duplica_fila(self):
-        """CA de HU-07: escanear dos veces el mismo producto suma la cantidad."""
-        self.login_cajero()
-        self.agregar("7790000000001")
-        self.agregar("7790000000001")
-        carrito = self.carrito()
-        self.assertEqual(len(carrito), 1)
-        self.assertEqual(carrito[0]["cantidad"], 2)
-
-    def test_codigo_inexistente_muestra_error(self):
-        self.login_cajero()
-        respuesta = self.agregar("999", hx=True)
-        self.assertContains(respuesta, "No encontré productos")
-        self.assertEqual(self.carrito(), [])
-
-    def test_nombre_ambiguo_pide_codigo_de_barras(self):
-        self.login_cajero()
-        respuesta = self.agregar("500ml", hx=True)
-        self.assertContains(respuesta, "Varios productos coinciden")
-        self.assertEqual(self.carrito(), [])
-
-    def test_producto_dado_de_baja_no_se_agrega(self):
-        self.producto.activo = False
-        self.producto.save(update_fields=["activo"])
-        self.login_cajero()
-        respuesta = self.agregar("7790000000001", hx=True)
-        self.assertContains(respuesta, "No encontré productos")
-        self.assertEqual(self.carrito(), [])
-
-    def test_con_htmx_devuelve_parcial(self):
-        self.login_cajero()
-        respuesta = self.agregar("7790000000001", hx=True)
-        self.assertTemplateUsed(respuesta, "ventas/_carrito.html")
-        self.assertTemplateNotUsed(respuesta, "ventas/pantalla_cobro.html")
-
-    def test_sumar_y_restar_cantidad(self):
-        """CA de HU-08: puedo cambiar cantidades antes de cobrar."""
-        self.login_cajero()
-        self.agregar("7790000000001")
-        self.cambiar_cantidad(self.producto, "sumar")
-        self.assertEqual(self.carrito()[0]["cantidad"], 2)
-        self.cambiar_cantidad(self.producto, "restar")
-        self.assertEqual(self.carrito()[0]["cantidad"], 1)
-
-    def test_restar_hasta_cero_quita_el_item(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        self.cambiar_cantidad(self.producto, "restar")
-        self.assertEqual(self.carrito(), [])
-
-    def test_quitar_item_del_carrito(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        self.agregar("7791111111111")
-        self.cambiar_cantidad(self.producto, "quitar")
-        carrito = self.carrito()
-        self.assertEqual(len(carrito), 1)
-        self.assertEqual(carrito[0]["producto_id"], self.otro.pk)
-
-    def test_pantalla_muestra_el_carrito(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
-        self.assertContains(respuesta, "Coca 500ml")
-        self.assertContains(respuesta, "$1.500")  # sin decimales, miles con punto
-
-    def test_pantalla_sin_carrito_muestra_vacio(self):
-        self.login_cajero()
-        respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
-        self.assertContains(respuesta, "El carrito está vacío")
-
-
-class BusquedaCobroTests(BaseCobro):
-    """Búsqueda en tiempo real del escáner: arranca con 3 caracteres."""
-
-    def buscar(self, consulta):
-        return self.client.get(
-            reverse("ventas:cobro_buscar"), {"codigo": consulta}
-        )
-
-    def test_anonimo_redirige_a_login(self):
-        respuesta = self.client.get(
-            reverse("ventas:cobro_buscar"), {"codigo": "coc"}
-        )
-        self.assertEqual(respuesta.status_code, 302)
-        self.assertIn("login", respuesta.url)
-
-    def test_con_menos_de_3_letras_no_busca(self):
-        self.login_cajero()
-        respuesta = self.buscar("co")
         self.assertEqual(respuesta.status_code, 200)
-        self.assertEqual(respuesta.content.decode().strip(), "")
-        self.assertNotContains(respuesta, "Sin productos")
+        carrito = self.client.session.get("carrito", {})
+        self.assertEqual(carrito, {producto_id: 1})
 
-    def test_con_3_letras_encuentra_por_nombre(self):
+    def test_cajero_agrega_producto_por_boton_rapido(self):
         self.login_cajero()
-        respuesta = self.buscar("coc")
-        self.assertContains(respuesta, "Coca 500ml")
-        self.assertNotContains(respuesta, "Villavicencio")
+        self.agregar_al_carrito(producto_id=self.agua.pk)
+        carrito = self.client.session.get("carrito", {})
+        self.assertEqual(carrito, {str(self.agua.pk): 1})
 
-    def test_encuentra_por_codigo_de_barras_parcial(self):
+    def test_codigo_inexistente_no_agrega_y_avisa(self):
         self.login_cajero()
-        respuesta = self.buscar("7790000")
-        self.assertContains(respuesta, "Coca 500ml")
+        respuesta = self.agregar_al_carrito(codigo="9999999999999")
+        self.assertEqual(self.client.session.get("carrito", {}), {})
+        self.assertContains(respuesta, "No se encontró ningún producto")
 
-    def test_sin_coincidencias_avisa(self):
+    def test_acumula_cantidad_al_agregar_dos_veces(self):
         self.login_cajero()
-        respuesta = self.buscar("xyz")
-        self.assertContains(respuesta, "Sin productos para")
+        self.agregar_al_carrito(codigo=self.coca.codigo_barras)
+        self.agregar_al_carrito(codigo=self.coca.codigo_barras)
+        carrito = self.client.session.get("carrito", {})
+        self.assertEqual(carrito, {str(self.coca.pk): 2})
 
-    def test_no_muestra_productos_dados_de_baja(self):
-        self.producto.activo = False
-        self.producto.save(update_fields=["activo"])
+    def test_actualizar_cantidad_y_quitar(self):
         self.login_cajero()
-        respuesta = self.buscar("coc")
-        self.assertNotContains(respuesta, "Coca 500ml")
+        self.agregar_al_carrito(codigo=self.coca.codigo_barras)
+        self.agregar_al_carrito(codigo=self.agua.codigo_barras)
 
-    def test_agrega_desde_la_lista_al_carrito(self):
-        """El botón de cada resultado manda el código a cobro_agregar."""
+        # Sumar: 2 cocas
+        self.client.post(reverse("ventas:actualizar_cantidad", args=[self.coca.pk]), {"cantidad": 2})
+        carrito = self.client.session.get("carrito", {})
+        self.assertEqual(carrito, {str(self.coca.pk): 2, str(self.agua.pk): 1})
+
+        # Quitar el agua
+        self.client.post(reverse("ventas:quitar_producto", args=[self.agua.pk]))
+        carrito = self.client.session.get("carrito", {})
+        self.assertEqual(carrito, {str(self.coca.pk): 2})
+
+        # Vaciar
+        self.client.post(reverse("ventas:vaciar_carrito"))
+        self.assertEqual(self.client.session.get("carrito", {}), {})
+
+    def test_total_del_carrito_se_muestra_en_la_pantalla(self):
         self.login_cajero()
-        self.agregar("7790000000001", hx=True)
-        self.assertEqual(self.carrito()[0]["producto_id"], self.producto.pk)
+        self.agregar_al_carrito(codigo=self.coca.codigo_barras)  # 3200
+        self.agregar_al_carrito(codigo=self.agua.codigo_barras)  # 1200
+
+        respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
+        self.assertContains(respuesta, "$ 4400")
+        self.assertContains(respuesta, "Carrito")
 
 
-class CobroVentaTests(BaseCobro):
-    """HU-09: cobro con efectivo/tarjeta, vuelto y descuento de stock."""
-
-    def test_efectivo_crea_venta_finalizada_con_vuelto(self):
-        """CA de HU-09: monto entregado, vuelto exacto y venta registrada."""
+class VentaTests(PoscTestsBase):
+    def test_cobrar_efectivo_registra_venta_y_vacía_carrito(self):
         self.login_cajero()
-        self.agregar("7790000000001")  # 1 x $1500
-        respuesta = self.confirmar("efectivo", "2000")
-        self.assertEqual(respuesta.status_code, 302)
-        self.assertIn("venta=", respuesta.url)
+        cantidad = 2
+        for _ in range(cantidad):
+            self.agregar_al_carrito(codigo=self.coca.codigo_barras)
+        total = self.coca.precio * cantidad  # 6400
 
-        venta = Venta.objects.get()
-        self.assertTrue(venta.finalizada)
-        self.assertEqual(venta.total, Decimal("1500.00"))
-        self.assertEqual(venta.metodo_pago, "efectivo")
-        self.assertEqual(venta.monto_entregado, Decimal("2000.00"))
-        self.assertEqual(venta.vuelto, Decimal("500.00"))
-        self.assertEqual(venta.usuario, self.cajero)
+        respuesta = self.registrar_venta(metodo="EFECTIVO", monto_recibido="10000")
 
-    def test_pago_exacto_da_vuelto_cero(self):
+        venta = Venta.objects.get(cajero=self.cajero)
+        self.assertEqual(venta.total, total)
+        self.assertEqual(venta.monto_recibido, Decimal("10000"))
+        self.assertEqual(venta.vuelto, Decimal("3600"))
+        self.assertEqual(venta.metodo_pago, "EFECTIVO")
+        # 2 líneas de detalle (una por agregado; el carrito acumula 2 en 1 línea)
+        self.assertEqual(venta.detalles.count(), 1)
+        detalle = venta.detalles.get()
+        self.assertEqual(detalle.cantidad, cantidad)
+        self.assertEqual(detalle.precio_unitario, self.coca.precio)
+
+        self.assertEqual(self.client.session.get("carrito", {}), {})
+        self.assertContains(respuesta, "Vuelto")
+        self.assertContains(respuesta, "3600")
+
+    def test_cobrar_con_tarjeta_no_devuelve_vuelto(self):
         self.login_cajero()
-        self.agregar("7790000000001")
-        self.confirmar("efectivo", "1500")
-        venta = Venta.objects.get()
+        self.agregar_al_carrito(codigo=self.agua.codigo_barras)
+
+        self.registrar_venta(metodo="TARJETA", monto_recibido="0")
+
+        venta = Venta.objects.get(cajero=self.cajero)
+        self.assertEqual(venta.metodo_pago, "TARJETA")
+        self.assertEqual(venta.monto_recibido, self.agua.precio)
         self.assertEqual(venta.vuelto, Decimal("0.00"))
 
-    def test_monto_con_formato_es_ar(self):
-        """El cajero puede tipear "2.000,00" (coma decimal, locale es-ar)."""
+    def test_no_cobra_si_el_efectivo_no_alcanza(self):
         self.login_cajero()
-        self.agregar("7790000000001")
-        self.confirmar("efectivo", "2.000,00")
-        venta = Venta.objects.get()
-        self.assertEqual(venta.monto_entregado, Decimal("2000.00"))
-        self.assertEqual(venta.vuelto, Decimal("500.00"))
+        self.agregar_al_carrito(codigo=self.coca.codigo_barras)
 
-    def test_monto_con_letras_rechazado(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        respuesta = self.confirmar("efectivo", "mil pesos")
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "no es un número válido")
+        respuesta = self.registrar_venta(metodo="EFECTIVO", monto_recibido="2000")
+
         self.assertEqual(Venta.objects.count(), 0)
+        self.assertContains(respuesta, "no alcanza")
+        # El carrito se conserva para que el cajero corrija el monto.
+        self.assertEqual(self.client.session.get("carrito"), {str(self.coca.pk): 1})
 
-    def test_stock_se_descuenta_al_confirmar(self):
-        """CA de HU-09: el stock se descuenta automáticamente."""
+    def test_no_cobra_si_el_carrito_esta_vacio(self):
         self.login_cajero()
-        self.agregar("7790000000001")
-        self.agregar("7790000000001")
-        self.cambiar_cantidad(self.producto, "sumar")  # 3 unidades
-        self.confirmar("efectivo", "5000")
-        self.producto.refresh_from_db()
-        self.assertEqual(self.producto.stock, 7)
-
-    def test_precio_y_costo_se_congelan_en_el_detalle(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        self.confirmar("efectivo", "1500")
-        detalle = DetalleVenta.objects.get()
-        self.assertEqual(detalle.precio_unitario, Decimal("1500.00"))
-        self.assertEqual(detalle.costo_unitario, Decimal("900.00"))
-        self.assertEqual(detalle.subtotal(), Decimal("1500.00"))
-        self.assertEqual(detalle.ganancia(), Decimal("600.00"))
-
-    def test_tarjeta_no_pide_monto_ni_vuelto(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        self.confirmar("tarjeta", "")
-        venta = Venta.objects.get()
-        self.assertEqual(venta.metodo_pago, "tarjeta")
-        self.assertIsNone(venta.monto_entregado)
-        self.assertIsNone(venta.vuelto)
-
-    def test_monto_menor_al_total_no_crea_venta(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        respuesta = self.confirmar("efectivo", "1000")
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "es menor al total")
+        respuesta = self.registrar_venta(metodo="EFECTIVO", monto_recibido="5000")
         self.assertEqual(Venta.objects.count(), 0)
-        self.assertEqual(self.carrito()[0]["cantidad"], 1)
+        self.assertContains(respuesta, "vacío")
 
-    def test_carrito_vacio_no_crea_venta(self):
+    def test_ultima_venta_se_muestra_como_comprobante(self):
         self.login_cajero()
-        respuesta = self.confirmar("efectivo", "5000")
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "El carrito está vacío")
-        self.assertEqual(Venta.objects.count(), 0)
+        self.agregar_al_carrito(codigo=self.coca.codigo_barras)
 
-    def test_metodo_pago_invalido_rechazado(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        respuesta = self.confirmar("cheque", "5000")
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "método de pago válido")
-        self.assertEqual(Venta.objects.count(), 0)
+        respuesta = self.registrar_venta(metodo="EFECTIVO", monto_recibido="10000")
+        self.assertContains(respuesta, "Venta #")
+        self.assertContains(respuesta, "quedó registrada")
 
-    def test_stock_insuficiente_rechaza_la_venta(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        self.agregar("7790000000001")
-        self.producto.stock = 1
-        self.producto.save(update_fields=["stock"])
+        # Al entrar a la pantalla se mantiene el aviso de la venta cerrada.
+        pantalla = self.client.get(reverse("ventas:pantalla_cobro"))
+        self.assertContains(pantalla, "quedó registrada")
 
-        respuesta = self.confirmar("efectivo", "5000")
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "Stock insuficiente")
-        self.assertEqual(Venta.objects.count(), 0)
-        self.producto.refresh_from_db()
-        self.assertEqual(self.producto.stock, 1)
 
-    def test_carrito_se_vacia_tras_confirmar(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        self.confirmar("efectivo", "1500")
-        self.assertEqual(self.carrito(), [])
-
-    def test_venta_queda_auditoriada(self):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        self.confirmar("efectivo", "1500")
-        self.assertTrue(
-            RegistroAuditoria.objects.filter(accion="Venta confirmada").exists()
-        )
-
-    def test_admin_tambien_puede_cobrar(self):
-        self.login_admin()
-        self.agregar("7790000000001")
-        self.confirmar("efectivo", "1500")
-        self.assertEqual(Venta.objects.get().usuario, self.admin)
-
-
-class ComprobanteTests(BaseCobro):
-    """El ticket posterior al cobro: visible para su cajero y para el admin."""
-
-    def _venta_de(self, user):
-        self.login_cajero()
-        self.agregar("7790000000001")
-        self.confirmar("efectivo", "2000")
-        self.client.logout()
-        return Venta.objects.get()
-
-    def test_comprobante_muestra_totales_y_vuelto(self):
-        venta = self._venta_de(self.cajero)
-        self.login_cajero()
-        respuesta = self.client.get(
-            reverse("ventas:pantalla_cobro"), {"venta": venta.pk}
-        )
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, f"Venta N° {venta.pk} confirmada")
-        self.assertContains(respuesta, "$500")  # vuelto (miles con punto)
-
-    def test_comprobante_de_otro_cajero_da_403(self):
-        venta = self._venta_de(self.cajero)
-        otro = User.objects.create_user(
-            username="cajero2", password="claveSegura123"
-        )
-        otro.groups.add(self.grupo_cajero)
-        self.client.login(username="cajero2", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:pantalla_cobro"), {"venta": venta.pk}
-        )
-        self.assertEqual(respuesta.status_code, 403)
-
-    def test_admin_puede_ver_cualquier_comprobante(self):
-        venta = self._venta_de(self.cajero)
-        self.login_admin()
-        respuesta = self.client.get(
-            reverse("ventas:pantalla_cobro"), {"venta": venta.pk}
-        )
-        self.assertEqual(respuesta.status_code, 200)
-
-    def test_venta_inexistente_da_404(self):
-        self.login_cajero()
-        respuesta = self.client.get(
-            reverse("ventas:pantalla_cobro"), {"venta": 9999}
-        )
-        self.assertEqual(respuesta.status_code, 404)
-
-
-class RegistroPorCodigoBarrasTests(BaseCatalogo):
-    """Registro de productos con el lector (actúa como teclado + Enter)."""
-
-    def _datos(self, **extra):
-        datos = {
-            "nombre": "Agua Villavicencio 500ml",
-            "codigo_barras": "7791111111111",
-            "descripcion": "Agua mineral",
-            "costo": "700.00",
-            "precio": "1200.00",
-            "stock": "20",
-            "stock_minimo": "4",
-            "categoria": str(self.categoria.id),
-        }
-        datos.update(extra)
-        return datos
-
-    def test_lectura_con_espacios_se_normaliza(self):
-        """El lector suele agregar espacios/saltos: se guardan sin ellos."""
-        self.client.login(username="admin_cat", password="claveSegura123")
-        self.client.post(
-            reverse("ventas:agregar_producto"),
-            self._datos(codigo_barras="  7791111111111\n"),
-        )
-        producto = Producto.objects.get(nombre="Agua Villavicencio 500ml")
-        self.assertEqual(producto.codigo_barras, "7791111111111")
-
-    def test_lectura_con_espacios_detecta_duplicado(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.post(
-            reverse("ventas:agregar_producto"),
-            self._datos(codigo_barras=" 7790000000001 "),
-        )
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertFormError(
-            respuesta.context["form"],
-            "codigo_barras",
-            "Ese código de barras ya está registrado en otro producto.",
-        )
-
-    def test_sin_codigo_se_guarda_nulo_y_no_choca(self):
-        """Dos productos sin escanear no violan el unique."""
-        self.client.login(username="admin_cat", password="claveSegura123")
-        self.client.post(
-            reverse("ventas:agregar_producto"), self._datos(codigo_barras="")
-        )
-        self.client.post(
-            reverse("ventas:agregar_producto"),
-            self._datos(
-                nombre="Otro sin código",
-                codigo_barras="",
-                precio="1300.00",
-            ),
-        )
-        sin_codigo = Producto.objects.filter(codigo_barras__isnull=True)
-        self.assertEqual(sin_codigo.count(), 2)
-
-    def test_alta_precarga_codigo_escaneado(self):
-        """?codigo= precarga el campo para registrar desde el escáner."""
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:agregar_producto"), {"codigo": " 7799999999999 "}
-        )
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertEqual(
-            respuesta.context["form"].initial.get("codigo_barras"),
-            "7799999999999",
-        )
-        self.assertContains(respuesta, "7799999999999")
-
-    def test_buscar_por_codigo_existente(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:buscar_por_codigo"),
-            {"codigo": " 7790000000001 "},
-        )
-        self.assertEqual(respuesta.status_code, 200)
-        datos = respuesta.json()
-        self.assertTrue(datos["existe"])
-        self.assertEqual(datos["codigo"], "7790000000001")
-        self.assertEqual(datos["producto_id"], self.producto.pk)
-        self.assertIn(str(self.producto.pk), datos["url_editar"])
-
-    def test_buscar_por_codigo_libre(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:buscar_por_codigo"), {"codigo": "7799999999999"}
-        )
-        datos = respuesta.json()
-        self.assertFalse(datos["existe"])
-        self.assertEqual(datos["codigo"], "7799999999999")
-
-    def test_buscar_por_codigo_excluye_el_propio_en_edicion(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:buscar_por_codigo"),
-            {"codigo": self.producto.codigo_barras, "excluir": self.producto.pk},
-        )
-        self.assertFalse(respuesta.json()["existe"])
-
-    def test_buscar_por_codigo_solo_administrador(self):
-        self.client.login(username="cajero_cat", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:buscar_por_codigo"), {"codigo": "7790000000001"}
-        )
-        self.assertEqual(respuesta.status_code, 403)
-
-    def test_cobro_sin_coincidencias_sugiere_el_alta_al_admin(self):
-        self.client.login(username="admin_cat", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:cobro_buscar"), {"codigo": "7799999999999"}
-        )
-        self.assertContains(respuesta, "Dar de alta con este código")
-        self.assertContains(respuesta, "codigo=7799999999999")
-
-    def test_cobro_sin_coincidencias_no_sugiere_al_cajero(self):
-        self.client.login(username="cajero_cat", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:cobro_buscar"), {"codigo": "7799999999999"}
-        )
-        self.assertNotContains(respuesta, "Dar de alta con este código")
-
-
-class CierreTurnoTests(TestCase):
-    """HU-10: totales por método de pago, operaciones y responsable."""
-
-    def setUp(self):
-        self.grupo_cajero = Group.objects.create(name="Cajero")
-        self.grupo_admin = Group.objects.create(name="Administrador")
-
-        self.cajero = User.objects.create_user(
-            username="cajero_turno", password="claveSegura123"
-        )
-        self.cajero.groups.add(self.grupo_cajero)
-
-        self.admin = User.objects.create_user(
-            username="admin_turno", password="claveSegura123", is_staff=True
-        )
-        self.admin.groups.add(self.grupo_admin)
-
-        self.categoria = Categoria.objects.create(nombre="Bebidas")
-        self.producto = Producto.objects.create(
-            nombre="Coca 500ml",
-            codigo_barras="7790000000001",
-            precio=Decimal("1500.00"),
-            costo=Decimal("900.00"),
-            stock=10,
-            stock_minimo=5,
-            categoria=self.categoria,
-        )
-
-    def login_cajero(self):
-        self.client.login(username="cajero_turno", password="claveSegura123")
-
-    def login_admin(self):
-        self.client.login(username="admin_turno", password="claveSegura123")
-
-    def abrir(self):
-        return self.client.post(
-            reverse("ventas:cierre_turno"), {"accion": "abrir"}
-        )
-
-    def cerrar(self):
-        return self.client.post(
-            reverse("ventas:cierre_turno"), {"accion": "cerrar"}
-        )
-
-    def venta(self, total, metodo="efectivo", usuario=None, finalizada=True):
-        return Venta.objects.create(
-            total=Decimal(str(total)),
-            metodo_pago=metodo,
-            usuario=usuario if usuario is not None else self.cajero,
-            finalizada=finalizada,
-        )
-
-    def test_anonimo_redirige_a_login(self):
-        url = reverse("ventas:cierre_turno")
-        self.assertEqual(self.client.get(url).status_code, 302)
-        self.assertEqual(
-            self.client.post(url, {"accion": "abrir"}).status_code, 302
-        )
-
-    def test_abrir_turno_registra_al_usuario_a_cargo(self):
-        """CA de HU-10: se registra qué usuario estaba a cargo del turno."""
-        self.login_cajero()
-        self.abrir()
-        turno = Turno.objects.get()
-        self.assertEqual(turno.usuario, self.cajero)
-        self.assertTrue(turno.activo)
-        self.assertIsNone(turno.fecha_cierre)
-
-    def test_no_abre_dos_turnos_a_la_vez(self):
-        self.login_cajero()
-        self.abrir()
-        self.abrir()
-        self.assertEqual(Turno.objects.filter(usuario=self.cajero).count(), 1)
-
-    def test_pantalla_sin_turno_propone_abrir(self):
-        self.login_cajero()
-        respuesta = self.client.get(reverse("ventas:cierre_turno"))
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "No tenés un turno abierto")
-        self.assertTemplateUsed(respuesta, "ventas/cierre_turno.html")
-
-    def test_totales_en_vivo_antes_de_cerrar(self):
-        self.login_cajero()
-        self.abrir()
-        self.venta("1500")
-        self.venta("500")
-        self.venta("1200", metodo="tarjeta")
-
-        respuesta = self.client.get(reverse("ventas:cierre_turno"))
-        totales = respuesta.context["totales"]
-        self.assertEqual(totales["total_efectivo"], Decimal("2000.00"))
-        self.assertEqual(totales["total_tarjeta"], Decimal("1200.00"))
-        self.assertEqual(totales["cantidad_operaciones"], 3)
-
-    def test_lo_fiado_no_entra_a_la_caja(self):
-        """HU-14: lo fiado no es plata que esté en la caja."""
-        self.login_cajero()
-        self.abrir()
-        self.venta("1500")
-        self.venta("800", metodo="cuenta_corriente")
-
-        respuesta = self.client.get(reverse("ventas:cierre_turno"))
-        totales = respuesta.context["totales"]
-        self.assertEqual(totales["total_efectivo"], Decimal("1500.00"))
-        self.assertEqual(totales["total_tarjeta"], Decimal("0.00"))
-        self.assertEqual(totales["total_general"], Decimal("1500.00"))
-        self.assertEqual(totales["deuda_otorgada"], Decimal("800.00"))
-
-    def test_pantalla_muestra_la_deuda_otorgada(self):
-        self.login_cajero()
-        self.abrir()
-        self.venta("800", metodo="cuenta_corriente")
-        respuesta = self.client.get(reverse("ventas:cierre_turno"))
-        self.assertContains(respuesta, "Deuda otorgada")
-
-    def test_cerrar_congela_la_deuda_otorgada(self):
-        """El snapshot del cierre también guarda lo fiado, aparte."""
-        self.login_cajero()
-        self.abrir()
-        self.venta("1500")
-        self.venta("800", metodo="cuenta_corriente")
-
-        self.cerrar()
-        turno = Turno.objects.get()
-        self.assertEqual(turno.total_efectivo, Decimal("1500.00"))
-        self.assertEqual(turno.deuda_otorgada, Decimal("800.00"))
-
-    def test_cerrar_turno_congela_los_totales(self):
-        """CA de HU-10: efectivo, tarjeta, operaciones y responsable."""
-        self.login_cajero()
-        self.abrir()
-        self.venta("1500")
-        self.venta("500")
-        self.venta("1200", metodo="tarjeta")
-
-        respuesta = self.cerrar()
-        self.assertEqual(respuesta.status_code, 302)
-
-        turno = Turno.objects.get()
-        self.assertFalse(turno.activo)
-        self.assertIsNotNone(turno.fecha_cierre)
-        self.assertEqual(turno.usuario, self.cajero)
-        self.assertEqual(turno.total_efectivo, Decimal("2000.00"))
-        self.assertEqual(turno.total_tarjeta, Decimal("1200.00"))
-        self.assertEqual(turno.cantidad_operaciones, 3)
-
-    def test_cerrar_sin_turno_abierto_no_crea_nada(self):
-        self.login_cajero()
-        respuesta = self.cerrar()
-        self.assertEqual(respuesta.status_code, 302)
-        self.assertEqual(Turno.objects.count(), 0)
-
-    def test_ventas_de_otro_cajero_no_entran_en_el_turno(self):
-        self.login_cajero()
-        self.abrir()
-        self.venta("1500", usuario=self.cajero)
-        self.venta("9999", usuario=self.admin)
-
-        self.cerrar()
-        turno = Turno.objects.get()
-        self.assertEqual(turno.total_efectivo, Decimal("1500.00"))
-        self.assertEqual(turno.cantidad_operaciones, 1)
-
-    def test_ventas_no_finalizadas_no_entran(self):
-        self.login_cajero()
-        self.abrir()
-        self.venta("1500", finalizada=True)
-        self.venta("9999", finalizada=False)
-
-        self.cerrar()
-        turno = Turno.objects.get()
-        self.assertEqual(turno.total_efectivo, Decimal("1500.00"))
-        self.assertEqual(turno.cantidad_operaciones, 1)
-
-    def test_ventas_anteriores_a_la_apertura_no_entran(self):
-        self.login_cajero()
-        self.abrir()
-        turno = Turno.objects.get()
-        vieja = self.venta("9999")
-        Venta.objects.filter(pk=vieja.pk).update(
-            fecha=turno.fecha_apertura - timedelta(hours=1)
-        )
-
-        self.cerrar()
-        turno.refresh_from_db()
-        self.assertEqual(turno.total_efectivo, Decimal("0.00"))
-        self.assertEqual(turno.cantidad_operaciones, 0)
-
-    def test_ventas_posteriores_no_cambian_el_snapshot(self):
-        self.login_cajero()
-        self.abrir()
-        self.venta("1500")
-        self.cerrar()
-        self.venta("9999")
-
-        turno = Turno.objects.get()
-        self.assertEqual(turno.total_efectivo, Decimal("1500.00"))
-        self.assertEqual(turno.cantidad_operaciones, 1)
-
-    def test_cierre_queda_auditoriado(self):
-        self.login_cajero()
-        self.abrir()
-        self.venta("1500")
-        self.cerrar()
-        self.assertTrue(
-            RegistroAuditoria.objects.filter(accion="Cierre de turno").exists()
-        )
-
-    def test_resumen_muestra_totales_formateados(self):
-        self.login_cajero()
-        self.abrir()
-        self.venta("2000")
-        self.venta("1200", metodo="tarjeta")
-        self.cerrar()
-
-        turno = Turno.objects.get()
-        respuesta = self.client.get(
-            reverse("ventas:cierre_turno"), {"turno": turno.pk}
-        )
-        self.assertEqual(respuesta.status_code, 200)
-        self.assertContains(respuesta, "$2.000")  # efectivo
-        self.assertContains(respuesta, "$1.200")  # tarjeta
-        self.assertContains(respuesta, "cajero_turno")
-
-    def test_no_puede_ver_el_turno_de_otro_cajero(self):
-        self.login_cajero()
-        self.abrir()
-        turno = Turno.objects.get()
-        self.client.logout()
-
-        otro = User.objects.create_user(
-            username="cajero2_turno", password="claveSegura123"
-        )
-        otro.groups.add(self.grupo_cajero)
-        self.client.login(username="cajero2_turno", password="claveSegura123")
-        respuesta = self.client.get(
-            reverse("ventas:cierre_turno"), {"turno": turno.pk}
-        )
-        self.assertEqual(respuesta.status_code, 403)
-
-    def test_admin_puede_ver_el_turno_de_un_cajero(self):
-        self.login_cajero()
-        self.abrir()
-        turno = Turno.objects.get()
-        self.client.logout()
-
-        self.login_admin()
-        respuesta = self.client.get(
-            reverse("ventas:cierre_turno"), {"turno": turno.pk}
-        )
-        self.assertEqual(respuesta.status_code, 200)
-
-    def test_turno_inexistente_da_404(self):
-        self.login_cajero()
-        respuesta = self.client.get(
-            reverse("ventas:cierre_turno"), {"turno": 9999}
-        )
-        self.assertEqual(respuesta.status_code, 404)
-
-    def test_el_cajero_ve_el_boton_de_acceso_desde_el_cobro(self):
+class AccesoPocTests(PoscTestsBase):
+    def test_cajero_accede_a_la_pantalla_de_cobro(self):
         self.login_cajero()
         respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
-        self.assertContains(respuesta, reverse("ventas:cierre_turno"))
+        self.assertEqual(respuesta.status_code, 200)
+
+    def test_administrador_accede_a_la_pantalla_de_cobro(self):
+        self.client.login(username="admin_pos", password="claveSegura123")
+        respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
+        self.assertEqual(respuesta.status_code, 200)
+
+    def test_pantalla_lista_productos_activos(self):
+        self.login_cajero()
+        Producto.objects.create(
+            nombre="Producto oculto",
+            codigo_barras="7799999999999",
+            precio=Decimal("500"),
+            activo=False,
+        )
+        respuesta = self.client.get(reverse("ventas:pantalla_cobro"))
+        self.assertContains(respuesta, "Coca-Cola 1.5L")
+        self.assertNotContains(respuesta, "Producto oculto")

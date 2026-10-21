@@ -50,8 +50,7 @@
                         {% if form.codigo_barras.errors %}
                             <span class="field-error">{{ form.codigo_barras.errors.0 }}</span>
                         {% endif %}
-                        <span class="help-text">Apuntá el lector al campo y escaneá: se carga solo. No puede repetirse.</span>
-                        <div id="aviso-codigo" class="help-text" aria-live="polite"></div>
+                        <span class="help-text">Se lee con el lector; no puede repetirse</span>
                     </div>
                 </div>
 
@@ -151,49 +150,4 @@
         </div>
     </div>
 </div>
-
-<script>
-(function () {
-    // Igual que en el alta, pero excluye el producto actual de la búsqueda
-    // para no marcar su propio código como duplicado.
-    var input = document.getElementById('id_codigo_barras');
-    var nombre = document.getElementById('id_nombre');
-    var aviso = document.getElementById('aviso-codigo');
-    if (!input) return;
-    input.addEventListener('keydown', function (e) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            if (nombre) nombre.focus();
-        }
-    });
-    var timer = null;
-    input.addEventListener('input', function () {
-        if (aviso) aviso.textContent = '';
-        if (timer) clearTimeout(timer);
-        timer = setTimeout(consultar, 300);
-    });
-    function consultar() {
-        var codigo = input.value.trim();
-        if (!codigo || !aviso) return;
-        var url = "{% url 'ventas:buscar_por_codigo' %}?codigo=" + encodeURIComponent(codigo)
-            + "&excluir={{ producto.pk }}";
-        fetch(url, {
-            headers: {"X-Requested-With": "XMLHttpRequest"}
-        }).then(function (r) { return r.json(); }).then(function (data) {
-            if (input.value.trim() !== data.codigo) return;
-            if (data.existe) {
-                aviso.innerHTML = '';
-                var txt = document.createTextNode('Ese código ya es de «' + data.nombre + '». ');
-                var link = document.createElement('a');
-                link.href = data.url_editar;
-                link.textContent = 'Ver / editar producto';
-                aviso.appendChild(txt);
-                aviso.appendChild(link);
-            } else {
-                aviso.textContent = 'Código libre: listo para registrar.';
-            }
-        }).catch(function () { /* sin aviso si falla la red */ });
-    }
-})();
-</script>
 {% endblock %}

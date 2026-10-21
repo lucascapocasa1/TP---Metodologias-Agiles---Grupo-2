@@ -10,7 +10,7 @@ class Migration(migrations.Migration):
     initial = True
 
     dependencies = [
-        ('ventas', '0006_turno'),
+        ('ventas', '0004_alter_venta_metodo_pago'),
     ]
 
     operations = [

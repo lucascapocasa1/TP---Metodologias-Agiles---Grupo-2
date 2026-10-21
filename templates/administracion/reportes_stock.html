@@ -98,7 +98,7 @@
                 <tbody>
                     {% for fila in por_categoria %}
                     <tr>
-                        <td>{{ fila.categoria__nombre }}</td>
+                        <td>{{ fila.categoria }}</td>
                         <td>{{ fila.productos }}</td>
                         <td>{{ fila.unidades }}</td>
                         <td>${{ fila.valor_costo|montos }}</td>
@@ -132,7 +132,7 @@
                     {% for p in stock.stock_bajo %}
                     <tr class="{% if p.stock == 0 %}row-inactive{% endif %}">
                         <td>{{ p.nombre }}</td>
-                        <td>{{ p.categoria.nombre }}</td>
+                        <td>{{ p.categoria }}</td>
                         <td>
                             {% if p.stock == 0 %}
                             <span class="status-badge status-inactive">Agotado</span>

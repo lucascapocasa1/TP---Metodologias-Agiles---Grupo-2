@@ -15,7 +15,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from auditoria.utils import registrar_accion
 from usuarios.decorators import rol_requerido
-from ventas.models import Categoria, Producto
+from ventas.models import Producto
 
 from . import config, services
 from .models import Pedido
@@ -26,17 +26,21 @@ from .services import ErrorPedido
 
 
 def _contexto_catalogo(request, error=None, exito=None):
-    productos = (
+    categoria_actual = request.GET.get("categoria", "")
+    productos = Producto.objects.filter(activo=True).order_by("categoria", "nombre")
+    if categoria_actual:
+        productos = productos.filter(categoria=categoria_actual)
+    categorias = list(
         Producto.objects.filter(activo=True)
-        .select_related("categoria")
-        .order_by("categoria__nombre", "nombre")
+        .values_list("categoria", flat=True)
+        .distinct()
+        .order_by("categoria")
     )
-    categorias = Categoria.objects.filter(productos__activo=True).distinct()
     items = services.items_del_pedido(request)
     return {
         "productos": productos,
         "categorias": categorias,
-        "categoria_actual": request.GET.get("categoria", ""),
+        "categoria_actual": categoria_actual,
         "items": items,
         "total": services.total_del_pedido(items),
         "error": error,
@@ -71,7 +75,7 @@ def pedido_agregar(request):
         producto = services.buscar_producto_publico(
             request.POST.get("producto_id")
         )
-        if producto is None or producto.stock <= 0:
+        if producto is None:
             raise ErrorPedido("Ese producto no está disponible ahora.")
         services.agregar_al_pedido(
             request, producto, request.POST.get("cantidad", 1)

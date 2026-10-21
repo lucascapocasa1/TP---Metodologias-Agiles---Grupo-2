@@ -24,12 +24,5 @@
     </ul>
     {% else %}
     <p class="cobro-res-vacio">Sin productos para «{{ consulta }}».</p>
-    {% if puede_dar_alta %}
-    <p class="cobro-res-vacio">
-        <a href="{% url 'ventas:agregar_producto' %}?codigo={{ consulta|urlencode }}" class="btn btn-kiosco-outline">
-            <i class="bi bi-plus-lg"></i> Dar de alta con este código
-        </a>
-    </p>
-    {% endif %}
     {% endif %}
 {% endif %}

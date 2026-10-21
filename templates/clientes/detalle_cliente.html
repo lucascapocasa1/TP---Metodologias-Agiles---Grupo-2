@@ -202,7 +202,7 @@
                             <td>N° {{ v.pk }}</td>
                             <td>{{ v.fecha|date:"d/m/Y H:i" }}</td>
                             <td>{{ v.get_metodo_pago_display }}</td>
-                            <td>{{ v.usuario|default:"—" }}</td>
+                            <td>{{ v.cajero|default:"—" }}</td>
                             <td>
                                 {% if v.puntos_ganados %}
                                 <span class="badge-stock"><i class="bi bi-star-fill"></i> +{{ v.puntos_ganados }}</span>

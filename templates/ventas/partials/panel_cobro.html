@@ -1,0 +1,260 @@
+{% load formatos %}
+{% comment %}
+Fragmento del POS que HTMX reemplaza en cada acción del cajero.
+Contiene el carrito, el panel de pagos (Efectivo / QR / Tarjeta) y el
+ticket de la venta recién cerrada que aparece como anuncio centrado.
+El `data-total` lo usa el JS para calcular el vuelto sin servidor.
+{% endcomment %}
+<div id="pos-panel" class="pos-side" data-total="{{ total|stringformat:'f' }}">
+
+    {% if mensaje %}
+    <div class="cart-alert {% if mensaje_tipo == 'exito' %}success{% else %}danger{% endif %}">
+        &#x1F4E2; {{ mensaje }}
+    </div>
+    {% endif %}
+
+    <aside class="cart-panel">
+        <div class="cart-header">
+            <span class="cart-head-icon" aria-hidden="true">&#x1F6D2;</span>
+            <span class="cart-head-title">Carrito</span>
+            <span class="cart-head-count">{{ items|length }}</span>
+            {% if items %}
+            <form hx-post="{% url 'ventas:vaciar_carrito' %}"
+                  hx-target="#pos-panel" hx-swap="outerHTML"
+                  hx-confirm="¿Vaciar todo el carrito?">
+                {% csrf_token %}
+                <button type="submit" class="cart-clear" title="Vaciar carrito" aria-label="Vaciar carrito">Vaciar</button>
+            </form>
+            {% endif %}
+        </div>
+
+        {% if items %}
+        <div class="cart-items">
+            {% for item in items %}
+            <div class="cart-item">
+                <div class="cart-item-icon" aria-hidden="true">{{ item.producto.icono }}</div>
+                <div class="cart-item-info">
+                    <div class="cart-item-name">{{ item.producto.nombre }}</div>
+                    <div class="cart-item-price">$ {{ item.producto.precio|montos }}</div>
+                    <div class="quantity-control">
+                        <form hx-post="{% url 'ventas:actualizar_cantidad' item.producto.pk %}"
+                              hx-target="#pos-panel" hx-swap="outerHTML">
+                            {% csrf_token %}
+                            <input type="hidden" name="cantidad" value="{{ item.cantidad|add:'-1' }}">
+                            <button type="submit" class="qty-btn" aria-label="Restar uno">&minus;</button>
+                        </form>
+                        <span class="qty-value">{{ item.cantidad }}</span>
+                        <form hx-post="{% url 'ventas:actualizar_cantidad' item.producto.pk %}"
+                              hx-target="#pos-panel" hx-swap="outerHTML">
+                            {% csrf_token %}
+                            <input type="hidden" name="cantidad" value="{{ item.cantidad|add:'1' }}">
+                            <button type="submit" class="qty-btn" aria-label="Sumar uno">+</button>
+                        </form>
+                    </div>
+                </div>
+                <div class="cart-item-right">
+                    <div class="cart-item-total">$ {{ item.subtotal|montos }}</div>
+                    <form hx-post="{% url 'ventas:quitar_producto' item.producto.pk %}"
+                          hx-target="#pos-panel" hx-swap="outerHTML">
+                        {% csrf_token %}
+                        <button type="submit" class="remove-item" aria-label="Quitar del carrito">&times;</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-cart">
+            <div class="empty-icon" aria-hidden="true">&#x1F6D2;</div>
+            <div class="empty-title">El carrito está vacío</div>
+            <div class="empty-hint">Escaneá un producto o tocá uno de la grilla.</div>
+        </div>
+        {% endif %}
+
+        <div class="total-section">
+            <span class="total-label">TOTAL</span>
+            <span class="total-value" id="total">$ {{ total|montos }}</span>
+        </div>
+    </aside>
+
+    <aside class="pay-panel">
+        <div class="pay-header">
+            <span class="pay-title">Pago</span>
+            <span class="pay-total" id="payTotal">$ {{ total|montos }}</span>
+        </div>
+
+        <div class="method-tabs" id="methodTabs">
+            <button type="button" class="method-tab active" data-method="EFECTIVO">
+                <span class="tab-emoji" aria-hidden="true">&#x1F4B5;</span><span>Efectivo</span>
+            </button>
+            <button type="button" class="method-tab" data-method="QR">
+                <span class="tab-emoji" aria-hidden="true">&#x1F4F1;</span><span>QR</span>
+            </button>
+            <button type="button" class="method-tab" data-method="TARJETA">
+                <span class="tab-emoji" aria-hidden="true">&#x1F4B3;</span><span>Tarjeta</span>
+            </button>
+        </div>
+
+        <div class="method-panel" id="panel-EFECTIVO">
+            <div class="payment-row">
+                <span class="payment-label">Total a pagar</span>
+                <span class="payment-amount">$ {{ total|montos }}</span>
+            </div>
+
+            <input class="cash-input"
+                   id="cashInput"
+                   type="number"
+                   min="0"
+                   step="100"
+                   placeholder="$ 0"
+                   inputmode="numeric">
+
+            <div class="change-box" id="changeBox">
+                <span class="change-label">Vuelto</span>
+                <span class="change-value" id="changeValue">$ 0</span>
+            </div>
+
+            <div class="quick-cash">
+                <button type="button" data-cash="500">+ $ 500</button>
+                <button type="button" data-cash="1000">+ $ 1.000</button>
+                <button type="button" data-cash="2000">+ $ 2.000</button>
+                <button type="button" data-cash="5000">+ $ 5.000</button>
+                <button type="button" data-cash="10000">+ $ 10.000</button>
+                <button type="button" data-cash="exact">Exacto</button>
+            </div>
+
+            <div class="payment-actions">
+                <button type="button" class="exact-payment" id="exactPayment">Pago exacto</button>
+                <button type="button" class="clear-payment" id="clearPayment">Limpiar</button>
+            </div>
+        </div>
+
+        <div class="method-panel" id="panel-QR" hidden>
+            <div class="qr-box">
+                <svg class="qr-svg" viewBox="0 0 80 80" aria-hidden="true">
+                    <rect x="2" y="2" width="20" height="20" rx="2" fill="#263f5d"/>
+                    <rect x="7" y="7" width="10" height="10" fill="#fff"/>
+                    <rect x="58" y="2" width="20" height="20" rx="2" fill="#263f5d"/>
+                    <rect x="63" y="7" width="10" height="10" fill="#fff"/>
+                    <rect x="2" y="58" width="20" height="20" rx="2" fill="#263f5d"/>
+                    <rect x="7" y="63" width="10" height="10" fill="#fff"/>
+                    <rect x="26" y="2" width="6" height="6" fill="#263f5d"/>
+                    <rect x="40" y="6" width="6" height="6" fill="#263f5d"/>
+                    <rect x="48" y="2" width="6" height="6" fill="#263f5d"/>
+                    <rect x="30" y="14" width="6" height="10" fill="#263f5d"/>
+                    <rect x="42" y="14" width="12" height="6" fill="#263f5d"/>
+                    <rect x="26" y="26" width="18" height="6" rx="1" fill="#263f5d"/>
+                    <rect x="50" y="26" width="6" height="14" fill="#263f5d"/>
+                    <rect x="26" y="38" width="10" height="6" fill="#263f5d"/>
+                    <rect x="42" y="38" width="6" height="6" fill="#263f5d"/>
+                    <rect x="34" y="50" width="6" height="12" fill="#263f5d"/>
+                    <rect x="26" y="68" width="14" height="6" fill="#263f5d"/>
+                    <rect x="46" y="58" width="6" height="6" fill="#263f5d"/>
+                    <rect x="58" y="58" width="14" height="6" fill="#263f5d"/>
+                    <rect x="56" y="70" width="16" height="6" fill="#263f5d"/>
+                </svg>
+                <div class="qr-amount">$ {{ total|montos }}</div>
+                <div class="pay-note qr-msg">Mostrale el QR al cliente para realizar el pago.</div>
+            </div>
+        </div>
+
+        <div class="method-panel" id="panel-TARJETA" hidden>
+            <div class="card-fields">
+                <label class="kiosco-label" for="card-number">Número de tarjeta</label>
+                <input type="text"
+                       id="card-number"
+                       class="card-input"
+                       placeholder="&#8226;&#8226;&#8226;&#8226; &#8226;&#8226;&#8226;&#8226; &#8226;&#8226;&#8226;&#8226; &#8226;&#8226;&#8226;&#8226;"
+                       inputmode="numeric"
+                       autocomplete="cc-number"
+                       maxlength="19">
+                <div class="card-row">
+                    <div>
+                        <label class="kiosco-label" for="card-expiry">Vencimiento</label>
+                        <input type="text"
+                               id="card-expiry"
+                               class="card-input card-expiry-input"
+                               placeholder="MM/AA"
+                               inputmode="numeric"
+                               autocomplete="cc-exp"
+                               maxlength="5">
+                    </div>
+                    <div>
+                        <label class="kiosco-label" for="card-cvv">CVV</label>
+                        <input type="text"
+                               id="card-cvv"
+                               class="card-input"
+                               placeholder="&#8226;&#8226;&#8226;"
+                               inputmode="numeric"
+                               autocomplete="cc-csc"
+                               maxlength="4">
+                    </div>
+                </div>
+                <div class="pay-amount-row">
+                    <span>Total a cobrar</span>
+                    <strong>$ {{ total|montos }}</strong>
+                </div>
+                <div class="pay-note card-msg">Pedile la tarjeta al cliente para realizar el pago.</div>
+            </div>
+        </div>
+
+        <form hx-post="{% url 'ventas:registrar_venta' %}"
+              hx-target="#pos-panel" hx-swap="outerHTML" id="form-cobrar">
+            {% csrf_token %}
+            <input type="hidden" name="metodo_pago" id="metodo-pago-input" value="EFECTIVO">
+            <input type="hidden" name="monto_recibido" id="monto-recibido-input" value="0">
+            <button type="submit" class="checkout-button" id="checkoutButton" disabled>
+                Cobrar y nueva venta
+            </button>
+        </form>
+    </aside>
+
+    {% if venta_reciente %}
+    <div class="ticket-modal-backdrop" id="ticketModal">
+        <div class="ticket-card" role="dialog" aria-modal="true" aria-labelledby="ticket-title">
+            <div class="ticket-head">
+                <span class="ticket-check" aria-hidden="true">&#x2705;</span>
+                <div>
+                    <div class="ticket-title" id="ticket-title">Venta #{{ venta_reciente.id }} quedó registrada</div>
+                    <div class="ticket-meta">{{ venta_reciente.fecha }} &middot; {{ venta_reciente.metodo }}</div>
+                </div>
+            </div>
+
+            <div class="ticket-items">
+                {% for linea in venta_reciente.detalle %}
+                <div class="ticket-row">
+                    <span class="ticket-row-icon" aria-hidden="true">{{ linea.icono }}</span>
+                    <span class="ticket-row-name">{{ linea.cantidad }}x {{ linea.nombre }}</span>
+                    <span class="ticket-row-amount">${{ linea.subtotal|montos }}</span>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="ticket-totals">
+                <div class="ticket-total-line">
+                    <span>Total</span><strong>${{ venta_reciente.total|montos }}</strong>
+                </div>
+                <div class="ticket-total-line">
+                    <span>Recibido</span><span>${{ venta_reciente.monto_recibido|montos }}</span>
+                </div>
+                {% if venta_reciente.metodo == "Efectivo" %}
+                <div class="ticket-total-line ticket-vuelto">
+                    <span>Vuelto a dar</span><strong>${{ venta_reciente.vuelto|montos }}</strong>
+                </div>
+                {% if venta_reciente.vuelto_piezas %}
+                <div class="ticket-piezas">
+                    {% for den, cant in venta_reciente.vuelto_piezas.items %}
+                        {% if forloop.first %}{% else %} &middot; {% endif %}
+                        {{ cant }} x ${{ den }}
+                    {% endfor %}
+                    {% if venta_reciente.vuelto_centavos %} + {{ venta_reciente.vuelto_centavos }} ctvs{% endif %}
+                </div>
+                {% endif %}
+                {% endif %}
+            </div>
+
+            <a href="{% url 'ventas:pantalla_cobro' %}" class="ticket-close" id="ticketClose">Nueva venta</a>
+        </div>
+    </div>
+    {% endif %}
+</div>

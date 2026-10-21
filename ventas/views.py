@@ -1,414 +1,255 @@
-from django.contrib import messages
+"""
+Vistas del POS (Sprint 2).
+
+Pantalla rápida del cajero: escaneo por código de barras o botones de
+productos, carrito en la sesión y cobro con cálculo de vuelto en billetes.
+
+Todos los endpoints son HTMX-friendly: las peticiones que vienen de HTMX
+(header `HX-Request`) devuelven solo el fragmento del panel de cobro, así
+el cajero agrega productos y cobra sin recargar la página.
+"""
+from decimal import Decimal
+
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
-from django.db.models import Q
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404, redirect, render
-from django.urls import reverse
+from django.db import transaction
+from django.shortcuts import redirect, render
+from django.views.decorators.http import require_POST
 
-from auditoria.utils import registrar_accion
-from clientes import services as fidelidad
-from usuarios.decorators import es_administrador, rol_requerido
+from usuarios.decorators import es_administrador, es_cajero
 
 from . import services
-from .forms import ProductoForm
-from .models import Categoria, Producto, Turno, Venta
-from .services import ErrorCobro
+from .models import DetalleVenta, Producto, Venta
+from .vuelto import DENOMINACIONES, desglosar_vuelto
 
 
-def contexto_cobro(request, error=None, form_rapido=None):
-    """Items, total, métodos de pago y cliente (HU-12/HU-14) para la pantalla."""
-    items = services.items_del_carrito(request)
-    cliente = fidelidad.cliente_de_sesion(request)
-    total = services.total_del_carrito(items)
-    return {
+def _pantalla_habilitada(request):
+    """El POS lo usan tanto el Cajero como el Administrador (el dueño
+    también puede pararse a cobrar en el mostrador)."""
+    return es_administrador(request.user) or es_cajero(request.user)
+
+
+def _panel_cobro(request, contexto_extra=None):
+    """
+    Common context para los fragmentos del carrito. Dependiendo de si la
+    petición vino por HTMX devuelve el fragmento HTML o la página completa.
+    """
+    items, total = services.detalle_carrito(request.session)
+    contexto = {
         "items": items,
         "total": total,
-        "metodos_pago": Venta.METODO_PAGO,
-        "cliente": cliente,
-        "puntos_venta": fidelidad.puntos_por_monto(total),
-        "puntos_regla": fidelidad.PUNTOS_POR_PESO,
-        "form_rapido": form_rapido,
-        "error": error,
-        # HU-14: para decidir si se puede ofrecer "cuenta corriente".
-        "puede_fiar": bool(cliente and cliente.puede_fiar(total)),
+        "denominaciones": DENOMINACIONES,
     }
+    if contexto_extra:
+        contexto.update(contexto_extra)
+
+    if request.headers.get("HX-Request"):
+        return render(request, "ventas/partials/panel_cobro.html", contexto)
+    return redirect("ventas:pantalla_cobro")
 
 
-# ========== PANTALLA DE COBRO (Sprint 3: HU-07/08/09) ==========
+def _error_mensaje(texto, tipo="error"):
+    return {"mensaje": texto, "mensaje_tipo": tipo}
+
+
+def contexto_cobro(request, **extra):
+    """
+    Contexto completo de la pantalla de cobro (lo usan también las vistas
+    de clientes que devuelven la pantalla después de una acción HTMX).
+    """
+    productos = Producto.objects.filter(activo=True).order_by("categoria", "nombre")
+    ultima_venta = request.session.get("ultima_venta", None)
+    items, total = services.detalle_carrito(request.session)
+    contexto = {
+        "productos": productos,
+        "items": items,
+        "total": total,
+        "denominaciones": DENOMINACIONES,
+        "ultima_venta": ultima_venta,
+        "venta_reciente": ultima_venta,
+    }
+    contexto.update(extra)
+    return contexto
+
+
 @login_required
 def pantalla_cobro(request):
     """
-    POS del cajero: escanear/tipear código (HU-07), editar el carrito
-    (HU-08) y cobrar en efectivo o tarjeta con vuelto (HU-09).
-    Con `?venta=<id>` muestra el comprobante de una venta ya confirmada.
+    Pantalla rápida del cajero: escáner + botones de productos + carrito
+    + panel de cobro con vuelto.
     """
-    contexto = contexto_cobro(request)
-
-    venta_id = request.GET.get("venta")
-    if venta_id:
-        venta = get_object_or_404(Venta, pk=venta_id, finalizada=True)
-        if venta.usuario_id != request.user.pk and not es_administrador(
-            request.user
-        ):
-            raise PermissionDenied("Solo podés ver tus propias ventas.")
-        contexto["venta"] = venta
-        contexto["detalles"] = venta.detalles.select_related("producto")
-
-    return render(request, "ventas/pantalla_cobro.html", contexto)
-
-
-@login_required
-def cobro_agregar(request):
-    """HU-07: agrega un producto al carrito por código de barras o nombre."""
-    if request.method != "POST":
-        return redirect("ventas:pantalla_cobro")
-
-    error = None
-    try:
-        producto = services.buscar_producto(request.POST.get("codigo"))
-        services.agregar_al_carrito(request, producto)
-    except ErrorCobro as exc:
-        error = str(exc)
-
-    contexto = contexto_cobro(request, error=error)
-    if request.headers.get("HX-Request"):
-        return render(request, "ventas/_carrito.html", contexto)
-    return render(request, "ventas/pantalla_cobro.html", contexto)
-
-
-@login_required
-def cobro_buscar(request):
-    """
-    Búsqueda en tiempo real del escáner (HTMX): arranca con 3 caracteres y
-    devuelve las coincidencias de nombre o código de barras como partial.
-    """
-    consulta = request.GET.get("codigo", "").strip()
-    coincidencias = []
-
-    if len(consulta) >= 3:
-        coincidencias = (
-            Producto.objects.filter(activo=True)
-            .filter(Q(nombre__icontains=consulta) | Q(codigo_barras__icontains=consulta))
-            .select_related("categoria")
-            .order_by("nombre")[:8]
+    if not _pantalla_habilitada(request):
+        raise PermissionDenied(
+            "No tenés permisos para acceder a esta sección del sistema."
         )
 
-    return render(
-        request,
-        "ventas/_cobro_resultados.html",
-        {
-            "consulta": consulta,
-            "coincidencias": coincidencias,
-            "puede_dar_alta": es_administrador(request.user),
-        },
-    )
+    productos = Producto.objects.filter(activo=True).order_by("categoria", "nombre")
 
+    # Si quedó una venta recién cobrada, se muestra el comprobante con el
+    # desglose del vuelto hasta que el cajero arranque la siguiente.
+    ultima_venta = request.session.pop("ultima_venta", None)
 
-@login_required
-def cobro_cantidad(request):
-    """HU-08: suma, resta o quita un ítem del carrito."""
-    if request.method != "POST":
-        return redirect("ventas:pantalla_cobro")
-
-    error = None
-    try:
-        producto_id = int(request.POST.get("producto_id", ""))
-        accion = request.POST.get("accion", "")
-        if accion not in ("sumar", "restar", "quitar"):
-            raise ErrorCobro("Acción no válida sobre el carrito.")
-        services.modificar_cantidad(request, producto_id, accion)
-    except (ValueError, ErrorCobro) as exc:
-        error = str(exc)
-
-    contexto = contexto_cobro(request, error=error)
-    if request.headers.get("HX-Request"):
-        return render(request, "ventas/_carrito.html", contexto)
-    return render(request, "ventas/pantalla_cobro.html", contexto)
-
-
-@login_required
-def cobro_confirmar(request):
-    """HU-09: confirma la venta, descuenta stock y muestra el comprobante."""
-    if request.method != "POST":
-        return redirect("ventas:pantalla_cobro")
-
-    try:
-        venta = services.confirmar_venta(
-            request,
-            metodo_pago=request.POST.get("metodo_pago", ""),
-            monto_entregado=request.POST.get("monto_entregado"),
-        )
-    except ErrorCobro as exc:
-        return render(
-            request,
-            "ventas/pantalla_cobro.html",
-            contexto_cobro(request, error=str(exc)),
-        )
-
-    detalle = (
-        f"Venta N° {venta.pk} por {services.formatear_monto(venta.total)} "
-        f"({venta.get_metodo_pago_display()})"
-    )
-    if venta.cliente_id:
-        detalle += (
-            f" · Cliente: {venta.cliente.nombre_completo} "
-            f"(+{venta.puntos_ganados} pts)"
-        )
-    registrar_accion(
-        request.user,
-        "Venta confirmada",
-        detalle,
-        request,
-    )
-    mensaje = (
-        f"Venta N° {venta.pk} confirmada. "
-        f"Total: {services.formatear_monto(venta.total)}."
-    )
-    if venta.cliente_id:
-        mensaje += (
-            f" {venta.cliente.nombre_completo} sumó "
-            f"{venta.puntos_ganados} puntos."
-        )
-    messages.success(request, mensaje)
-    return redirect(f"{reverse('ventas:pantalla_cobro')}?venta={venta.pk}")
-
-
-# ========== CIERRE DE TURNO (Sprint 4: HU-10) ==========
-@rol_requerido("Cajero", "Administrador")
-def cierre_turno(request):
-    """
-    HU-10: abrir turno, ver los totales en vivo (efectivo, tarjeta y
-    cantidad de operaciones) y cerrarlo para contar la caja.
-    Con `?turno=<id>` muestra el resumen de ese turno (el recién cerrado
-    o cualquiera histórico, con control de responsable).
-    """
-    if request.method == "POST":
-        accion = request.POST.get("accion", "")
-        turno = services.turno_abierto(request.user)
-
-        if accion == "abrir" and turno is None:
-            services.abrir_turno(request.user)
-            messages.success(request, "Turno abierto. ¡Buen trabajo!")
-            return redirect("ventas:cierre_turno")
-
-        if accion == "cerrar" and turno is not None:
-            try:
-                turno = services.cerrar_turno(turno)
-            except ErrorCobro as exc:
-                messages.error(request, str(exc))
-                return redirect("ventas:cierre_turno")
-
-            registrar_accion(
-                request.user,
-                "Cierre de turno",
-                f"Efectivo {services.formatear_monto(turno.total_efectivo)} · "
-                f"Tarjeta {services.formatear_monto(turno.total_tarjeta)} · "
-                f"Fiado (cuenta corriente) "
-                f"{services.formatear_monto(turno.deuda_otorgada)} · "
-                f"{turno.cantidad_operaciones} operaciones",
-                request,
-            )
-            messages.success(
-                request, "Turno cerrado. Contá la caja antes de retirarte."
-            )
-            return redirect(f"{reverse('ventas:cierre_turno')}?turno={turno.pk}")
-
-        messages.error(request, "La acción no coincide con el estado del turno.")
-        return redirect("ventas:cierre_turno")
-
-    # GET: ?turno=<id> para un turno puntual, si no el turno abierto propio.
-    turno = services.turno_abierto(request.user)
-    turno_id = request.GET.get("turno")
-    if turno_id:
-        turno = get_object_or_404(Turno, pk=turno_id)
-        if turno.usuario_id != request.user.pk and not es_administrador(
-            request.user
-        ):
-            raise PermissionDenied("Solo podés ver el turno a tu nombre.")
-
-    contexto = {
-        "turno": turno,
-        "totales": services.totales_del_turno(turno) if turno else None,
-        "puede_cerrar": bool(
-            turno
-            and turno.activo
-            and (
-                turno.usuario_id == request.user.pk
-                or es_administrador(request.user)
-            )
-        ),
-    }
-    return render(request, "ventas/cierre_turno.html", contexto)
-
-
-# Columnas del catálogo que se pueden ordenar desde el encabezado. El nombre
-# del parámetro GET es el de la columna; el valor real es el campo del modelo
-# (categoría es FK, hay que ordenar por el nombre anidado).
-CAMPOS_ORDEN = {
-    "producto": "nombre",
-    "codigo": "codigo_barras",
-    "categoria": "categoria__nombre",
-    "precio": "precio",
-    "costo": "costo",
-    "stock": "stock",
-}
-
-
-# ========== LISTA DE PRODUCTOS (HU-05: búsqueda en tiempo real con HTMX) ==========
-@rol_requerido("Administrador")
-def lista_productos(request):
-    """
-    Catálogo de productos con búsqueda por nombre, descripción o código de
-    barras (HU-05) y ordenamiento por columna asc/desc. Con HTMX devuelve
-    solo el partial de la tabla; sin HTMX devuelve la página completa.
-    """
-    busqueda = request.GET.get("buscar", "").strip()
-
-    # Orden: solo se aceptan columnas conocidas y direcciones válidas, para
-    # no terminar ordenando por cualquier campo del modelo.
-    orden = request.GET.get("orden", "producto")
-    if orden not in CAMPOS_ORDEN:
-        orden = "producto"
-    direccion = request.GET.get("direccion", "asc")
-    prefijo = "-" if direccion == "desc" else ""
-
-    productos = Producto.objects.select_related("categoria").order_by(
-        prefijo + CAMPOS_ORDEN[orden]
-    )
-
-    if busqueda:
-        productos = productos.filter(
-            Q(nombre__icontains=busqueda)
-            | Q(descripcion__icontains=busqueda)
-            | Q(codigo_barras__icontains=busqueda)
-        )
-
+    items, total = services.detalle_carrito(request.session)
     contexto = {
         "productos": productos,
-        "busqueda": busqueda,
-        "orden": orden,
-        "direccion": direccion,
+        "items": items,
+        "total": total,
+        "denominaciones": DENOMINACIONES,
+        "ultima_venta": ultima_venta,
+        "venta_reciente": ultima_venta,
     }
 
-    if request.headers.get("HX-Request"):
-        return render(request, "ventas/_productos_tabla.html", contexto)
-    return render(request, "ventas/lista_productos.html", contexto)
+    return render(request, "ventas/pantalla_cobro.html", contexto)
 
 
-# ========== ALTA DE PRODUCTOS (HU-04) ==========
-@rol_requerido("Administrador")
-def agregar_producto(request):
-    if request.method == "POST":
-        form = _producto_form_desde_post(request)
-        if form.is_valid():
-            producto = form.save()
-            messages.success(
-                request, f"Producto «{producto.nombre}» dado de alta correctamente."
-            )
-            return redirect("ventas:lista_productos")
-    else:
-        # Registro con lector: se puede llegar con ?codigo=<lo escaneado>
-        # desde el catálogo o el cobro para precargar el campo.
-        form = ProductoForm(
-            initial={"codigo_barras": request.GET.get("codigo", "").strip()}
-        )
+@require_POST
+@login_required
+def agregar_al_carrito(request):
+    """Agrega 1 producto al carrito buscando por código de barras o por id."""
+    if not _pantalla_habilitada(request):
+        raise PermissionDenied("No tenés permisos para acceder a esta sección del sistema.")
 
-    return render(
-        request,
-        "ventas/agregar_producto.html",
-        {"form": form, "categorias": Categoria.objects.all()},
-    )
+    codigo = request.POST.get("codigo", "").strip()
+    producto_id = request.POST.get("producto")
+    cantidad = int(request.POST.get("cantidad", 1) or 1)
 
+    producto = None
+    if producto_id:
+        try:
+            producto = Producto.objects.get(pk=producto_id, activo=True)
+        except (Producto.DoesNotExist, ValueError):
+            producto = None
+    elif codigo:
+        try:
+            producto = Producto.objects.get(codigo_barras=codigo, activo=True)
+        except Producto.DoesNotExist:
+            producto = None
 
-@rol_requerido("Administrador")
-def buscar_por_codigo(request):
-    """Lectura para el alta: dado un código escaneado, dice si ya existe.
-
-    GET ?codigo=<lectura>&excluir=<id opcional> → JSON. El lector manda el
-    código con Enter; el JS del form lo consulta para avisar en el momento
-    si el código ya está registrado (y linkear a editar) o está libre.
-    `excluir` se usa en la edición para no marcar el propio producto.
-    """
-    codigo = request.GET.get("codigo", "").strip()
-    if not codigo:
-        return JsonResponse({"codigo": "", "existe": False})
-    excluidos = {}
-    excluir = request.GET.get("excluir", "").strip()
-    if excluir.isdigit():
-        excluidos = {"pk": int(excluir)}
-    producto = (
-        Producto.objects.filter(codigo_barras=codigo)
-        .exclude(**excluidos)
-        .select_related("categoria")
-        .first()
-    )
     if producto is None:
-        return JsonResponse({"codigo": codigo, "existe": False})
-    return JsonResponse(
-        {
-            "codigo": codigo,
-            "existe": True,
-            "producto_id": producto.pk,
-            "nombre": producto.nombre,
-            "activo": producto.activo,
-            "url_editar": reverse(
-                "ventas:editar_producto", args=[producto.pk]
+        return _panel_cobro(
+            request,
+            _error_mensaje(
+                f"No se encontró ningún producto activo con el código '{codigo or producto_id}'."
             ),
-        }
-    )
-
-
-# ========== EDICIÓN DE PRODUCTOS (HU-04: modificaciones) ==========
-@rol_requerido("Administrador")
-def editar_producto(request, producto_id):
-    producto = get_object_or_404(Producto, pk=producto_id)
-
-    if request.method == "POST":
-        form = _producto_form_desde_post(request, instance=producto, producto=producto)
-        if form.is_valid():
-            form.save()
-            messages.success(
-                request, f"Producto «{producto.nombre}» actualizado correctamente."
-            )
-            return redirect("ventas:lista_productos")
-    else:
-        form = ProductoForm(instance=producto, producto=producto)
-
-    return render(
-        request,
-        "ventas/editar_producto.html",
-        {"form": form, "producto": producto},
-    )
-
-
-# ========== BAJA DE PRODUCTOS (HU-04: bajas, lógicas para no romper ventas) ==========
-@rol_requerido("Administrador")
-def eliminar_producto(request, producto_id):
-    producto = get_object_or_404(Producto, pk=producto_id)
-
-    if request.method == "POST":
-        producto.activo = False
-        producto.save(update_fields=["activo"])
-        messages.success(
-            request, f"Producto «{producto.nombre}» dado de baja (quedó inactivo)."
         )
-        return redirect("ventas:lista_productos")
 
-    return render(request, "ventas/eliminar_producto.html", {"producto": producto})
+    services.agregar_producto(request.session, producto, cantidad)
+    return _panel_cobro(request)
 
 
-def _producto_form_desde_post(request, instance=None, producto=None):
+@require_POST
+@login_required
+def actualizar_cantidad(request, producto_id):
+    if not _pantalla_habilitada(request):
+        raise PermissionDenied("No tenés permisos para acceder a esta sección del sistema.")
+
+    try:
+        cantidad = int(request.POST.get("cantidad", 1))
+    except ValueError:
+        cantidad = 1
+
+    services.actualizar_cantidad(request.session, producto_id, cantidad)
+    return _panel_cobro(request)
+
+
+@require_POST
+@login_required
+def quitar_producto(request, producto_id):
+    if not _pantalla_habilitada(request):
+        raise PermissionDenied("No tenés permisos para acceder a esta sección del sistema.")
+
+    services.quitar_producto(request.session, producto_id)
+    return _panel_cobro(request)
+
+
+@require_POST
+@login_required
+def vaciar_carrito(request):
+    if not _pantalla_habilitada(request):
+        raise PermissionDenied("No tenés permisos para acceder a esta sección del sistema.")
+
+    services.vaciar_carrito(request.session)
+    return _panel_cobro(request)
+
+
+@require_POST
+@login_required
+def registrar_venta(request):
     """
-    Arma el form desde el POST. Si mandaron "categoría nueva", la crea (o la
-    reusa si ya existe) y le asigna el id al dato antes de validar.
-    En el alta no se muestra el checkbox de "activo": nace activo siempre.
+    Cierra el cobro: valida el monto recibido contra el total, persiste la
+    Venta + DetalleVenta en una transacción, limpia el carrito y muestra el
+    comprobante con el vuelto desglosado en billetes.
     """
-    datos = request.POST.copy()
-    nueva_categoria = datos.get("nueva_categoria", "").strip()
-    if nueva_categoria:
-        categoria, _ = Categoria.objects.get_or_create(nombre=nueva_categoria)
-        datos["categoria"] = str(categoria.pk)
-    if instance is None and not datos.get("activo"):
-        datos["activo"] = "True"
-    return ProductoForm(datos, instance=instance, producto=producto)
+    if not _pantalla_habilitada(request):
+        raise PermissionDenied("No tenés permisos para acceder a esta sección del sistema.")
+
+    items, total = services.detalle_carrito(request.session)
+    if not items:
+        return _panel_cobro(request, _error_mensaje("El carrito está vacío. Agregá productos primero."))
+
+    metodo = request.POST.get("metodo_pago", "EFECTIVO").upper()
+    if metodo not in dict(Venta.METODO_PAGO_CHOICES):
+        metodo = "EFECTIVO"
+
+    try:
+        monto_recibido = Decimal(request.POST.get("monto_recibido", "0") or "0")
+    except (Decimal.InvalidOperation, ArithmeticError, ValueError):
+        monto_recibido = Decimal("0")
+
+    if metodo == "EFECTIVO":
+        if monto_recibido < total:
+            return _panel_cobro(
+                request,
+                _error_mensaje(
+                    f"El efectivo recibido (${monto_recibido}) no alcanza para el total (${total})."
+                ),
+            )
+        vuelto = monto_recibido - total
+    else:
+        # Para tarjeta/transferencia el "recibido" es exactamente el total.
+        monto_recibido = total
+        vuelto = Decimal("0.00")
+
+    with transaction.atomic():
+        venta = Venta.objects.create(
+            cajero=request.user,
+            total=total,
+            metodo_pago=metodo,
+            monto_recibido=monto_recibido,
+            vuelto=vuelto,
+        )
+        DetalleVenta.objects.bulk_create(
+            [
+                DetalleVenta(
+                    venta=venta,
+                    producto=item["producto"],
+                    cantidad=item["cantidad"],
+                    precio_unitario=item["subtotal"] / item["cantidad"],
+                )
+                for item in items
+            ]
+        )
+
+    piezas, centavos = desglosar_vuelto(vuelto)
+    request.session["ultima_venta"] = {
+        "id": venta.pk,
+        "fecha": venta.fecha.strftime("%d/%m/%Y %H:%M"),
+        "total": str(total),
+        "metodo": venta.get_metodo_pago_display(),
+        "monto_recibido": str(monto_recibido),
+        "vuelto": str(vuelto),
+        "vuelto_piezas": piezas,
+        "vuelto_centavos": centavos,
+        "detalle": [
+            {
+                "nombre": it["producto"].nombre,
+                "icono": it["producto"].icono,
+                "cantidad": it["cantidad"],
+                "subtotal": str(it["subtotal"]),
+            }
+            for it in items
+        ],
+    }
+    services.vaciar_carrito(request.session)
+
+    return _panel_cobro(request, {"venta_reciente": request.session.get("ultima_venta")})

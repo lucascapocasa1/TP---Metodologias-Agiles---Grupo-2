@@ -258,7 +258,7 @@ def top_productos(desde_dt, hasta_dt, limite=10, solo_finalizadas=False):
 
     return list(
         DetalleVenta.objects.filter(venta__in=ventas)
-        .values("producto__id", "producto__nombre", "producto__categoria__nombre")
+        .values("producto__id", "producto__nombre", "producto__categoria")
         .annotate(
             unidades=Sum("cantidad"),
             ingresos=Sum(F("cantidad") * F("precio_unitario")),
@@ -348,7 +348,7 @@ def stock_por_categoria():
     """Valorización del stock agrupada por categoría."""
     return list(
         Producto.objects.filter(activo=True)
-        .values("categoria__nombre")
+        .values("categoria")
         .annotate(
             productos=Count("id"),
             unidades=Coalesce(Sum("stock"), 0),

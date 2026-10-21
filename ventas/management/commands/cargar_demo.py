@@ -29,7 +29,7 @@ from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 
-from ventas.models import Categoria, DetalleVenta, Producto, Venta
+from ventas.models import DetalleVenta, Producto, Venta
 
 # Primer día del historial de ventas (definido por el TP).
 FECHA_INICIO = date(2026, 9, 20)
@@ -133,7 +133,6 @@ class Command(BaseCommand):
         for indice, (nombre, cat_nombre, precio, costo, stock, stock_minimo) in enumerate(
             CATALOGO, start=1
         ):
-            categoria, _ = Categoria.objects.get_or_create(nombre=cat_nombre)
             _, creado = Producto.objects.get_or_create(
                 nombre=nombre,
                 defaults={
@@ -141,7 +140,7 @@ class Command(BaseCommand):
                     "costo": Decimal(costo),
                     "stock": stock,
                     "stock_minimo": stock_minimo,
-                    "categoria": categoria,
+                    "categoria": cat_nombre,
                     # Prefijo 779 (Argentina) + índice: determinístico y único.
                     "codigo_barras": f"779{indice:010d}",
                     "activo": True,
@@ -178,39 +177,39 @@ class Command(BaseCommand):
             )
 
         efectivo = rng.random() < 0.65
-        metodo = "efectivo" if efectivo else "tarjeta"
+        metodo = "EFECTIVO" if efectivo else "TARJETA"
 
-        monto_entregado = None
-        vuelto = None
+        monto_recibido = total
+        vuelto = Decimal("0.00")
         if efectivo:
             # Billetes reales del kiosco: pago exacto, o redondeo hacia arriba.
             billetes = [Decimal("1000"), Decimal("2000"), Decimal("5000"),
                         Decimal("10000"), Decimal("20000")]
             if rng.random() < 0.25:
                 # Pago exacto: el vuelto es 0, no queda vacío.
-                monto_entregado = total
+                monto_recibido = total
                 vuelto = Decimal("0.00")
             else:
                 # Redondeo hacia arriba al billete de $1000 más cercano.
                 # (Nunca con un while: si el total no es múltiplo de 100,
                 #  ej. $123 → 223, 323… se en loop infinito.)
                 miles = (total / 1000).to_integral_value(rounding=ROUND_CEILING)
-                monto_entregado = miles * 1000
-                if monto_entregado == 0:
-                    monto_entregado = Decimal("1000")
+                monto_recibido = miles * 1000
+                if monto_recibido == 0:
+                    monto_recibido = Decimal("1000")
                 if rng.random() < 0.5:
                     for billete in billetes:
-                        if monto_entregado <= billete:
-                            monto_entregado = billete
+                        if monto_recibido <= billete:
+                            monto_recibido = billete
                             break
-                vuelto = monto_entregado - total
+                vuelto = monto_recibido - total
 
         venta = Venta.objects.create(
             total=total,
             finalizada=True,
             metodo_pago=metodo,
-            usuario=rng.choice(cajeros),
-            monto_entregado=monto_entregado,
+            cajero=rng.choice(cajeros),
+            monto_recibido=monto_recibido,
             vuelto=vuelto,
         )
         for detalle in detalles:

@@ -36,9 +36,9 @@
                 <a href="{% url 'pedidos:catalogo' %}"
                    class="chip {% if not categoria_actual %}chip-activo{% endif %}">Todo</a>
                 {% for cat in categorias %}
-                <a href="?categoria={{ cat.pk }}"
-                   class="chip {% if categoria_actual == cat.pk|stringformat:'s' %}chip-activo{% endif %}">
-                    {{ cat.nombre }}
+                <a href="?categoria={{ cat|urlencode }}"
+                   class="chip {% if categoria_actual == cat %}chip-activo{% endif %}">
+                    {{ cat }}
                 </a>
                 {% endfor %}
             </nav>
@@ -46,16 +46,16 @@
 
             <div class="catalogo-grid">
                 {% for producto in productos %}
-                <article class="producto-publico {% if producto.stock <= 0 %}producto-agotado{% endif %}">
+                <article class="producto-publico {% if not producto.activo %}producto-agotado{% endif %}">
                     <div class="producto-publico-cuerpo">
-                        <span class="producto-publico-cat">{{ producto.categoria.nombre }}</span>
+                        <span class="producto-publico-cat">{{ producto.categoria }}</span>
                         <h3>{{ producto.nombre }}</h3>
                         {% if producto.descripcion %}
                         <p class="producto-publico-desc">{{ producto.descripcion }}</p>
                         {% endif %}
                         <p class="producto-publico-precio">${{ producto.precio|montos }}</p>
 
-                        {% if producto.stock > 0 %}
+                        {% if producto.activo %}
                         <span class="badge-disponible">
                             <i class="bi bi-check-circle-fill" aria-hidden="true"></i> Disponible
                         </span>

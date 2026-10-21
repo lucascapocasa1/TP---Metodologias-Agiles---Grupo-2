@@ -1,236 +1,434 @@
 {% extends "base.html" %}
-{% load formatos %}
+{% load formatos static %}
 {% block titulo %}Cobro{% endblock %}
 {% block contenido %}
-<div class="admin-panel cobro-panel">
-    <div class="admin-header">
-        <div class="admin-header-left">
-            <h1><i class="bi bi-upc-scan"></i> Pantalla de cobro</h1>
-            <p class="admin-subtitle">
-                Escaneá o tipeá el código: el producto vuela al carrito
-                (HU-07) · con 3 letras aparece la búsqueda en tiempo real ·
-                cantidades editables (HU-08) · efectivo o tarjeta con vuelto
-                (HU-09).
-            </p>
-        </div>
-        <a href="{% url 'ventas:cierre_turno' %}" class="btn btn-kiosco-outline">
-            <i class="bi bi-clock-history" aria-hidden="true"></i> Cierre de turno
-        </a>
-        {% if request.user.groups.first.name == "Administrador" or request.user.is_superuser %}
-        <a href="{% url 'administracion:dashboard' %}" class="btn btn-kiosco-outline">
-            <i class="bi bi-gear" aria-hidden="true"></i> Panel
-        </a>
-        {% endif %}
-    </div>
 
-    {% if venta %}
-    <!-- ===== Comprobante de la venta confirmada ===== -->
-    <div class="cobro-ticket" id="comprobante">
-        <div class="cobro-ticket-header">
-            <span class="cobro-ticket-icono"><i class="bi bi-check-circle-fill"></i></span>
-            <div>
-                <h2>Venta N° {{ venta.pk }} confirmada</h2>
-                <p class="page-subtitle">
-                    {{ venta.fecha|date:"d/m/Y H:i" }} ·
-                    {{ venta.get_metodo_pago_display }} ·
-                    Cajero: {{ venta.usuario|default:"—" }}
-                    {% if venta.cliente_id %}
-                    · Cliente: {{ venta.cliente.nombre_completo }} (DNI {{ venta.cliente.dni }})
-                    {% endif %}
-                </p>
-            </div>
-        </div>
+<link rel="stylesheet" href="{% static 'css/pos_estilos.css' %}?v=pos">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-        <table class="admin-table">
-            <thead>
-                <tr>
-                    <th>Producto</th>
-                    <th>Cant.</th>
-                    <th>Precio</th>
-                    <th>Subtotal</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for d in detalles %}
-                <tr>
-                    <td>{{ d.producto.nombre }}</td>
-                    <td>{{ d.cantidad }}</td>
-                    <td>${{ d.precio_unitario|montos }}</td>
-                    <td>${{ d.subtotal|montos }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-
-        <div class="cobro-totales">
-            <div class="cobro-total-linea"><span>Total</span><strong>${{ venta.total|montos }}</strong></div>
-            {% if venta.puntos_ganados %}
-            <div class="cobro-total-linea cobro-vuelto">
-                <span>Puntos de fidelidad</span>
-                <strong>+{{ venta.puntos_ganados }}</strong>
-            </div>
-            {% endif %}
-            {% if venta.metodo_pago == "efectivo" %}
-            <div class="cobro-total-linea"><span>Entregado</span><strong>${{ venta.monto_entregado|montos }}</strong></div>
-            <div class="cobro-total-linea cobro-vuelto"><span>Vuelto</span><strong>${{ venta.vuelto|montos }}</strong></div>
-            {% endif %}
-        </div>
-
-        <div class="acciones mt-3">
-            <a href="{% url 'ventas:pantalla_cobro' %}" class="btn btn-kiosco">
-                <i class="bi bi-plus-lg" aria-hidden="true"></i> Nueva venta
-            </a>
-        </div>
-    </div>
-
-    {% else %}
-    <!-- ===== Escáner + carrito + cobro ===== -->
-    <div class="cobro-grid">
-        <section class="cobro-izq" aria-label="Carga de productos">
-            <form class="cobro-escaner"
-                  autocomplete="off"
-                  hx-post="{% url 'ventas:cobro_agregar' %}"
-                  hx-target="#carrito-region"
-                  hx-swap="innerHTML"
-                  hx-on::after-request="if (event.detail.successful && event.target === this) cobroLimpiar();">
-                {% csrf_token %}
-                <div class="search-box">
-                    <i class="bi bi-upc" aria-hidden="true"></i>
-                    <input type="text"
-                           id="codigo-input"
-                           name="codigo"
-                           class="admin-input"
-                           placeholder="Escanear código de barras o tipear 3 letras..."
-                           aria-label="Código de barras o nombre del producto"
-                           autocomplete="off"
-                           hx-get="{% url 'ventas:cobro_buscar' %}"
-                           hx-trigger="input changed delay:300ms"
-                           hx-vals="js:{codigo: document.getElementById('codigo-input').value}"
-                           hx-target="#cobro-resultados"
-                           hx-swap="innerHTML"
-                           autofocus>
+<div class="app">
+    <div class="pos-container">
+        <header class="top-header">
+            <div class="title-area">
+                <h1>Pantalla rápida de cobro</h1>
+                <div class="subtitle">
+                    Caja abierta &middot; Empleado: <strong>{{ user.first_name|default:user.username }}</strong>
                 </div>
-                <button type="submit" class="btn btn-kiosco">
-                    <i class="bi bi-cart-plus" aria-hidden="true"></i> Agregar
+            </div>
+            <div class="header-actions">
+                <span class="header-clock" id="clock" title="Hora actual">--:--</span>
+                <button type="button" class="header-btn theme-toggle" id="themeToggle" title="Modo oscuro" aria-pressed="false">
+                    <span class="theme-icon" id="themeIcon">&#x1F319;</span>
                 </button>
-            </form>
-
-            <div id="cobro-resultados" class="cobro-resultados" aria-live="polite"></div>
-
-            <div class="escaner-mock" aria-hidden="true">
-                <div class="barcode"></div>
-                <p class="escaner-nota">Pasá el código por el lector y apretá Enter, o escribí 3 letras y elegí de la lista.</p>
+                <button type="button" class="header-btn" id="articleCountButton" title="Artículos en el carrito">
+                    ARTÍCULOS <span id="articleCount">0</span>
+                </button>
+                <button type="button" class="header-btn primary" id="newSaleButton">Nueva venta</button>
             </div>
+        </header>
 
-            <div id="carrito-region" aria-live="polite">
-                {% include "ventas/_carrito.html" %}
-            </div>
-        </section>
-    </div>
-    {% endif %}
+        <main class="main-layout">
+            <section class="products-panel">
+                <div class="scanner-bar">
+                    <span class="scanner-icon" aria-hidden="true">&#x1F4E6;</span>
+                    <form class="scanner-form"
+                          hx-post="{% url 'ventas:agregar_al_carrito' %}"
+                          hx-target="#pos-panel"
+                          hx-swap="outerHTML">
+                        {% csrf_token %}
+                        <input type="text"
+                               name="codigo"
+                               id="scanner-input"
+                               class="scanner-input"
+                               placeholder="Escanear o escribir código de barras… y Enter"
+                               autocomplete="off"
+                               autofocus>
+                    </form>
+                </div>
 
-    {% if error %}
-    <div class="kiosco-alert kiosco-alert-danger mt-3" role="alert">
-        <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
-        <span>{{ error }}</span>
+                <div class="filters-wrap" id="filtersWrap">
+                    <button type="button" class="filters-toggle" id="filtersToggle" aria-expanded="false" aria-controls="filtersBody">
+                        <span class="filter-icon" aria-hidden="true">&#x1F50D;</span>
+                        Filtros
+                        <span class="filter-chevron" aria-hidden="true">&#x25BE;</span>
+                    </button>
+                    <div class="filters-body" id="filtersBody">
+                        <div class="search-wrapper">
+                            <input type="search"
+                                   id="searchInput"
+                                   class="search-input"
+                                   placeholder="Buscar producto por nombre o código…"
+                                   autocomplete="off">
+                            <span class="search-icon">&#x2315;</span>
+                        </div>
+
+                        <div class="categories" id="categories">
+                            <button type="button" class="category-btn active" data-cat="Todos">Todos ({{ productos|length }})</button>
+                            {% regroup productos by categoria as categoria_grupos %}
+                            {% for grupo in categoria_grupos %}
+                            <button type="button" class="category-btn" data-cat="{{ grupo.grouper }}">
+                                {{ grupo.grouper }} ({{ grupo.list|length }})
+                            </button>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="products-grid" id="productsGrid">
+                    {% for producto in productos %}
+                    <button type="button"
+                            class="product-card"
+                            data-cat="{{ producto.categoria }}"
+                            data-search="{{ producto.nombre|lower }} {{ producto.codigo_barras|lower }}"
+                            hx-post="{% url 'ventas:agregar_al_carrito' %}"
+                            hx-target="#pos-panel"
+                            hx-swap="outerHTML"
+                            hx-vals='{"producto": "{{ producto.pk }}"}'
+                            hx-on:click="avisoAgregado('{{ producto.nombre|escapejs }}')">
+                        <div class="product-icon">{{ producto.icono }}</div>
+                        <div class="product-name">{{ producto.nombre }}</div>
+                        <div class="product-price">$ {{ producto.precio|montos }}</div>
+                        <div class="product-code">{{ producto.codigo_barras }}</div>
+                    </button>
+                    {% empty %}
+                    <div class="kiosco-alert kiosco-alert-info">
+                        Todavía no hay productos cargados. El administrador tiene que
+                        cargarlos (ver <em>Producto</em> en el panel de Django).
+                    </div>
+                    {% endfor %}
+                </div>
+            </section>
+
+            {% include "ventas/partials/panel_cobro.html" %}
+        </main>
     </div>
-    {% endif %}
 </div>
 
+<div class="modal-backdrop" id="newSaleModal">
+    <div class="modal-card">
+        <div class="modal-header">
+            <span class="modal-title">Nueva venta</span>
+            <button type="button" class="modal-close" id="closeModal">&times;</button>
+        </div>
+        <div class="modal-body">
+            ¿Seguro que querés iniciar una nueva venta? El carrito actual se va a vaciar.
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="modal-btn cancel" id="cancelModal">Cancelar</button>
+            <form hx-post="{% url 'ventas:vaciar_carrito' %}"
+                  hx-target="#pos-panel"
+                  hx-swap="outerHTML"
+                  class="modal-form">
+                {% csrf_token %}
+                <button type="submit" class="modal-btn confirm">Confirmar</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+{% endblock %}
+
+{% block scripts %}
 <script>
-(function () {
-    // Los totales llegan con coma decimal (locale es-ar): para los cálculos
-    // en JS hace falta pasarlos a punto.
-    function aNumero(texto) {
-        var v = (texto || '0').toString().trim().replace('$', '');
-        if (v.indexOf(',') !== -1) v = v.replace(/\./g, '').replace(',', '.');
-        return parseFloat(v);
+    document.addEventListener('htmx:configRequest', function (e) {
+        e.detail.headers['X-CSRFToken'] = '{{ csrf_token }}';
+    });
+
+    function money(value) {
+        return '$ ' + Number(value).toLocaleString('es-AR');
     }
 
-    // Formato de pesos: 26600 → "26.600"; 26600.5 → "26.600,50".
-    function aTexto(valor) {
-        var redondeado = Math.round(valor * 100) / 100;
-        var signo = redondeado < 0 ? '-' : '';
-        var abs = Math.abs(redondeado).toFixed(2).split('.');
-        var entero = abs[0].replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-        return signo + entero + (abs[1] === '00' ? '' : ',' + abs[1]);
+    function obtenerTotal() {
+        var panel = document.getElementById('pos-panel');
+        return panel ? (parseFloat(panel.dataset.total || '0') || 0) : 0;
     }
 
-    // Limpia el campo del escáner y la lista de sugerencias (HTMX lo llama
-    // después de agregar un producto al carrito).
-    window.cobroLimpiar = function () {
-        var input = document.getElementById('codigo-input');
-        var resultados = document.getElementById('cobro-resultados');
-        if (input) {
-            input.value = '';
-            input.focus();
+    function numeroEntrada() {
+        var input = document.getElementById('cashInput');
+        return input ? (parseFloat(input.value) || 0) : 0;
+    }
+
+    function hayItemsEnCarrito() {
+        return document.querySelectorAll('#pos-panel .cart-item').length > 0;
+    }
+
+    function actualizarContador() {
+        var contador = document.getElementById('articleCount');
+        if (!contador) return;
+        var totalItems = 0;
+        document.querySelectorAll('#pos-panel .qty-value').forEach(function (q) {
+            totalItems += parseInt(q.textContent, 10) || 0;
+        });
+        contador.textContent = totalItems;
+    }
+
+    function aplicarFiltros() {
+        var input = document.getElementById('searchInput');
+        var busqueda = (input ? input.value : '').toLowerCase().trim();
+        var activa = document.querySelector('#categories .category-btn.active');
+        var categoria = activa ? activa.dataset.cat : 'Todos';
+        document.querySelectorAll('#productsGrid .product-card').forEach(function (card) {
+            var porCategoria = categoria === 'Todos' || card.dataset.cat === categoria;
+            var porBusqueda = busqueda === '' || card.dataset.search.indexOf(busqueda) !== -1;
+            card.style.display = (porCategoria && porBusqueda) ? '' : 'none';
+        });
+    }
+
+    function despuesDeEscaner() {
+        var escaner = document.getElementById('scanner-input');
+        if (escaner) {
+            escaner.value = '';
+            escaner.focus();
         }
-        if (resultados) resultados.innerHTML = '';
-    };
+    }
 
-    // Escape (o un clic afuera) cierra la lista de sugerencias.
-    document.addEventListener('keydown', function (e) {
-        if (e.key !== 'Escape') return;
-        var resultados = document.getElementById('cobro-resultados');
-        if (resultados) resultados.innerHTML = '';
-    });
-    document.addEventListener('click', function (e) {
-        if (e.target.closest('#cobro-resultados') || e.target.closest('#codigo-input')) return;
-        var resultados = document.getElementById('cobro-resultados');
-        if (resultados && resultados.innerHTML.trim() !== '') resultados.innerHTML = '';
-    });
+    function enfocarEscaner() {
+        var escaner = document.getElementById('scanner-input');
+        if (escaner) escaner.focus();
+    }
 
-    // Billetes y pago exacto (HU-09): siempre sobre el input actual,
-    // aunque el carrito se vuelva a dibujar con HTMX.
-    document.addEventListener('click', function (e) {
-        var btn = e.target.closest('[data-monto-boton]');
-        if (!btn) return;
-        var monto = document.getElementById('monto');
-        if (!monto) return;
-        monto.value = btn.getAttribute('data-monto-boton') === 'exacto'
-            ? btn.getAttribute('data-total')
-            : btn.getAttribute('data-monto-boton');
-        monto.dispatchEvent(new Event('input', { bubbles: true }));
-    });
+    var toastTimer = null;
+    function mostrarToast(mensaje) {
+        var toast = document.getElementById('toast');
+        if (!toast) return;
+        toast.textContent = mensaje;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () { toast.classList.remove('show'); }, 2500);
+    }
 
-    // Vista previa del vuelto mientras se tipea el monto entregado.
-    document.addEventListener('input', function (e) {
-        if (e.target.id !== 'monto') return;
-        var cont = document.getElementById('vuelto-preview');
-        if (!cont) return;
-        var total = aNumero(cont.getAttribute('data-total'));
-        var entregado = aNumero(e.target.value);
-        if (isNaN(entregado) || entregado < total) {
-            cont.textContent = entregado > 0
-                ? 'Falta ingresar $' + aTexto(total - entregado)
-                : '';
-            cont.classList.toggle('cobro-vuelto-negativo', entregado > 0);
+    function avisoAgregado(nombre) {
+        mostrarToast('Agregado al carrito: ' + nombre);
+    }
+
+    function metodoSeleccionado() {
+        var input = document.getElementById('metodo-pago-input');
+        return input ? input.value : 'EFECTIVO';
+    }
+
+    function aplicarMetodo(metodo) {
+        var tabs = document.querySelectorAll('#methodTabs .method-tab');
+        if (!tabs.length) return;
+        tabs.forEach(function (tab) {
+            tab.classList.toggle('active', tab.dataset.method === metodo);
+        });
+        ['EFECTIVO', 'QR', 'TARJETA'].forEach(function (m) {
+            var panel = document.getElementById('panel-' + m);
+            if (panel) panel.hidden = (m !== metodo);
+        });
+        var input = document.getElementById('metodo-pago-input');
+        if (input) input.value = metodo;
+        actualizarVuelto();
+    }
+
+    function actualizarVuelto() {
+        var total = obtenerTotal();
+        var metodo = metodoSeleccionado();
+        var inputMonto = document.getElementById('monto-recibido-input');
+        var cambioBox = document.getElementById('changeBox');
+        var cambioValor = document.getElementById('changeValue');
+        var boton = document.getElementById('checkoutButton');
+
+        if (metodo === 'EFECTIVO') {
+            var recibido = numeroEntrada();
+            if (inputMonto) inputMonto.value = recibido;
+
+            if (cambioBox && cambioValor) {
+                if (hayItemsEnCarrito() && recibido > 0) {
+                    cambioBox.classList.add('visible');
+                    cambioValor.textContent = money(recibido - total);
+                    if (recibido >= total) {
+                        cambioBox.classList.remove('insuficiente');
+                    } else {
+                        cambioBox.classList.add('insuficiente');
+                    }
+                } else {
+                    cambioBox.classList.remove('visible', 'insuficiente');
+                }
+            }
+
+            if (boton) {
+                boton.disabled = !(hayItemsEnCarrito() && recibido >= total);
+            }
+        } else {
+            inputMonto.value = total;
+            if (cambioBox) cambioBox.classList.remove('visible', 'insuficiente');
+            if (boton) boton.disabled = !hayItemsEnCarrito();
+        }
+    }
+
+    function abrirModal() {
+        if (!hayItemsEnCarrito()) {
+            mostrarToast('El carrito está vacío.');
             return;
         }
-        cont.textContent = 'Vuelto: $' + aTexto(entregado - total);
-        cont.classList.remove('cobro-vuelto-negativo');
+        document.getElementById('newSaleModal').classList.add('visible');
+    }
+
+    function cerrarModal() {
+        document.getElementById('newSaleModal').classList.remove('visible');
+    }
+
+    function cerrarTicket() {
+        var modal = document.getElementById('ticketModal');
+        if (modal) modal.classList.remove('visible');
+    }
+
+    function mostrarTicket() {
+        var modal = document.getElementById('ticketModal');
+        if (modal) modal.classList.add('visible');
+    }
+
+    function actualizarReloj() {
+        var reloj = document.getElementById('clock');
+        if (!reloj) return;
+        var ahora = new Date();
+        reloj.textContent = ahora.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    }
+
+    function aplicarTema(oscuro) {
+        var app = document.querySelector('.app');
+        if (app) app.classList.toggle('dark', oscuro);
+        var icono = document.getElementById('themeIcon');
+        var boton = document.getElementById('themeToggle');
+        if (icono) icono.textContent = oscuro ? '☀️' : '🌙';
+        if (boton) {
+            boton.title = oscuro ? 'Modo claro' : 'Modo oscuro';
+            boton.setAttribute('aria-pressed', oscuro ? 'true' : 'false');
+        }
+        try { localStorage.setItem('kiosco_tema', oscuro ? 'dark' : 'light'); } catch (e) {}
+    }
+
+    document.addEventListener('click', function (e) {
+        var objetivo = e.target;
+
+        var botonRapido = objetivo.closest ? objetivo.closest('[data-cash]') : null;
+        if (botonRapido) {
+            var input = document.getElementById('cashInput');
+            if (!input) return;
+            if (botonRapido.dataset.cash === 'exact') {
+                input.value = obtenerTotal();
+            } else {
+                input.value = numeroEntrada() + parseInt(botonRapido.dataset.cash, 10);
+            }
+            actualizarVuelto();
+            return;
+        }
+
+        if (objetivo.closest && objetivo.closest('#exactPayment')) {
+            var inputExacto = document.getElementById('cashInput');
+            if (inputExacto) inputExacto.value = obtenerTotal();
+            actualizarVuelto();
+            return;
+        }
+
+        if (objetivo.closest && objetivo.closest('#clearPayment')) {
+            var inputLimpiar = document.getElementById('cashInput');
+            if (inputLimpiar) inputLimpiar.value = 0;
+            actualizarVuelto();
+            return;
+        }
+
+        var categoriaBtn = objetivo.closest ? objetivo.closest('#categories .category-btn') : null;
+        if (categoriaBtn) {
+            document.querySelectorAll('#categories .category-btn').forEach(function (b) {
+                b.classList.remove('active');
+            });
+            categoriaBtn.classList.add('active');
+            aplicarFiltros();
+            return;
+        }
+
+        var tabMetodo = objetivo.closest ? objetivo.closest('#methodTabs .method-tab') : null;
+        if (tabMetodo) {
+            aplicarMetodo(tabMetodo.dataset.method);
+            return;
+        }
+
+        if (objetivo.closest && objetivo.closest('#filtersToggle')) {
+            var wrap = document.getElementById('filtersWrap');
+            var toggle = document.getElementById('filtersToggle');
+            wrap.classList.toggle('open');
+            toggle.setAttribute('aria-expanded', wrap.classList.contains('open') ? 'true' : 'false');
+            return;
+        }
+
+        if (objetivo.closest && objetivo.closest('#themeToggle')) {
+            var appActual = document.querySelector('.app');
+            aplicarTema(!(appActual && appActual.classList.contains('dark')));
+            return;
+        }
+
+        if (objetivo.id === 'newSaleButton') abrirModal();
+        if (objetivo.id === 'closeModal' || objetivo.id === 'cancelModal') cerrarModal();
+        if (objetivo.id === 'newSaleModal') cerrarModal();
+        if (objetivo.id === 'ticketModal') cerrarTicket();
     });
 
-    // Efectivo / tarjeta: el monto entregado solo aplica a efectivo.
-    document.addEventListener('change', function (e) {
-        if (e.target.name !== 'metodo_pago') return;
-        var bloque = document.getElementById('bloque-monto');
-        if (bloque) bloque.hidden = (e.target.value !== 'efectivo');
+    function formatearNumeroTarjeta(valor) {
+        var digitos = valor.replace(/\D/g, '').slice(0, 16);
+        return digitos.replace(/(\d{4})(?=\d)/g, '$1 ');
+    }
+
+    function formatearVencimiento(valor) {
+        var digitos = valor.replace(/\D/g, '').slice(0, 4);
+        if (digitos.length > 2) return digitos.slice(0, 2) + '/' + digitos.slice(2);
+        return digitos;
+    }
+
+    document.addEventListener('input', function (e) {
+        if (e.target && e.target.id === 'searchInput') aplicarFiltros();
+        if (e.target && e.target.id === 'cashInput') actualizarVuelto();
+        if (e.target && e.target.id === 'card-number') {
+            e.target.value = formatearNumeroTarjeta(e.target.value);
+        }
+        if (e.target && e.target.id === 'card-expiry') {
+            e.target.value = formatearVencimiento(e.target.value);
+        }
+        if (e.target && e.target.id === 'card-cvv') {
+            e.target.value = e.target.value.replace(/\D/g, '').slice(0, 4);
+        }
     });
 
-    // Después de cada cambio del carrito (HTMX) vuelve el foco al escáner.
-    // No se roba el foco mientras se tipea en el buscador de clientes, ni si
-    // el alta rápida volvió con errores (el form sigue en pantalla).
-    document.addEventListener('htmx:afterRequest', function (e) {
-        if (e.detail && e.detail.successful === false) return;
-        var origen = e.target;
-        if (!origen || !origen.closest) return;
-        if (origen.closest('#cliente-input')) return;
-        if (origen.closest('.cliente-rapido-form') && document.querySelector('.cliente-rapido-form')) return;
-        if (!origen.closest('#carrito-region')) return;
-        var scanner = document.getElementById('codigo-input');
-        if (scanner) scanner.focus();
+    document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && document.getElementById('newSaleModal').classList.contains('visible')) {
+            cerrarModal();
+            return;
+        }
+        if (e.key === 'F2') {
+            e.preventDefault();
+            enfocarEscaner();
+            return;
+        }
+        if (e.key === 'Enter' && e.target && e.target.id === 'cashInput') {
+            var form = document.getElementById('form-cobrar');
+            var boton = document.getElementById('checkoutButton');
+            if (boton && !boton.disabled && form) form.requestSubmit();
+        }
     });
-})();
+
+    document.body.addEventListener('htmx:afterSwap', function (evt) {
+        if (evt.detail.target && evt.detail.target.id === 'pos-panel') {
+            actualizarContador();
+            aplicarMetodo(metodoSeleccionado());
+            mostrarTicket();
+            cerrarModal();
+            despuesDeEscaner();
+        }
+    });
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var temaGuardado = null;
+        try { temaGuardado = localStorage.getItem('kiosco_tema'); } catch (e) {}
+        aplicarTema(temaGuardado === 'dark');
+        aplicarFiltros();
+        actualizarContador();
+        aplicarMetodo('EFECTIVO');
+        actualizarReloj();
+        setInterval(actualizarReloj, 30000);
+    });
 </script>
 {% endblock %}

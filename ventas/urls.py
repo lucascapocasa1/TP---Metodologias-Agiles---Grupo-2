@@ -4,30 +4,11 @@ from . import views
 
 app_name = "ventas"
 
-
 urlpatterns = [
     path("cobro/", views.pantalla_cobro, name="pantalla_cobro"),
-    path("cobro/buscar/", views.cobro_buscar, name="cobro_buscar"),
-    path("cobro/agregar/", views.cobro_agregar, name="cobro_agregar"),
-    path("cobro/cantidad/", views.cobro_cantidad, name="cobro_cantidad"),
-    path("cobro/confirmar/", views.cobro_confirmar, name="cobro_confirmar"),
-    path("turno/cierre/", views.cierre_turno, name="cierre_turno"),
-    path("productos/", views.lista_productos, name="lista_productos"),
-    path(
-        "productos/buscar-por-codigo/",
-        views.buscar_por_codigo,
-        name="buscar_por_codigo",
-    ),
-    path("productos/agregar/", views.agregar_producto, name="agregar_producto"),
-    path(
-        "productos/<int:producto_id>/editar/",
-        views.editar_producto,
-        name="editar_producto",
-    ),
-    path(
-        "productos/<int:producto_id>/eliminar/",
-        views.eliminar_producto,
-        name="eliminar_producto",
-    ),
+    path("cobro/agregar/", views.agregar_al_carrito, name="agregar_al_carrito"),
+    path("cobro/actualizar/<int:producto_id>/", views.actualizar_cantidad, name="actualizar_cantidad"),
+    path("cobro/quitar/<int:producto_id>/", views.quitar_producto, name="quitar_producto"),
+    path("cobro/vaciar/", views.vaciar_carrito, name="vaciar_carrito"),
+    path("cobro/registrar/", views.registrar_venta, name="registrar_venta"),
 ]
-

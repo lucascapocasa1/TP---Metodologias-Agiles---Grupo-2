@@ -32,51 +32,10 @@
                 </div>
             </div>
         </form>
-        <form id="escaner-alta" class="filter-form" autocomplete="off">
-            <div class="filter-group">
-                <div class="search-box">
-                    <i class="bi bi-upc-scan"></i>
-                    <input type="text"
-                           id="escaner-alta-input"
-                           placeholder="Escanear código para dar de alta o editar..."
-                           class="admin-input"
-                           autocomplete="off"
-                           aria-label="Escanear código de barras para registrar producto">
-                </div>
-            </div>
-            <button type="submit" class="btn btn-kiosco-outline">
-                <i class="bi bi-upc-scan"></i> Registrar por código
-            </button>
-        </form>
     </div>
 
     <div class="admin-table-container" id="contenedor-tabla">
         {% include "ventas/_productos_tabla.html" %}
     </div>
 </div>
-
-<script>
-(function () {
-    // Registro con lector desde el catálogo: se escanea el código y Enter.
-    // Si ya existe → abre la edición; si no → abre el alta precargada.
-    var form = document.getElementById('escaner-alta');
-    if (!form) return;
-    form.addEventListener('submit', function (e) {
-        e.preventDefault();
-        var codigo = document.getElementById('escaner-alta-input').value.trim();
-        if (!codigo) return;
-        fetch("{% url 'ventas:buscar_por_codigo' %}?codigo=" + encodeURIComponent(codigo), {
-            headers: {"X-Requested-With": "XMLHttpRequest"}
-        }).then(function (r) { return r.json(); }).then(function (data) {
-            if (data.existe) {
-                window.location.href = data.url_editar;
-            } else {
-                window.location.href = "{% url 'ventas:agregar_producto' %}?codigo=" + encodeURIComponent(codigo);
-            }
-        }).catch(function () {
-            window.location.href = "{% url 'ventas:agregar_producto' %}?codigo=" + encodeURIComponent(codigo);
-        });
-    });
-})();
-</script>
 {% endblock %}

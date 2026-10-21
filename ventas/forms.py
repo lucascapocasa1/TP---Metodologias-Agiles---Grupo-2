@@ -79,18 +79,10 @@ class ProductoForm(forms.ModelForm):
         self.fields["descripcion"].required = False
 
     def clean_codigo_barras(self):
-        """HU-04: si el código de barras ya existe, no se permite duplicar.
-
-        El lector de código de barras actúa como un teclado: muchos modelos
-        agregan espacios o saltos de línea al final de la lectura, así que
-        se normaliza (strip) antes de validar. El vacío se guarda como None
-        para que varios productos sin código no choquen con el unique.
-        """
+        """HU-04: si el código de barras ya existe, no se permite duplicar."""
         codigo = self.cleaned_data.get("codigo_barras")
-        if codigo:
-            codigo = codigo.strip()
         if not codigo:
-            return None
+            return codigo
         en_uso = Producto.objects.filter(codigo_barras=codigo)
         if self.producto:
             en_uso = en_uso.exclude(pk=self.producto.pk)

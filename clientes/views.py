@@ -149,7 +149,7 @@ def detalle_cliente(request, cliente_id):
 
     ventas = (
         cliente.ventas.filter(finalizada=True)
-        .select_related("usuario")
+        .select_related("cajero")
         .order_by("-fecha")
     )
     total_gastado = (
@@ -296,9 +296,9 @@ def alta_rapida(request):
 
 
 def _respuesta_cobro(request, contexto=None):
-    """Con HTMX devuelve solo el partial del carrito; sin HTMX, la pantalla."""
+    """Devuelve la pantalla de cobro (sin HTMX) o su panel (con HTMX)."""
     if contexto is None:
         contexto = contexto_cobro(request)
     if request.headers.get("HX-Request"):
-        return render(request, "ventas/_carrito.html", contexto)
+        return render(request, "ventas/partials/panel_cobro.html", contexto)
     return render(request, "ventas/pantalla_cobro.html", contexto)
