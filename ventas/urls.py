@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views, views_qr
+from . import views, views_conexion, views_qr
 
 app_name = "ventas"
 
@@ -19,6 +19,11 @@ urlpatterns = [
     path("display/estado/", views_qr.display_estado, name="display_estado"),
     path("pagar/<uuid:token>/", views_qr.pago_simulado, name="pago_simulado"),
     path("mercadopago/webhook/", views_qr.mercadopago_webhook, name="mercadopago_webhook"),
+    # Conectar la cuenta de Mercado Pago del negocio (OAuth)
+    path("mercadopago/", views_conexion.mercadopago_config, name="mercadopago_config"),
+    path("mercadopago/conectar/", views_conexion.mercadopago_conectar, name="mercadopago_conectar"),
+    path("mercadopago/callback/", views_conexion.mercadopago_callback, name="mercadopago_callback"),
+    path("mercadopago/desconectar/", views_conexion.mercadopago_desconectar, name="mercadopago_desconectar"),
     path("productos/", views.lista_productos, name="lista_productos"),
     path(
         "productos/buscar-por-codigo/",

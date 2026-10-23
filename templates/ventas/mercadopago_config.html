@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block titulo %}Mercado Pago{% endblock %}
+{% block contenido %}
+<link rel="stylesheet" href="/static/css/cobro_qr.css">
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-qr-code"></i> Mercado Pago</h1>
+            <p class="admin-subtitle">
+                Conectá la cuenta de Mercado Pago del negocio: los cobros con QR
+                de la caja (HU-15) te llegan directo a esa cuenta.
+            </p>
+        </div>
+        <a href="{% url 'administracion:dashboard' %}" class="btn btn-kiosco-outline">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Panel
+        </a>
+    </div>
+
+    <div class="system-info mp-estado">
+        {% if conexion %}
+        <h2><i class="bi bi-check-circle-fill mp-ok" aria-hidden="true"></i> Cuenta conectada</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Cuenta:</span>
+                <span class="info-value">{{ conexion.nombre_cuenta|default:conexion.mp_user_id }}</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Tipo:</span>
+                <span class="info-value">
+                    {% if conexion.produccion %}Real (cobra plata de verdad){% else %}De prueba (sandbox, plata ficticia){% endif %}
+                </span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Conectada:</span>
+                <span class="info-value">{{ conexion.conectada|date:"d/m/Y H:i" }}{% if conexion.conectada_por %} por {{ conexion.conectada_por.username }}{% endif %}</span>
+            </div>
+        </div>
+        <form method="post" action="{% url 'ventas:mercadopago_desconectar' %}" class="mt-3">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-kiosco-outline">
+                <i class="bi bi-plug" aria-hidden="true"></i> Desconectar
+            </button>
+        </form>
+
+        {% else %}
+        <h2><i class="bi bi-plug" aria-hidden="true"></i> Sin cuenta conectada</h2>
+        <p class="mp-texto">
+            {% if modo == "env" %}
+            Hoy los cobros con QR usan las credenciales del archivo <code>.env</code>
+            (modo desarrollo). Conectá tu cuenta para que la plata te llegue a vos.
+            {% else %}
+            Hoy los cobros con QR están en <strong>modo de prueba</strong>: el pago se
+            simula y no se mueve plata. Conectá tu cuenta para cobrar de verdad.
+            {% endif %}
+        </p>
+
+        {% if oauth_disponible %}
+        <form method="post" action="{% url 'ventas:mercadopago_conectar' %}">
+            {% csrf_token %}
+            <button type="submit" class="btn-mp mp-boton-conectar">
+                <i class="bi bi-link-45deg" aria-hidden="true"></i> Conectar con Mercado Pago
+            </button>
+        </form>
+        <p class="mp-nota">
+            Te lleva a Mercado Pago: iniciás sesión con la cuenta del negocio, tocás
+            "Autorizar" y volvés acá.
+            {% if oauth_prueba %}Está configurado para cuentas de <strong>prueba</strong> (sandbox).{% endif %}
+        </p>
+        {% if not redirect_https %}
+        <div class="kiosco-alert kiosco-alert-warning mt-3" role="alert">
+            <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
+            <span>Mercado Pago solo vuelve a direcciones <strong>https://</strong>. Para conectar,
+            el sistema tiene que estar online (o con un túnel). Ver el README.</span>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="kiosco-alert kiosco-alert-info" role="alert">
+            <i class="bi bi-info-circle-fill" aria-hidden="true"></i>
+            <span>El botón se activa cuando el sistema tiene cargada la aplicación de Norvex en
+            Mercado Pago. Lo hace una sola vez quien publica el sistema (ver el README,
+            "Conectar con Mercado Pago").</span>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+
+    {% if not oauth_disponible or not conexion %}
+    <div class="system-info">
+        <h2><i class="bi bi-tools" aria-hidden="true"></i> Datos para la aplicación de Mercado Pago</h2>
+        <p class="mp-texto">En la aplicación de Norvex en Mercado Pago Developers, la
+        <strong>URL de redireccionamiento</strong> tiene que ser exactamente:</p>
+        <code class="mp-url">{{ redirect_uri }}</code>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

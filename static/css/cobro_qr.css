@@ -225,3 +225,37 @@
   background: #007EB5;
 }
 
+
+/* Panel "Mercado Pago" del administrador */
+.mp-estado {
+  margin-bottom: 1.25rem;
+}
+
+.mp-ok {
+  color: var(--verde);
+}
+
+.mp-texto,
+.mp-nota {
+  color: var(--texto-suave);
+  max-width: 60ch;
+}
+
+.mp-nota {
+  font-size: 0.9rem;
+  margin-top: 0.75rem;
+}
+
+.mp-boton-conectar {
+  width: auto;
+  padding: 0.8rem 1.4rem;
+}
+
+.mp-url {
+  display: block;
+  padding: 0.6rem 0.8rem;
+  word-break: break-all;
+  color: var(--texto);
+  background: var(--papel);
+  border-radius: var(--radio-chico);
+}

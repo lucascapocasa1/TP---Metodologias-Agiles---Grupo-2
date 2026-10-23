@@ -1,0 +1,40 @@
+# Publicación de Norvex en Render (https://render.com), plan gratis.
+# En Render: New > Blueprint > elegir este repositorio. Crea el sitio y la base.
+# Después, en "Environment" del servicio web, cargar las variables de Mercado
+# Pago (MP_CLIENT_ID, MP_CLIENT_SECRET). Ver el README, "Publicar el sistema".
+services:
+  - type: web
+    name: norvex
+    runtime: python
+    plan: free
+    buildCommand: >-
+      pip install -r requirements.txt &&
+      python manage.py collectstatic --noinput &&
+      python manage.py migrate &&
+      python manage.py setup_inicial
+    startCommand: gunicorn config.wsgi:application
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.13.7
+      - key: DEBUG
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        fromDatabase:
+          name: norvex-db
+          property: connectionString
+      - key: MP_OAUTH_PRUEBA
+        value: "true"
+      - key: MP_CLIENT_ID
+        sync: false
+      - key: MP_CLIENT_SECRET
+        sync: false
+      - key: KIOSCO_NOMBRE
+        value: Kiosco de Barrio
+      - key: KIOSCO_WHATSAPP
+        sync: false
+
+databases:
+  - name: norvex-db
+    plan: free

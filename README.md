@@ -14,7 +14,8 @@ cierre de turno) · **consignas de la cátedra completas** (HU-13: catálogo
 público + pedido por WhatsApp **con el cobro de la entrega cerrado**; HU-14:
 cuenta corriente "FIAR") · estilo neón cian único · **cobro con QR de
 Mercado Pago** (HU-15) y pantalla para el celular del cliente (HU-16) ·
-marca **Norvex** · **356 tests** en verde.
+marca **Norvex** · botón **"Conectar con Mercado Pago"** para que la plata
+le llegue al negocio · listo para publicar en Render · **372 tests** en verde.
 
 ---
 
@@ -42,6 +43,7 @@ entregable de documentación del trabajo práctico.
 | — | Consignas de la cátedra: integración externa (catálogo público + pedido por WhatsApp) y cuenta corriente ("FIAR") | ✅ Completo (19-10): HU-13 y HU-14 |
 | — | Cierre del flujo de HU-13: **entregar un pedido es cobrarlo** (la venta del mostrador queda vinculada al pedido de WhatsApp) | ✅ Completo (21-10) |
 | — | Cobro con QR de Mercado Pago (HU-15), pantalla para el celular del cliente (HU-16) y marca Norvex | ✅ Completo (23-10) |
+| — | Botón "Conectar con Mercado Pago" (la plata le llega al negocio) y sistema listo para publicar | ✅ Completo (23-10) |
 
 El detalle de cada sprint está en los apartados **Alcance de Sprint 1-4**;
 el avance item por item, en [Backlog](#backlog). Las dos consignas nuevas de
@@ -50,7 +52,72 @@ en [Integración externa y cuenta corriente](#integración-externa-y-cuenta-corr
 
 ---
 
-## Qué cambió en esta versión (Mercado Pago y Norvex — 23-10-2026)
+## Qué cambió en esta versión (Conectar con Mercado Pago — 23-10-2026)
+
+### El problema
+
+Para cobrar con QR, el sistema necesita saber **a qué cuenta de Mercado Pago
+mandar la plata**. Pedirle al dueño de un negocio que entre al panel de
+desarrolladores y copie un token es complicado, y con el alias solo no
+alcanza: Mercado Pago no deja que un sistema vea los pagos de una cuenta
+sabiendo solo el alias.
+
+### La solución: botón "Conectar con Mercado Pago" (OAuth)
+
+Es lo que usan Tiendanube, PedidosYa y otras plataformas:
+
+1. El administrador entra a **Panel → Mercado Pago** y toca **Conectar con
+   Mercado Pago**.
+2. Se abre Mercado Pago: inicia sesión con la cuenta del negocio y toca
+   **Autorizar**.
+3. Mercado Pago lo devuelve a Norvex con un código de un solo uso, que el
+   sistema canjea por las credenciales de esa cuenta y las guarda.
+4. Desde ese momento, **cada cobro con QR se hace a nombre de esa cuenta**: la
+   plata le llega directo al negocio. Si se desconecta, vuelve al modo de prueba.
+
+**¿A qué cuenta va la plata?** A la cuenta conectada; si no hay, a la del
+`MP_ACCESS_TOKEN` del `.env` (desarrollo); si tampoco hay, no se cobra:
+**modo de prueba** con pago simulado.
+
+**No se mezclan negocios:** cada negocio tiene **su propia instalación** de
+Norvex (su servidor y su base), con **una** cuenta conectada. Si en el futuro
+el sistema pasa a multi-negocio, `ConexionMercadoPago` está pensada para
+agregarle un FK al negocio sin rehacerla.
+
+**Seguridad:**
+- Solo el **Administrador** puede conectar o desconectar (el cajero: 403).
+- La vuelta de Mercado Pago se valida con un `state` al azar guardado en la
+  sesión: otra página no puede forzar la conexión de una cuenta ajena.
+- Las credenciales no se muestran en ninguna pantalla ni en el admin de Django.
+- El token dura ~6 meses: si le faltan menos de 7 días, se renueva solo con el
+  `refresh_token`.
+- Conectar y desconectar queda en la **auditoría**.
+
+**Requisito:** Mercado Pago solo vuelve a direcciones `https://`, así que el
+botón funciona con el **sistema publicado** (ver "Publicar el sistema") o con
+un **túnel** desde la PC. En `127.0.0.1` el panel lo avisa y la caja sigue en
+modo de prueba. Además, publicado con `https`, cada cobro le pasa a Mercado
+Pago la dirección del **webhook**, y el pago se confirma al instante.
+
+### Archivos
+
+| Archivo | Cambio | Por qué |
+|---|---|---|
+| `ventas/models.py` | Nuevo modelo `ConexionMercadoPago` (token, refresh token, vencimiento, cuenta, prueba/real, quién la conectó) | Guardar la cuenta del negocio. Una por instalación. |
+| `ventas/migrations/0009_conexion_mercadopago.py` | Nueva migración | |
+| `ventas/mercadopago.py` | Elige el token (cuenta conectada → `.env` → prueba); OAuth: `url_autorizacion`, `conectar_cuenta`, `renovar_conexion`, `desconectar_cuenta` | Toda la charla con Mercado Pago en un solo lugar. |
+| `ventas/views_conexion.py` | Nuevo: panel, conectar, callback y desconectar (`@rol_requerido("Administrador")`) | |
+| `ventas/cobro_qr.py` | Manda la URL del webhook a Mercado Pago cuando el sistema está online con `https` | Confirmación instantánea del pago. |
+| `templates/ventas/mercadopago_config.html` | Nueva pantalla **Panel → Mercado Pago** | |
+| `templates/administracion/dashboard.html` | Tarjeta "Mercado Pago" en el panel | |
+| `config/settings.py` | `MP_CLIENT_ID`, `MP_CLIENT_SECRET`, `MP_OAUTH_PRUEBA`, `MP_REDIRECT_URI`; `DEBUG` y `SECRET_KEY` desde el `.env`; `STATIC_ROOT`, WhiteNoise y https detrás del proxy | Poder publicar el sistema sin cambiar nada para el que corre en local. |
+| `requirements.txt` | `whitenoise` (sirve los estáticos publicado) y `gunicorn` (servidor web) | Solo se usan en el servidor; en local todo sigue igual. |
+| `render.yaml` | Nuevo: publica el sitio y la base en Render con un clic | |
+| `ventas/tests_conexion_mp.py` | 16 tests nuevos | Ver "Correr los tests". |
+
+---
+
+## Versión anterior: Mercado Pago y Norvex — 23-10-2026
 
 ### Historias de usuario nuevas
 
@@ -694,6 +761,54 @@ Abrí `http://127.0.0.1:8001/` en el navegador.
 > Después de eso, solo necesitás activar el entorno (paso 3) y levantar
 > el servidor (paso 10).
 
+### Publicar el sistema (Render)
+
+> Netlify **no** sirve: solo publica páginas estáticas y no corre Django.
+> Render (o Railway, PythonAnywhere) sí, y tiene plan gratis.
+
+1. Creá una cuenta en https://render.com (podés entrar con GitHub).
+2. **New → Blueprint** y elegí este repositorio. Render lee `render.yaml` y
+   crea el sitio y una base PostgreSQL. En cada publicación instala, junta los
+   estáticos, corre las migraciones y `setup_inicial`.
+3. Cuando termine, el sitio queda en `https://norvex-XXXX.onrender.com`.
+   Entrá con `admin` / `kiosco2024` y **cambiá las contraseñas**.
+
+Notas: el plan gratis "duerme" el sitio si no se usa (la primera visita tarda
+~1 minuto) y la base gratis de Render vence a los 30 días. Para algo más
+estable se puede apuntar `DATABASE_URL` a Supabase.
+
+### Conectar con Mercado Pago (una sola vez, quien publica el sistema)
+
+1. En https://www.mercadopago.com.ar/developers/panel/app creá una aplicación
+   (producto **Checkout Pro**).
+2. En la aplicación, **URL de redireccionamiento**: la que muestra **Panel →
+   Mercado Pago** en el sistema publicado
+   (`https://<tu-dominio>/ventas/mercadopago/callback/`).
+3. Copiá el **Client ID** y el **Client Secret** de la aplicación a las
+   variables `MP_CLIENT_ID` y `MP_CLIENT_SECRET` (en Render: servicio →
+   *Environment*). `MP_OAUTH_PRUEBA=true` conecta cuentas de **prueba**
+   (plata ficticia); `false`, cuentas reales.
+4. Listo: cada negocio entra a **Panel → Mercado Pago** y toca **Conectar**.
+
+**Para probar con plata ficticia (sandbox):** en la aplicación, sección
+*Cuentas de prueba*, creá un **vendedor** y un **comprador**. El vendedor es el
+que se conecta con el botón; con el comprador (y las tarjetas de prueba de
+Mercado Pago) se paga el QR desde el celular. El pago aparece en la caja y en
+la cuenta del vendedor de prueba.
+
+**Desde la PC, sin publicar (túnel):** con
+`cloudflared tunnel --url http://localhost:8001` se obtiene una dirección
+`https://….trycloudflare.com` temporal. Cargala en el `.env`:
+
+```
+CSRF_TRUSTED_ORIGINS=https://….trycloudflare.com
+MP_REDIRECT_URI=https://….trycloudflare.com/ventas/mercadopago/callback/
+```
+
+registrá esa misma `MP_REDIRECT_URI` en la aplicación de Mercado Pago y entrá
+al sistema por la dirección del túnel. La dirección cambia cada vez que se
+abre el túnel.
+
 ### Archivo .env
 
 El proyecto usa `django-environ` para leer la configuración desde un archivo
@@ -1140,6 +1255,8 @@ Estado real al **21-10-2026** (unificado: tabla original + backlog nuevo).
 | Lo fiado fuera de la caja y de los ingresos, como "deuda otorgada" (HU-14) | Consigna | `METODOS_EN_CAJA` + `Turno.deuda_otorgada` + `reportes.deuda_otorgada()` |
 | Cobro con QR de Mercado Pago, con modo de prueba (HU-15) | Extra | `ventas/mercadopago.py` + `cobro_qr.py` + `PagoMercadoPago` (migración `ventas/0008`), 16 tests |
 | Pantalla para el celular del cliente (HU-16) | Extra | `/ventas/display/` (se actualiza sola cada 2 s) |
+| Botón "Conectar con Mercado Pago": la plata le llega al negocio | Extra | `ConexionMercadoPago` (migración `ventas/0009`) + `views_conexion.py`, 16 tests |
+| Sistema listo para publicar (Render) | Extra | `render.yaml`, WhiteNoise, gunicorn, `DEBUG`/`SECRET_KEY` desde el entorno |
 | Total de Mercado Pago en el cierre de turno | Extra | `Turno.total_mercado_pago` |
 | Marca y logo propios: Norvex | Extra | `static/img/norvex-logo.svg`, `favicon.svg`, `templates/includes/norvex_marca.svg` |
 | Velocidad con Supabase (conexión persistente y sesiones en caché) | Extra | `CONN_MAX_AGE`, `SESSION_ENGINE = cached_db` |
@@ -1149,5 +1266,6 @@ Estado real al **21-10-2026** (unificado: tabla original + backlog nuevo).
 | Item | Sprint | Notas |
 |------|--------|-------|
 | Comercio configurable (nombre y colores del local) | por definir | Identidad fija en neón; se parametrizaría vía settings/templates |
-| Cobrar con Mercado Pago real (producción) | por definir | Hoy funciona en modo de prueba o sandbox; falta cargar credenciales de producción y publicar el sistema para el webhook |
+| Publicar el sistema y crear la aplicación de Norvex en Mercado Pago | por definir | Todo el código está listo: falta hacer los pasos de "Publicar el sistema" y "Conectar con Mercado Pago" |
+| Multi-negocio (varios comercios en una sola instalación) | futuro | Hoy es una instalación por negocio; requeriría un modelo `Negocio` en todas las apps |
 | Recuperar contraseña ("¿Olvidaste tu contraseña?") | por definir | Sin `password_reset` ni `EMAIL_*` en settings |

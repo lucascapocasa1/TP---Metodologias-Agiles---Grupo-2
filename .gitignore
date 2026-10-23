@@ -11,3 +11,6 @@ env/
 # Agentes AI / config local
 .agents/
 skills-lock.json
+
+# Archivos estáticos juntados por collectstatic (se generan al publicar)
+staticfiles/

@@ -14,6 +14,7 @@ Flujo:
 """
 from django.db import transaction
 from django.db.models import F
+from django.urls import reverse
 
 from clientes import services as fidelidad
 
@@ -58,7 +59,9 @@ def iniciar_cobro_qr(request, url_pago_simulado):
         # La llamada a Mercado Pago va fuera de la transacción para no tener
         # filas bloqueadas mientras se espera la red.
         try:
-            pago.preference_id, pago.link_pago = mercadopago.crear_preferencia(venta)
+            pago.preference_id, pago.link_pago = mercadopago.crear_preferencia(
+                venta, notification_url=_url_webhook(request)
+            )
         except mercadopago.MercadoPagoError as exc:
             _devolver_stock(venta)
             raise ErrorCobro(f"No se pudo generar el QR de Mercado Pago. {exc}")
@@ -67,6 +70,16 @@ def iniciar_cobro_qr(request, url_pago_simulado):
     services.vaciar_carrito(request)
     fidelidad.quitar_cliente_de_sesion(request)
     return pago
+
+
+def _url_webhook(request):
+    """
+    Dirección pública del webhook. Solo si el sistema está online con https:
+    desde la PC (localhost) Mercado Pago no puede llegar, y la caja se entera
+    igual consultando cada pocos segundos.
+    """
+    url = request.build_absolute_uri(reverse("ventas:mercadopago_webhook"))
+    return url if url.startswith("https://") else None
 
 
 @transaction.atomic

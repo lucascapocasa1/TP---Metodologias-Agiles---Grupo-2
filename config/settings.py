@@ -26,15 +26,34 @@ environ.Env.read_env(BASE_DIR / '.env')
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-eu3g_+obdq_6a%tzsk663m_x7(n^e3+0r%v_3arg8uyj9%_05r'
+# En el servidor publicado se define SECRET_KEY propia (ver render.yaml).
+SECRET_KEY = env.str(
+    'SECRET_KEY',
+    default='django-insecure-eu3g_+obdq_6a%tzsk663m_x7(n^e3+0r%v_3arg8uyj9%_05r',
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# En local queda en True como siempre; en el servidor publicado DEBUG=False.
+DEBUG = env.bool('DEBUG', default=True)
 
 # En desarrollo se acepta cualquier host para que el celular pueda entrar por
 # la IP de la PC en la red local (runserver 0.0.0.0:8000). Se puede limitar
 # con ALLOWED_HOSTS=localhost,192.168.0.10 en el .env.
 ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'] if DEBUG else ['localhost', '127.0.0.1'])
+CSRF_TRUSTED_ORIGINS = env.list('CSRF_TRUSTED_ORIGINS', default=[])
+
+# Render (hosting) informa el dominio público del sitio en esta variable.
+RENDER_EXTERNAL_HOSTNAME = env.str('RENDER_EXTERNAL_HOSTNAME', default='')
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+    CSRF_TRUSTED_ORIGINS.append(f'https://{RENDER_EXTERNAL_HOSTNAME}')
+
+if not DEBUG:
+    # Publicado detrás del proxy https del hosting: así Django sabe que la
+    # visita es segura (lo necesita el botón "Conectar con Mercado Pago").
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
 
 
 # Application definition
@@ -57,6 +76,8 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # WhiteNoise sirve /static/ en el servidor publicado (se agrega abajo
+    # solo si está instalado, para no romper a quien no corrió pip install).
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -144,6 +165,15 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATICFILES_DIRS = [BASE_DIR / 'static']
+# Carpeta donde `collectstatic` junta los archivos al publicar el sistema.
+STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+try:
+    import whitenoise  # noqa: F401
+except ImportError:
+    pass
+else:
+    MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')
 
 # --- Configuración de autenticación (Sprint 1) ---
 LOGIN_URL = 'usuarios:login'
@@ -168,3 +198,14 @@ MP_ACCESS_TOKEN = env.str('MP_ACCESS_TOKEN', default='')
 MP_NOTIFICATION_URL = env.str('MP_NOTIFICATION_URL', default='')
 # Texto que ve el cliente en el resumen de la tarjeta (máx. 22 caracteres).
 MP_NOMBRE_EN_RESUMEN = env.str('MP_NOMBRE_EN_RESUMEN', default='NORVEX')[:22]
+
+# Aplicación de Norvex en Mercado Pago Developers, para el botón "Conectar con
+# Mercado Pago" (OAuth). La carga una sola vez quien publica el sistema; cada
+# negocio después solo toca el botón. Necesita el sistema online con https.
+MP_CLIENT_ID = env.str('MP_CLIENT_ID', default='')
+MP_CLIENT_SECRET = env.str('MP_CLIENT_SECRET', default='')
+# True = al conectar se piden credenciales de prueba (sandbox, plata ficticia).
+MP_OAUTH_PRUEBA = env.bool('MP_OAUTH_PRUEBA', default=True)
+# Dirección de vuelta registrada en la aplicación de Mercado Pago. Si se deja
+# vacía, se arma sola: https://<tu-dominio>/ventas/mercadopago/callback/
+MP_REDIRECT_URI = env.str('MP_REDIRECT_URI', default='')

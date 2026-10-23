@@ -255,3 +255,52 @@ class PagoMercadoPago(models.Model):
 
     def __str__(self):
         return f"Pago MP de la venta N° {self.venta_id} ({self.get_estado_display()})"
+
+
+class ConexionMercadoPago(models.Model):
+    """
+    Cuenta de Mercado Pago del negocio, conectada con el botón "Conectar con
+    Mercado Pago" (OAuth). Los cobros con QR se hacen a nombre de esta cuenta,
+    así la plata le llega directo al negocio.
+
+    Hay una sola por instalación de Norvex: cada negocio tiene su propia
+    instalación, así que las cuentas no se pueden mezclar. Si en el futuro el
+    sistema pasa a multi-negocio, alcanza con agregar acá un FK al negocio.
+    """
+
+    # Credenciales que entrega Mercado Pago al autorizar. Son secretas: no se
+    # muestran en ninguna pantalla ni en el admin de Django.
+    access_token = models.CharField(max_length=255)
+    refresh_token = models.CharField(max_length=255, blank=True)
+    expira = models.DateTimeField(
+        null=True, blank=True, help_text="Cuándo vence el access token."
+    )
+    mp_user_id = models.CharField("ID de usuario en Mercado Pago", max_length=50)
+    nombre_cuenta = models.CharField(
+        "Cuenta de Mercado Pago", max_length=200, blank=True,
+        help_text="Nombre o email de la cuenta, para mostrar en el panel.",
+    )
+    produccion = models.BooleanField(
+        default=False, help_text="False = cuenta de prueba (sandbox, plata ficticia)."
+    )
+    conectada_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+    )
+    conectada = models.DateTimeField(auto_now_add=True)
+    actualizada = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "conexión con Mercado Pago"
+        verbose_name_plural = "conexión con Mercado Pago"
+
+    def __str__(self):
+        return f"Mercado Pago: {self.nombre_cuenta or self.mp_user_id}"
+
+    @classmethod
+    def actual(cls):
+        """La cuenta conectada, o None."""
+        return cls.objects.order_by("-conectada").first()

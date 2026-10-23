@@ -76,3 +76,5 @@ Modelos: `ventas` → `Categoria`, `Producto` (`codigo_barras` unique, `costo`, 
 - Lógica en `ventas/cobro_qr.py`, API en `ventas/mercadopago.py` (urllib, sin dependencias), vistas en `ventas/views_qr.py`. Modelo `PagoMercadoPago`, migración `ventas/0008`.
 - Sin `MP_ACCESS_TOKEN` en `.env` → modo de prueba (pago simulado en `/ventas/pagar/<token>/`). Con `TEST-...` usa sandbox.
 - Display para el celular del cliente en `/ventas/display/` (misma red: `runserver 0.0.0.0:8001`).
+- Botón "Conectar con Mercado Pago" (OAuth) en `/ventas/mercadopago/` (solo Administrador): `ConexionMercadoPago` (una por instalación, migración `ventas/0009`), vistas en `ventas/views_conexion.py`. Token a usar: cuenta conectada → `MP_ACCESS_TOKEN` → modo de prueba. Necesita `MP_CLIENT_ID`/`MP_CLIENT_SECRET` y el sistema online con https.
+- Publicación: `render.yaml` (Render). En el servidor `DEBUG=false` y `SECRET_KEY` propia; WhiteNoise y gunicorn están en `requirements.txt`.
