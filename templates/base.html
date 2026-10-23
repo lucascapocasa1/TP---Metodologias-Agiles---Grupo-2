@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block titulo %}Kiosco{% endblock %} — Sistema Kiosco</title>
+    <title>{% block titulo %}Norvex{% endblock %} — Norvex</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Righteous&family=Space+Grotesk:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -27,8 +27,8 @@
     <nav class="kiosco-navbar">
         <div class="kiosco-navbar-inner">
             <a class="brand" href="{% url 'usuarios:post_login' %}">
-                <i class="bi bi-shop brand-icon" aria-hidden="true"></i>
-                <span class="brand-text">Kiosco</span>
+                {% include "includes/norvex_marca.svg" with clase="brand-icon norvex-marca" %}
+                <span class="brand-text">Norvex</span>
             </a>
             <div class="nav-acciones">
                 <div class="user-info">

@@ -1,0 +1,227 @@
+/* ==========================================================
+   Cobro con QR de Mercado Pago: ventana de la caja, tarjeta
+   "Mostrar el QR en un celular", display del cliente y pago simulado.
+   Usa los tokens de styles.css, así sigue la paleta activa (neón).
+   ========================================================== */
+
+.qr-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(3, 10, 15, 0.72);
+}
+
+.qr-modal {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.75rem;
+  text-align: center;
+  color: var(--texto);
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+}
+
+.qr-modal h2 {
+  font-size: 1.35rem;
+  margin: 0;
+}
+
+.qr-monto {
+  font-family: var(--font-display);
+  font-size: 2.4rem;
+  line-height: 1.1;
+  margin: 0.4rem 0 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* El QR siempre sobre blanco: los lectores necesitan contraste. */
+.qr-caja {
+  display: inline-block;
+  margin: 1rem 0;
+  padding: 14px;
+  background: #fff;
+  border-radius: var(--radio);
+}
+
+.qr-caja canvas,
+.qr-caja img {
+  display: block;
+}
+
+.qr-ayuda {
+  color: var(--texto-suave);
+  margin-bottom: 0.5rem;
+}
+
+.qr-estado {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--texto-suave);
+  margin-bottom: 1rem;
+}
+
+.qr-estado .punto {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--sol);
+  animation: qr-latido 1.2s ease-in-out infinite;
+}
+
+.qr-prueba {
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+}
+
+.qr-prueba a {
+  color: var(--sol);
+}
+
+.qr-aprobado {
+  color: var(--verde);
+}
+
+.qr-aprobado .bi {
+  display: block;
+  font-size: 4rem;
+  line-height: 1;
+}
+
+@keyframes qr-latido {
+  0%, 100% { opacity: 0.35; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .qr-estado .punto { animation: none; }
+}
+
+/* Tarjeta "Mostrar el QR en un celular" */
+.qr-celular {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+  padding: 1rem;
+  color: var(--texto-suave);
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+}
+
+.qr-celular h3 {
+  font-size: 1rem;
+  color: var(--texto);
+  margin: 0 0 0.25rem;
+}
+
+.qr-celular p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.qr-celular .qr-mini {
+  flex: none;
+  padding: 6px;
+  background: #fff;
+  border-radius: var(--radio-chico);
+}
+
+/* Display del celular y pago simulado (pantallas sueltas, sin navbar) */
+.pantalla-celular {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 16px;
+  text-align: center;
+  color: var(--texto);
+  background: var(--papel);
+}
+
+.pantalla-celular .marca {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  color: var(--sol);
+}
+
+.pantalla-celular .ayuda {
+  max-width: 22rem;
+  margin-left: auto;
+  margin-right: auto;
+  color: var(--texto-suave);
+}
+
+.pantalla-celular .estado-icono {
+  font-size: 5rem;
+  line-height: 1;
+  color: var(--texto-suave);
+}
+
+.pantalla-celular .qr-monto {
+  font-size: clamp(2.5rem, 12vw, 4rem);
+}
+
+.pago-sim {
+  width: 100%;
+  max-width: 420px;
+  padding: 1.5rem;
+  text-align: left;
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+}
+
+.pago-sim .aviso {
+  margin-bottom: 1rem;
+  padding: 0.6rem 0.8rem;
+  font-size: 0.85rem;
+  color: var(--alert-warn-fg);
+  background: var(--alert-warn-bg);
+  border-radius: var(--radio-chico);
+}
+
+.pago-sim ul {
+  list-style: none;
+  margin: 0 0 1rem;
+  padding: 0;
+}
+
+.pago-sim li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid var(--linea-azulejo);
+}
+
+.btn-mp {
+  width: 100%;
+  padding: 0.9rem;
+  font-weight: 700;
+  color: #fff;
+  background: #009EE3;
+  border: none;
+  border-radius: var(--radio);
+}
+
+.btn-mp:hover,
+.btn-mp:focus {
+  color: #fff;
+  background: #007EB5;
+}
+

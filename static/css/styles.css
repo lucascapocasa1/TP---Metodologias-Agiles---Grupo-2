@@ -163,6 +163,24 @@ strong {
   line-height: 1;
 }
 
+/* Logo Norvex (SVG en línea): toma el color y el tamaño del texto. */
+.norvex-marca {
+  display: inline-block;
+  width: 1.2em;
+  height: 1.2em;
+  vertical-align: -0.2em;
+  flex: none;
+}
+
+.brand .norvex-marca {
+  width: 1.6rem;
+  height: 1.6rem;
+}
+
+[data-tema="neon"] .norvex-marca {
+  filter: drop-shadow(0 0 6px rgba(0, 200, 224, 0.45));
+}
+
 .brand-text {
   font-family: var(--font-display);
   font-size: 1.45rem;

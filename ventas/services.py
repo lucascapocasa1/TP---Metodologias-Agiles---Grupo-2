@@ -21,7 +21,10 @@ CLAVE_CARRITO = "carrito"
 METODOS_PAGO_VALIDOS = {"efectivo", "tarjeta", "cuenta_corriente"}
 # HU-14: lo fiado no es plata que entra a la caja, así que no engrosa los
 # totales de un turno. Solo efectivo y tarjeta se cuentan en el cierre.
-METODOS_EN_CAJA = ("efectivo", "tarjeta")
+METODOS_EN_CAJA = ("efectivo", "tarjeta", "mercado_pago")
+# Mercado Pago no se confirma con el formulario común: la venta queda
+# pendiente hasta que el cliente paga el QR (ver ventas/cobro_qr.py).
+METODO_QR = "mercado_pago"
 
 
 def formatear_monto(monto):
@@ -198,7 +201,7 @@ def _precio_de_item(item, producto):
     return Decimal(str(precio))
 
 
-def _crear_venta(items, metodo_pago, cliente, usuario, monto_entregado):
+def _crear_venta(items, metodo_pago, cliente, usuario, monto_entregado, finalizada=True):
     """
     Núcleo de la venta: valida el cobro, crea la Venta con sus DetalleVenta
     (precio y costo congelados), descuenta el stock y acumula los puntos
@@ -210,8 +213,13 @@ def _crear_venta(items, metodo_pago, cliente, usuario, monto_entregado):
 
     `items` es una lista de dicts {"producto", "cantidad"} y, opcionalmente,
     "precio" (el congelado, que usa el pedido de WhatsApp).
+
+    Con `finalizada=False` (cobro con QR de Mercado Pago) la venta queda
+    pendiente: el stock se reserva igual, pero los puntos se suman recién
+    cuando se aprueba el pago.
     """
-    if metodo_pago not in METODOS_PAGO_VALIDOS:
+    es_qr_pendiente = metodo_pago == METODO_QR and not finalizada
+    if metodo_pago not in METODOS_PAGO_VALIDOS and not es_qr_pendiente:
         raise ErrorCobro(
             "Elegí un método de pago válido (efectivo, tarjeta o cuenta "
             "corriente)."
@@ -272,7 +280,7 @@ def _crear_venta(items, metodo_pago, cliente, usuario, monto_entregado):
 
     venta = Venta.objects.create(
         total=total,
-        finalizada=True,
+        finalizada=finalizada,
         metodo_pago=metodo_pago,
         usuario=usuario if (usuario and usuario.is_authenticated) else None,
         monto_entregado=monto_final,
@@ -294,7 +302,7 @@ def _crear_venta(items, metodo_pago, cliente, usuario, monto_entregado):
             stock=F("stock") - item["cantidad"]
         )
 
-    if cliente is not None:
+    if cliente is not None and finalizada:
         fidelidad.sumar_puntos(cliente, puntos_ganados)
         # HU-14: lo fiado engrosa la deuda del cliente en la misma
         # transacción. Si algo falla después, la venta y la deuda se
@@ -400,6 +408,7 @@ def totales_del_turno(turno):
         return {
             "total_efectivo": turno.total_efectivo,
             "total_tarjeta": turno.total_tarjeta,
+            "total_mercado_pago": turno.total_mercado_pago,
             "total_general": turno.total_general,
             "deuda_otorgada": turno.deuda_otorgada,
             "cantidad_operaciones": turno.cantidad_operaciones,
@@ -408,15 +417,18 @@ def totales_del_turno(turno):
     agregados = ventas_del_turno(turno).aggregate(
         efectivo=Sum("total", filter=Q(metodo_pago="efectivo")),
         tarjeta=Sum("total", filter=Q(metodo_pago="tarjeta")),
+        mercado_pago=Sum("total", filter=Q(metodo_pago="mercado_pago")),
         fiado=Sum("total", filter=Q(metodo_pago="cuenta_corriente")),
         operaciones=Count("pk"),
     )
     efectivo = agregados["efectivo"] or Decimal("0.00")
     tarjeta = agregados["tarjeta"] or Decimal("0.00")
+    mercado_pago = agregados["mercado_pago"] or Decimal("0.00")
     return {
         "total_efectivo": efectivo,
         "total_tarjeta": tarjeta,
-        "total_general": efectivo + tarjeta,
+        "total_mercado_pago": mercado_pago,
+        "total_general": efectivo + tarjeta + mercado_pago,
         "deuda_otorgada": agregados["fiado"] or Decimal("0.00"),
         "cantidad_operaciones": agregados["operaciones"],
     }
@@ -437,6 +449,7 @@ def cerrar_turno(turno):
         turno.fecha_cierre = timezone.now()
         turno.total_efectivo = totales["total_efectivo"]
         turno.total_tarjeta = totales["total_tarjeta"]
+        turno.total_mercado_pago = totales["total_mercado_pago"]
         turno.deuda_otorgada = totales["deuda_otorgada"]
         turno.cantidad_operaciones = totales["cantidad_operaciones"]
         turno.save(
@@ -444,6 +457,7 @@ def cerrar_turno(turno):
                 "fecha_cierre",
                 "total_efectivo",
                 "total_tarjeta",
+                "total_mercado_pago",
                 "deuda_otorgada",
                 "cantidad_operaciones",
             ]

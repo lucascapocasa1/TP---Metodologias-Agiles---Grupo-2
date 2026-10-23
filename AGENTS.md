@@ -2,7 +2,7 @@
 
 ## Proyecto
 
-Sistema Kiosco — web app Django 6.1.1 para un kiosco (Sprint 4 completo + consignas de la cátedra: catálogo público con pedido por WhatsApp y cuenta corriente "FIAR"). Locale `es-ar`, timezone Argentina. **Base de datos: PostgreSQL** (`DATABASE_URL` en `.env`, p. ej. `postgresql://postgres:***@localhost:5432/db_kiosco`); SQLite queda solo como fallback si no hay `.env`.
+Norvex (antes "Sistema Kiosco") — web app Django 6.1.1 para comercios, nacida para un kiosco (Sprint 4 completo + consignas de la cátedra: catálogo público con pedido por WhatsApp y cuenta corriente "FIAR"). Locale `es-ar`, timezone Argentina. **Base de datos: PostgreSQL** (`DATABASE_URL` en `.env`, p. ej. `postgresql://postgres:***@localhost:5432/db_kiosco`); SQLite queda solo como fallback si no hay `.env`.
 
 ## Configuración
 
@@ -69,3 +69,10 @@ Modelos: `ventas` → `Categoria`, `Producto` (`codigo_barras` unique, `costo`, 
 - **Búsqueda de cliente**: siempre con `clientes/services.py::buscar_clientes` (la usan el POS y el panel de pedidos; ignora acentos). Para tocar datos de un cliente en una venta, usar `clientes/services.py::cliente_bloqueado` (`select_for_update`).
 - **Dinero en la UI**: siempre con el filtro `|montos` (`{% load formatos %}`, en `usuarios/templatetags/formatos.py`) → `$30.500`, con centavos solo si los hay. Nunca `floatformat` para importes.
 - **Estilo de código**: nombres de apps y comentarios en español. Seguir las convenciones existentes al agregar apps o archivos nuevos.
+
+## Cobro con QR de Mercado Pago (HU-15/16)
+
+- Método `mercado_pago` en `Venta.METODO_PAGO`. La venta se crea con `services._crear_venta(..., finalizada=False)`: stock reservado, puntos al aprobar.
+- Lógica en `ventas/cobro_qr.py`, API en `ventas/mercadopago.py` (urllib, sin dependencias), vistas en `ventas/views_qr.py`. Modelo `PagoMercadoPago`, migración `ventas/0008`.
+- Sin `MP_ACCESS_TOKEN` en `.env` → modo de prueba (pago simulado en `/ventas/pagar/<token>/`). Con `TEST-...` usa sandbox.
+- Display para el celular del cliente en `/ventas/display/` (misma red: `runserver 0.0.0.0:8001`).

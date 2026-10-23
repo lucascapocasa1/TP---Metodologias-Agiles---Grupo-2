@@ -1,13 +1,20 @@
-# Sistema Kiosco
+# Norvex
 
-Trabajo práctico de Metodologías Ágiles. Sistema web de gestión para un kiosco de barrio.
+<img src="static/img/norvex-logo.svg" alt="Logo de Norvex" width="260">
+
+Trabajo práctico de Metodologías Ágiles. **Norvex** (antes "Sistema Kiosco")
+es una plataforma web de gestión y cobro para comercios. Nació para un kiosco
+de barrio, pero la caja, el stock, los clientes y el cobro con QR no dependen
+del rubro: sirve para cualquier negocio que venda productos con precio y stock.
 
 **Estado al 21-10-2026:** Sprint 1 completo · Sprint 2 completo (catálogo de
 productos + gestión de usuarios) · Sprint 3 completo (caja y cobro) ·
 **Sprint 4 completo** (reportes de ventas y stock + fidelidad de clientes +
 cierre de turno) · **consignas de la cátedra completas** (HU-13: catálogo
 público + pedido por WhatsApp **con el cobro de la entrega cerrado**; HU-14:
-cuenta corriente "FIAR") · estilo neón cian único · **340 tests** en verde.
+cuenta corriente "FIAR") · estilo neón cian único · **cobro con QR de
+Mercado Pago** (HU-15) y pantalla para el celular del cliente (HU-16) ·
+marca **Norvex** · **356 tests** en verde.
 
 ---
 
@@ -34,6 +41,7 @@ entregable de documentación del trabajo práctico.
 | 4 | Reportes de ventas y stock (HU-11), fidelidad de clientes (HU-12) y cierre de turno (HU-10) | ✅ Completo (19-10) |
 | — | Consignas de la cátedra: integración externa (catálogo público + pedido por WhatsApp) y cuenta corriente ("FIAR") | ✅ Completo (19-10): HU-13 y HU-14 |
 | — | Cierre del flujo de HU-13: **entregar un pedido es cobrarlo** (la venta del mostrador queda vinculada al pedido de WhatsApp) | ✅ Completo (21-10) |
+| — | Cobro con QR de Mercado Pago (HU-15), pantalla para el celular del cliente (HU-16) y marca Norvex | ✅ Completo (23-10) |
 
 El detalle de cada sprint está en los apartados **Alcance de Sprint 1-4**;
 el avance item por item, en [Backlog](#backlog). Las dos consignas nuevas de
@@ -42,7 +50,81 @@ en [Integración externa y cuenta corriente](#integración-externa-y-cuenta-corr
 
 ---
 
-## Qué cambió en esta versión (cierre de HU-13 — 21-10-2026)
+## Qué cambió en esta versión (Mercado Pago y Norvex — 23-10-2026)
+
+### Historias de usuario nuevas
+
+**HU-15 — Cobro con QR de Mercado Pago**
+Como cajero, quiero cobrar con un QR de Mercado Pago para que el cliente pague
+con la app desde su celular, sin efectivo ni tarjeta.
+- Criterio de aceptación: la caja se entera sola cuando el pago se aprueba y
+  muestra el comprobante. Hasta entonces la venta no cuenta en reportes ni en
+  el turno. Si cancelo el cobro, el stock vuelve y los productos regresan al
+  carrito.
+
+**HU-16 — Pantalla para el cliente en un celular**
+Como dueño, quiero dejar un celular en el mostrador mirando al cliente que
+muestre el QR de cada cobro, para que lo escanee cómodo.
+- Criterio de aceptación: el celular se actualiza solo (espera → QR →
+  "¡Pago aprobado!") sin que nadie lo toque.
+
+### Cómo funciona el cobro con QR
+
+1. En el carrito aparece un método más: **Mercado Pago (QR)**. Al elegirlo, el
+   botón pasa a "Generar QR de Mercado Pago".
+2. Se crea la `Venta` con el **mismo núcleo** que el resto de los cobros
+   (`services._crear_venta`), pero con `finalizada=False`: el stock queda
+   reservado y la venta todavía no cuenta en reportes ni en el turno. Los
+   puntos de fidelidad se suman recién al aprobarse el pago.
+3. El servidor pide a la API de Mercado Pago (Checkout Pro) un link de pago con
+   los productos de la venta; ese link es el que se dibuja como QR.
+4. La caja pregunta cada 3 segundos si ya se pagó; el servidor consulta a
+   Mercado Pago si hay un pago aprobado con la referencia `norvex-venta-<id>`.
+   También hay un **webhook** para cuando el sistema esté en un servidor
+   público: el aviso no se cree a ciegas, se vuelve a pedir el pago a la API.
+5. Aprobado el pago, la venta pasa a finalizada y la caja abre el comprobante.
+   En el cierre de turno aparece **"Total Mercado Pago (QR)"** aparte de
+   efectivo y tarjeta.
+
+**Modo de prueba:** sin `MP_ACCESS_TOKEN` en el `.env`, el QR abre una página
+de **pago simulado** del propio sistema. Así se muestra todo el circuito sin
+cuenta de Mercado Pago ni plata real. Con un token `TEST-...` se usa el
+entorno de pruebas (sandbox) de Mercado Pago.
+
+### Archivos
+
+| Archivo | Cambio | Por qué |
+|---|---|---|
+| `ventas/models.py` | `Venta.METODO_PAGO` suma `mercado_pago`; `Turno.total_mercado_pago`; nuevo modelo `PagoMercadoPago` (link de pago, estado, ID de pago, si es simulado) | Registrar el cobro QR y su estado sin tocar cómo funcionan los demás métodos. |
+| `ventas/migrations/0008_mercadopago_qr.py` | Nueva migración | `total_mercado_pago` tiene `db_default=0`, así el código anterior puede seguir abriendo turnos en una base compartida. |
+| `ventas/services.py` | `_crear_venta(..., finalizada=True)`: con `False` deja la venta pendiente y no suma puntos todavía. El turno suma Mercado Pago | El QR usa **las mismas** reglas de stock, cliente y precio que el POS. |
+| `ventas/mercadopago.py` | Nuevo: llamadas a la API (crear preferencia, buscar pago aprobado, obtener pago) con `urllib` | Sin dependencias nuevas en `requirements.txt`. |
+| `ventas/cobro_qr.py` | Nuevo: iniciar, aprobar y cancelar el cobro QR | Lógica del QR separada del resto del cobro. |
+| `ventas/views.py` | `cobro_confirmar` deriva a QR si el método es Mercado Pago; el contexto de la caja suma el cobro en curso | Único cambio sobre las vistas existentes. |
+| `ventas/views_qr.py` | Nuevo: estado del pago, cancelar, display del celular, pago simulado y webhook | Vistas del QR en un archivo propio. |
+| `ventas/urls.py` | Rutas `cobro/qr/<id>/estado/`, `cobro/qr/<id>/cancelar/`, `display/`, `display/estado/`, `pagar/<token>/`, `mercadopago/webhook/` | |
+| `templates/ventas/_carrito.html` | Ícono de QR y texto "Generar QR" para el método nuevo | |
+| `templates/ventas/pantalla_cobro.html` | Ventana con el QR que espera el pago + tarjeta "Mostrar el QR en un celular" | |
+| `templates/ventas/cierre_turno.html` | Tarjeta "Total Mercado Pago (QR)" | |
+| `templates/ventas/display.html`, `pago_simulado.html`, `_cabeza_celular.html` | Nuevas: pantalla del celular y pago de prueba | |
+| `static/css/cobro_qr.css` | Estilos del QR con los tokens neón | Aparte de `styles.css` para no generar conflictos. |
+| `config/settings.py` | Variables `MP_*`; `ALLOWED_HOSTS` acepta la IP de la PC (celular); conexión a la base persistente y sesiones en caché | Con Supabase cada consulta tarda ~180 ms: reusar la conexión ahorra ~1 s por pantalla. |
+| `ventas/tests_mercadopago.py` | 16 tests nuevos | Ver "Correr los tests". |
+
+### Marca Norvex
+
+- **Nombre:** Norvex en el navbar, el login, las pestañas y el panel.
+- **Logo:** una "N" cuya pata derecha es una flecha hacia arriba (crecimiento
+  del negocio), en cian neón sobre noche. Archivos: `static/img/norvex-logo.svg`
+  (con el nombre, para presentaciones), `static/img/favicon.svg` y
+  `templates/includes/norvex_marca.svg` (la "N" que se usa en la app y toma el
+  color del texto).
+- El catálogo público sigue mostrando el **nombre del negocio**
+  (`KIOSCO_NOMBRE`), porque es lo que tiene que ver el cliente del local.
+
+---
+
+## Versión anterior: cierre de HU-13 — 21-10-2026
 
 Todo el detalle conceptual está en el [PRD](docs/PRD.md) (RF-85…RF-92) y en el
 [ARD](docs/ARD.md) (ADN-18). Acá está el inventario, archivo por archivo, de
@@ -591,6 +673,23 @@ python manage.py runserver 8001
 
 Abrí `http://127.0.0.1:8001/` en el navegador.
 
+> El proyecto se abre con `runserver`, no con la extensión "Go Live / Live
+> Server" de VS Code (esa solo muestra archivos sueltos).
+
+### Probar el cobro con QR y el celular (HU-15/16)
+
+1. Levantá el servidor escuchando en la red local:
+   `python manage.py runserver 0.0.0.0:8001` (si Windows pregunta, permití el
+   acceso en redes privadas).
+2. Entrá con `cajero1`, cargá productos, elegí **Mercado Pago (QR)** y tocá
+   **Generar QR de Mercado Pago**.
+3. Con un celular en el mismo Wi‑Fi, escaneá el QR chico de "Mostrar el QR en
+   un celular" e iniciá sesión con el mismo usuario: ese celular muestra el QR
+   de cada cobro.
+4. Para simular que el cliente paga: escaneá el QR grande con otro celular o
+   tocá "simular el pago del cliente" en la caja, y después **Pagar**. La caja
+   abre el comprobante y el celular muestra "¡Pago aprobado!".
+
 > **Nota:** los pasos 2, 4, 5, 6, 7 y 8 solo se hacen la **primera vez**.
 > Después de eso, solo necesitás activar el entorno (paso 3) y levantar
 > el servidor (paso 10).
@@ -608,6 +707,17 @@ KIOSCO_WHATSAPP=5491155554444
 ```
 
 Formato: `postgresql://USUARIO:CONTRASEÑA@HOST:PUERTO/NOMBRE_DB`
+
+Variables opcionales de Mercado Pago (HU-15):
+
+```
+MP_ACCESS_TOKEN=TEST-...      # Access Token de prueba de tu app de Mercado Pago
+MP_NOTIFICATION_URL=          # URL pública al webhook (opcional)
+```
+
+Sin `MP_ACCESS_TOKEN` el cobro con QR funciona en **modo de prueba** (pago
+simulado). El token se saca de https://www.mercadopago.com.ar/developers/panel/app
+(Credenciales de prueba → Access Token).
 
 `KIOSCO_WHATSAPP` es el WhatsApp del local para los pedidos del catálogo público
 (HU-13): formato internacional y solo dígitos, sin `+` ni espacios. Si queda en
@@ -1028,12 +1138,16 @@ Estado real al **21-10-2026** (unificado: tabla original + backlog nuevo).
 | Cobro fiado desde el POS con validación del límite (HU-14) | Consigna | `Venta.metodo_pago=cuenta_corriente` (migración `ventas/0007`) + `validar_fiado`/`sumar_deuda` transaccional |
 | Pago de la deuda e historial, solo para el Administrador (HU-14) | Consigna | `clientes:registrar_pago` (`@rol_requerido("Administrador")`) + ficha con historial |
 | Lo fiado fuera de la caja y de los ingresos, como "deuda otorgada" (HU-14) | Consigna | `METODOS_EN_CAJA` + `Turno.deuda_otorgada` + `reportes.deuda_otorgada()` |
+| Cobro con QR de Mercado Pago, con modo de prueba (HU-15) | Extra | `ventas/mercadopago.py` + `cobro_qr.py` + `PagoMercadoPago` (migración `ventas/0008`), 16 tests |
+| Pantalla para el celular del cliente (HU-16) | Extra | `/ventas/display/` (se actualiza sola cada 2 s) |
+| Total de Mercado Pago en el cierre de turno | Extra | `Turno.total_mercado_pago` |
+| Marca y logo propios: Norvex | Extra | `static/img/norvex-logo.svg`, `favicon.svg`, `templates/includes/norvex_marca.svg` |
+| Velocidad con Supabase (conexión persistente y sesiones en caché) | Extra | `CONN_MAX_AGE`, `SESSION_ENGINE = cached_db` |
 
 ### Pendiente
 
 | Item | Sprint | Notas |
 |------|--------|-------|
-| Logo propio del kiosco | por definir | Solo `favicon.svg`; el navbar usa icono de Bootstrap + texto |
 | Comercio configurable (nombre y colores del local) | por definir | Identidad fija en neón; se parametrizaría vía settings/templates |
-| Cobro con Mercado Pago (MP) | por definir | Sin dependencia ni integración en `requirements.txt` |
+| Cobrar con Mercado Pago real (producción) | por definir | Hoy funciona en modo de prueba o sandbox; falta cargar credenciales de producción y publicar el sistema para el webhook |
 | Recuperar contraseña ("¿Olvidaste tu contraseña?") | por definir | Sin `password_reset` ni `EMAIL_*` en settings |

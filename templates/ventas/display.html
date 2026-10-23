@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    {% include "ventas/_cabeza_celular.html" %}
+    <title>Pagá acá — Norvex</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<main class="pantalla-celular" id="display" data-estado-url="{% url 'ventas:display_estado' %}">
+    <div class="marca">{% include "includes/norvex_marca.svg" with clase="norvex-marca" %} Norvex</div>
+
+    <section id="estadoLibre">
+        <div class="estado-icono"><i class="bi bi-qr-code-scan" aria-hidden="true"></i></div>
+        <h2 class="mt-3">¡Hola!</h2>
+        <p class="ayuda">Cuando la caja cobre con Mercado Pago, el QR para pagar aparece acá.</p>
+    </section>
+
+    <section id="estadoPendiente" hidden>
+        <p class="ayuda mb-1">Total a pagar</p>
+        <p class="qr-monto" id="monto"></p>
+        <div class="qr-caja"><div id="qr"></div></div>
+        <p class="ayuda mb-2">Escaneá el código con la app de <strong>Mercado Pago</strong> o con la cámara de tu celular.</p>
+        <div class="qr-estado"><span class="punto"></span> Esperando el pago…</div>
+    </section>
+
+    <section id="estadoAprobado" class="qr-aprobado" hidden>
+        <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+        <h2 class="mt-3">¡Pago aprobado!</h2>
+        <p class="ayuda" id="montoPagado"></p>
+        <p class="ayuda">Gracias por tu compra.</p>
+    </section>
+</main>
+
+<script>
+(function () {
+    var raiz = document.getElementById('display');
+    var secciones = {
+        libre: document.getElementById('estadoLibre'),
+        pendiente: document.getElementById('estadoPendiente'),
+        aprobado: document.getElementById('estadoAprobado')
+    };
+    var qrEl = document.getElementById('qr');
+    var pagoMostrado = null;
+
+    function mostrar(estado) {
+        Object.keys(secciones).forEach(function (k) { secciones[k].hidden = (k !== estado); });
+    }
+
+    function tamQR() {
+        return Math.max(180, Math.min(320, Math.floor(window.innerWidth * 0.72)));
+    }
+
+    function actualizar(datos) {
+        if (datos.estado === 'pendiente') {
+            if (pagoMostrado !== datos.pago) {
+                pagoMostrado = datos.pago;
+                qrEl.innerHTML = '';
+                var t = tamQR();
+                new QRCode(qrEl, { text: datos.link, width: t, height: t, correctLevel: QRCode.CorrectLevel.M });
+                document.getElementById('monto').textContent = datos.total;
+            }
+            mostrar('pendiente');
+        } else if (datos.estado === 'aprobado') {
+            document.getElementById('montoPagado').textContent = datos.total;
+            mostrar('aprobado');
+            pagoMostrado = null;
+        } else {
+            mostrar('libre');
+            pagoMostrado = null;
+        }
+    }
+
+    // Pregunta cada 2 s si hay un cobro en curso.
+    function consultar() {
+        fetch(raiz.dataset.estadoUrl, { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+            .then(function (r) {
+                if (r.redirected || !r.ok) { window.location.reload(); throw new Error('sesión'); }
+                return r.json();
+            })
+            .then(function (datos) { actualizar(datos); setTimeout(consultar, 2000); })
+            .catch(function () { setTimeout(consultar, 5000); });
+    }
+    consultar();
+
+    // Que la pantalla no se apague (solo en navegadores que lo permitan).
+    function mantenerEncendida() {
+        if ('wakeLock' in navigator) { navigator.wakeLock.request('screen').catch(function () {}); }
+    }
+    mantenerEncendida();
+    document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') mantenerEncendida();
+    });
+})();
+</script>
+</body>
+</html>

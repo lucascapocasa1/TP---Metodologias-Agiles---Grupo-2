@@ -175,7 +175,7 @@
         <label class="cobro-metodo {% if forloop.first %}activo{% endif %}">
             <input type="radio" name="metodo_pago" value="{{ valor }}"
                    {% if forloop.first %}checked{% endif %}>
-            <i class="bi {% if valor == 'efectivo' %}bi-cash{% else %}bi-credit-card{% endif %}" aria-hidden="true"></i>
+            <i class="bi {% if valor == 'efectivo' %}bi-cash{% elif valor == 'mercado_pago' %}bi-qr-code{% else %}bi-credit-card{% endif %}" aria-hidden="true"></i>
             {{ etiqueta }}
         </label>
         {% endif %}
@@ -225,8 +225,10 @@
         </div>
     </div>
 
-    <button type="submit" class="btn btn-kiosco cobro-confirmar">
-        <i class="bi bi-check2-circle" aria-hidden="true"></i> Confirmar cobro · ${{ total|montos }}
+    <button type="submit" class="btn btn-kiosco cobro-confirmar"
+            data-texto-qr="Generar QR de Mercado Pago · ${{ total|montos }}">
+        <i class="bi bi-check2-circle" aria-hidden="true"></i>
+        <span class="cobro-confirmar-texto">Confirmar cobro · ${{ total|montos }}</span>
     </button>
 </form>
 

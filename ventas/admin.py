@@ -15,3 +15,13 @@ admin.site.register(Categoria)
 admin.site.register(Producto)
 
 # Register your models here.
+
+
+from .models import PagoMercadoPago  # noqa: E402
+
+
+@admin.register(PagoMercadoPago)
+class PagoMercadoPagoAdmin(admin.ModelAdmin):
+    list_display = ("venta", "estado", "simulado", "payment_id", "creado")
+    list_filter = ("estado", "simulado")
+    readonly_fields = ("token", "creado", "actualizado")

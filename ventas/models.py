@@ -1,3 +1,4 @@
+import uuid
 from decimal import Decimal
 
 from django.conf import settings
@@ -70,6 +71,7 @@ class Venta(models.Model):
          ("efectivo", "Efectivo"),
          ("tarjeta", "Tarjeta"),
          ("cuenta_corriente", "Cuenta corriente (FIAR)"),
+         ("mercado_pago", "Mercado Pago (QR)"),
      ]
 
      fecha = models.DateTimeField(auto_now_add=True)
@@ -177,6 +179,14 @@ class Turno(models.Model):
         help_text="HU-14: lo fiado en el turno. No es plata en la caja, "
                   "por eso se informa aparte de efectivo y tarjeta.",
     )
+    total_mercado_pago = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        db_default=Decimal("0.00"),
+        verbose_name="Total Mercado Pago (QR)",
+        help_text="Lo cobrado con QR de Mercado Pago en el turno.",
+    )
     cantidad_operaciones = models.PositiveIntegerField(default=0)
 
     class Meta:
@@ -191,10 +201,57 @@ class Turno(models.Model):
 
     @property
     def total_general(self):
-        """Lo que debería haber en la caja sumando ambos métodos."""
-        return self.total_efectivo + self.total_tarjeta
+        """Lo que entró en el turno: efectivo, tarjeta y Mercado Pago."""
+        return self.total_efectivo + self.total_tarjeta + self.total_mercado_pago
 
     def __str__(self):
         estado = "abierto" if self.activo else "cerrado"
         nombre = self.usuario.username if self.usuario else "sin usuario"
         return f"Turno de {nombre} - {self.fecha_apertura:%d/%m/%Y %H:%M} ({estado})"
+
+
+class PagoMercadoPago(models.Model):
+    """
+    Cobro con QR de Mercado Pago de una venta.
+
+    Mientras el cliente paga, la Venta queda con `finalizada=False` (no cuenta
+    en reportes ni en el turno) y el stock ya está reservado. Al aprobarse el
+    pago la venta pasa a finalizada; si se cancela, el stock vuelve.
+    """
+
+    PENDIENTE = "pendiente"
+    APROBADO = "aprobado"
+    CANCELADO = "cancelado"
+
+    ESTADOS = [
+        (PENDIENTE, "Esperando pago"),
+        (APROBADO, "Aprobado"),
+        (CANCELADO, "Cancelado"),
+    ]
+
+    venta = models.OneToOneField(
+        Venta,
+        on_delete=models.CASCADE,
+        related_name="pago_mp",
+        verbose_name="venta",
+    )
+    # Identificador público para el link del pago simulado (no expone el id).
+    token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    preference_id = models.CharField("ID de preferencia", max_length=100, blank=True)
+    link_pago = models.CharField("link de pago", max_length=500)
+    simulado = models.BooleanField(
+        default=False,
+        help_text="Creado sin credenciales de Mercado Pago, solo para probar.",
+    )
+    estado = models.CharField(max_length=20, choices=ESTADOS, default=PENDIENTE)
+    payment_id = models.CharField("ID de pago en Mercado Pago", max_length=50, blank=True)
+    creado = models.DateTimeField(auto_now_add=True)
+    actualizado = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-creado"]
+        verbose_name = "pago con Mercado Pago"
+        verbose_name_plural = "pagos con Mercado Pago"
+
+    def __str__(self):
+        return f"Pago MP de la venta N° {self.venta_id} ({self.get_estado_display()})"

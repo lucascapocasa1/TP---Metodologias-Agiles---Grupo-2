@@ -31,7 +31,10 @@ SECRET_KEY = 'django-insecure-eu3g_+obdq_6a%tzsk663m_x7(n^e3+0r%v_3arg8uyj9%_05r
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+# En desarrollo se acepta cualquier host para que el celular pueda entrar por
+# la IP de la PC en la red local (runserver 0.0.0.0:8000). Se puede limitar
+# con ALLOWED_HOSTS=localhost,192.168.0.10 en el .env.
+ALLOWED_HOSTS = env.list('ALLOWED_HOSTS', default=['*'] if DEBUG else ['localhost', '127.0.0.1'])
 
 
 # Application definition
@@ -88,6 +91,14 @@ WSGI_APPLICATION = 'config.wsgi.application'
 DATABASES = {
     'default': env.db('DATABASE_URL', default='sqlite:///' + str(BASE_DIR / 'db.sqlite3')),
 }
+
+# Supabase está lejos (EE.UU.): abrir una conexión nueva en cada pedido suma
+# ~1 s. Así se reusa la conexión durante 10 minutos y se verifica antes de usarla.
+DATABASES['default']['CONN_MAX_AGE'] = env.int('DB_CONN_MAX_AGE', default=600)
+DATABASES['default']['CONN_HEALTH_CHECKS'] = True
+
+# Sesiones: se leen de la memoria y solo se escriben en la base cuando cambian.
+SESSION_ENGINE = 'django.contrib.sessions.backends.cached_db'
 
 
 # Password validation
@@ -148,3 +159,12 @@ MAILERS = {
         'BACKEND': 'django.core.mail.backends.console.EmailBackend',
     },
 }
+
+# --- Mercado Pago (cobro con QR) ---
+# Sin MP_ACCESS_TOKEN la caja funciona en "modo de prueba" (pago simulado).
+MP_ACCESS_TOKEN = env.str('MP_ACCESS_TOKEN', default='')
+# URL pública (ej. ngrok) a /ventas/mercadopago/webhook/. Opcional: sin ella la
+# caja igual se entera del pago consultando a Mercado Pago cada pocos segundos.
+MP_NOTIFICATION_URL = env.str('MP_NOTIFICATION_URL', default='')
+# Texto que ve el cliente en el resumen de la tarjeta (máx. 22 caracteres).
+MP_NOMBRE_EN_RESUMEN = env.str('MP_NOMBRE_EN_RESUMEN', default='NORVEX')[:22]

@@ -1,0 +1,39 @@
+{% load formatos %}<!DOCTYPE html>
+<html lang="es">
+<head>
+    {% include "ventas/_cabeza_celular.html" %}
+    <title>Pago de prueba — Norvex</title>
+</head>
+<body>
+<main class="pantalla-celular">
+    <div class="pago-sim">
+        <div class="aviso"><i class="bi bi-cone-striped" aria-hidden="true"></i> <strong>Pago de prueba</strong>: no se cobra dinero real.</div>
+
+        {% if pago.estado == "aprobado" %}
+        <div class="qr-aprobado text-center py-3">
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <h2 class="mt-2">¡Pago aprobado!</h2>
+            <p class="mb-0">Ya podés cerrar esta pestaña.</p>
+        </div>
+        {% elif pago.estado == "cancelado" %}
+        <div class="text-center py-3">
+            <h2>Este cobro fue cancelado</h2>
+            <p class="mb-0">Pedile a la caja que genere un QR nuevo.</p>
+        </div>
+        {% else %}
+        <h2 class="mb-3">Norvex · Venta N° {{ pago.venta_id }}</h2>
+        <ul>
+            {% for d in detalles %}
+            <li><span>{{ d.cantidad }} × {{ d.producto.nombre }}</span><span>${{ d.subtotal|montos }}</span></li>
+            {% endfor %}
+            <li class="fw-bold"><span>Total</span><span>${{ pago.venta.total|montos }}</span></li>
+        </ul>
+        <form method="post" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="btn-mp"><i class="bi bi-wallet2" aria-hidden="true"></i> Pagar ${{ pago.venta.total|montos }}</button>
+        </form>
+        {% endif %}
+    </div>
+</main>
+</body>
+</html>

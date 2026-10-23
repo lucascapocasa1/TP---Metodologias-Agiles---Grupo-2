@@ -10,10 +10,16 @@ from auditoria.utils import registrar_accion
 from clientes import services as fidelidad
 from usuarios.decorators import es_administrador, rol_requerido
 
-from . import services
+from . import cobro_qr, mercadopago, services
 from .forms import ProductoForm
 from .models import Categoria, Producto, Turno, Venta
 from .services import ErrorCobro
+
+
+def _url_display(request):
+    from .views_qr import url_para_celular
+
+    return url_para_celular(request, reverse("ventas:display"))
 
 
 def contexto_cobro(request, error=None, form_rapido=None):
@@ -32,6 +38,10 @@ def contexto_cobro(request, error=None, form_rapido=None):
         "error": error,
         # HU-14: para decidir si se puede ofrecer "cuenta corriente".
         "puede_fiar": bool(cliente and cliente.puede_fiar(total)),
+        # Cobro con QR de Mercado Pago en curso (muestra la ventana del QR).
+        "pago_qr": cobro_qr.pago_pendiente(request.user),
+        "mp_configurado": mercadopago.esta_configurado(),
+        "url_display": _url_display(request),
     }
 
 
@@ -132,6 +142,12 @@ def cobro_confirmar(request):
     """HU-09: confirma la venta, descuenta stock y muestra el comprobante."""
     if request.method != "POST":
         return redirect("ventas:pantalla_cobro")
+
+    if request.POST.get("metodo_pago") == services.METODO_QR:
+        # Mercado Pago: la venta queda pendiente hasta que el cliente paga.
+        from .views_qr import iniciar_cobro_qr
+
+        return iniciar_cobro_qr(request)
 
     try:
         venta = services.confirmar_venta(

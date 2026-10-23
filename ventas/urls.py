@@ -1,6 +1,6 @@
 from django.urls import path
 
-from . import views
+from . import views, views_qr
 
 app_name = "ventas"
 
@@ -12,6 +12,13 @@ urlpatterns = [
     path("cobro/cantidad/", views.cobro_cantidad, name="cobro_cantidad"),
     path("cobro/confirmar/", views.cobro_confirmar, name="cobro_confirmar"),
     path("turno/cierre/", views.cierre_turno, name="cierre_turno"),
+    # Cobro con QR de Mercado Pago
+    path("cobro/qr/<int:pago_id>/estado/", views_qr.pago_estado, name="pago_estado"),
+    path("cobro/qr/<int:pago_id>/cancelar/", views_qr.pago_cancelar, name="pago_cancelar"),
+    path("display/", views_qr.display, name="display"),
+    path("display/estado/", views_qr.display_estado, name="display_estado"),
+    path("pagar/<uuid:token>/", views_qr.pago_simulado, name="pago_simulado"),
+    path("mercadopago/webhook/", views_qr.mercadopago_webhook, name="mercadopago_webhook"),
     path("productos/", views.lista_productos, name="lista_productos"),
     path(
         "productos/buscar-por-codigo/",

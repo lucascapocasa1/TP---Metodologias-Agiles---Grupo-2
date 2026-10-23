@@ -1,0 +1,1 @@
+<svg class="{{ clase|default:'norvex-marca' }}" viewBox="0 0 48 48" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg"><path fill="currentColor" d="M6 41V7h8.5v34zM6 7h9.2L37 41h-9.2zM29 41V19.5h-5L33.5 6 43 19.5h-5V41z"/></svg>

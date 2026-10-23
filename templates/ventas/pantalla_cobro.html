@@ -2,6 +2,8 @@
 {% load formatos %}
 {% block titulo %}Cobro{% endblock %}
 {% block contenido %}
+<link rel="stylesheet" href="/static/css/cobro_qr.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <div class="admin-panel cobro-panel">
     <div class="admin-header">
         <div class="admin-header-left">
@@ -10,7 +12,7 @@
                 Escaneá o tipeá el código: el producto vuela al carrito
                 (HU-07) · con 3 letras aparece la búsqueda en tiempo real ·
                 cantidades editables (HU-08) · efectivo o tarjeta con vuelto
-                (HU-09).
+                (HU-09) · QR de Mercado Pago.
             </p>
         </div>
         <a href="{% url 'ventas:cierre_turno' %}" class="btn btn-kiosco-outline">
@@ -125,7 +127,48 @@
             <div id="carrito-region" aria-live="polite">
                 {% include "ventas/_carrito.html" %}
             </div>
+
+            <div class="qr-celular">
+                <div class="qr-mini" id="qrDisplay" data-url="{{ url_display }}"></div>
+                <div>
+                    <h3><i class="bi bi-phone" aria-hidden="true"></i> Mostrar el QR en un celular</h3>
+                    <p>Escaneá este código con el celular del negocio (misma red Wi‑Fi),
+                    iniciá sesión con tu usuario y dejalo mirando al cliente: ahí aparece
+                    el QR de cada cobro con Mercado Pago.</p>
+                </div>
+            </div>
         </section>
+    </div>
+    {% endif %}
+
+    {% if pago_qr and not venta %}
+    <!-- ===== Cobro con QR de Mercado Pago esperando pago ===== -->
+    <div class="qr-overlay" id="qrOverlay" role="dialog" aria-modal="true" aria-labelledby="qrTitulo"
+         data-estado-url="{% url 'ventas:pago_estado' pago_qr.pk %}">
+        <div class="qr-modal">
+            <div id="qrPendiente">
+                <h2 id="qrTitulo">Cobro con Mercado Pago</h2>
+                <p class="qr-monto">${{ pago_qr.venta.total|montos }}</p>
+                <div class="qr-caja"><div id="qrPago" data-url="{{ pago_qr.link_pago }}"></div></div>
+                <p class="qr-ayuda">El cliente escanea con la app de Mercado Pago o la cámara del celular.</p>
+                <div class="qr-estado"><span class="punto"></span> <span id="qrMensaje">Esperando el pago…</span></div>
+                {% if pago_qr.simulado %}
+                <p class="qr-prueba">Modo de prueba:
+                    <a href="{{ pago_qr.link_pago }}" target="_blank" rel="noopener">simular el pago del cliente</a></p>
+                {% endif %}
+                <form method="post" action="{% url 'ventas:pago_cancelar' pago_qr.pk %}" class="m-0">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-kiosco-outline w-100">
+                        <i class="bi bi-x-lg" aria-hidden="true"></i> Cancelar cobro
+                    </button>
+                </form>
+            </div>
+            <div id="qrListo" class="qr-aprobado" hidden>
+                <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                <h2 class="mt-2">¡Pago aprobado!</h2>
+                <p class="qr-ayuda mb-0">Abriendo el comprobante…</p>
+            </div>
+        </div>
     </div>
     {% endif %}
 
@@ -212,11 +255,56 @@
     });
 
     // Efectivo / tarjeta: el monto entregado solo aplica a efectivo.
+    // Con Mercado Pago el botón pasa a "Generar QR".
     document.addEventListener('change', function (e) {
         if (e.target.name !== 'metodo_pago') return;
         var bloque = document.getElementById('bloque-monto');
         if (bloque) bloque.hidden = (e.target.value !== 'efectivo');
+        var boton = document.querySelector('.cobro-confirmar');
+        var texto = boton && boton.querySelector('.cobro-confirmar-texto');
+        if (texto) {
+            if (!boton.dataset.textoNormal) boton.dataset.textoNormal = texto.textContent;
+            texto.textContent = e.target.value === 'mercado_pago'
+                ? boton.dataset.textoQr
+                : boton.dataset.textoNormal;
+        }
     });
+
+    // --- QR de Mercado Pago ---
+    function dibujarQR(el, tam) {
+        if (!el || !window.QRCode) return;
+        new QRCode(el, { text: el.dataset.url, width: tam, height: tam, correctLevel: QRCode.CorrectLevel.M });
+    }
+    dibujarQR(document.getElementById('qrDisplay'), 96);
+    dibujarQR(document.getElementById('qrPago'), 240);
+
+    // Mientras se muestra el QR, la caja pregunta cada 3 s si ya se pagó.
+    var overlay = document.getElementById('qrOverlay');
+    if (overlay) {
+        var mensaje = document.getElementById('qrMensaje');
+        var consultar = function () {
+            fetch(overlay.dataset.estadoUrl, { headers: { 'Accept': 'application/json' }, cache: 'no-store' })
+                .then(function (r) { return r.json(); })
+                .then(function (datos) {
+                    if (datos.estado === 'aprobado') {
+                        document.getElementById('qrPendiente').hidden = true;
+                        document.getElementById('qrListo').hidden = false;
+                        setTimeout(function () { window.location.href = datos.comprobante; }, 2000);
+                        return;
+                    }
+                    if (datos.estado === 'cancelado') { window.location.reload(); return; }
+                    mensaje.textContent = datos.error
+                        ? 'Sin conexión con Mercado Pago, reintentando…'
+                        : 'Esperando el pago…';
+                    setTimeout(consultar, 3000);
+                })
+                .catch(function () {
+                    mensaje.textContent = 'Sin conexión, reintentando…';
+                    setTimeout(consultar, 5000);
+                });
+        };
+        setTimeout(consultar, 2000);
+    }
 
     // Después de cada cambio del carrito (HTMX) vuelve el foco al escáner.
     // No se roba el foco mientras se tipea en el buscador de clientes, ni si
