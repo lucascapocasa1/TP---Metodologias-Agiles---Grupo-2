@@ -181,14 +181,17 @@ LOGIN_REDIRECT_URL = 'usuarios:post_login'  # decide a dónde va cada rol
 LOGOUT_REDIRECT_URL = 'usuarios:login'
 
 
-# Email
-# https://docs.djangoproject.com/en/6.1/topics/email/#topic-email-configuration
-
+# Email / Mailers
 MAILERS = {
     'default': {
-        'BACKEND': 'django.core.mail.backends.console.EmailBackend',
+        'BACKEND': 'usuarios.email_backend.ResendEmailBackend',
     },
 }
+
+# Configuración de Resend
+RESEND_API_KEY = env("RESEND_API_KEY", default="")
+DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Norvex <onboarding@resend.dev>")
+
 
 # --- Mercado Pago (cobro con QR) ---
 # Sin MP_ACCESS_TOKEN la caja funciona en "modo de prueba" (pago simulado).
