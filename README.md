@@ -7,7 +7,7 @@ es una plataforma web de gestión y cobro para comercios. Nació para un kiosco
 de barrio, pero la caja, el stock, los clientes y el cobro con QR no dependen
 del rubro: sirve para cualquier negocio que venda productos con precio y stock.
 
-**Estado al 21-10-2026:** Sprint 1 completo · Sprint 2 completo (catálogo de
+**Estado al 05-11-2026:** Sprint 1 completo · Sprint 2 completo (catálogo de
 productos + gestión de usuarios) · Sprint 3 completo (caja y cobro) ·
 **Sprint 4 completo** (reportes de ventas y stock + fidelidad de clientes +
 cierre de turno) · **consignas de la cátedra completas** (HU-13: catálogo
@@ -15,7 +15,8 @@ público + pedido por WhatsApp **con el cobro de la entrega cerrado**; HU-14:
 cuenta corriente "FIAR") · estilo neón cian único · **cobro con QR de
 Mercado Pago** (HU-15) y pantalla para el celular del cliente (HU-16) ·
 marca **Norvex** · botón **"Conectar con Mercado Pago"** para que la plata
-le llegue al negocio · listo para publicar en Render · **372 tests** en verde.
+le llegue al negocio · **recuperación de contraseña por correo** con Resend ·
+publicado en Render (`https://norvex.onrender.com/`) · **379 tests** en verde.
 
 ---
 
@@ -23,11 +24,13 @@ le llegue al negocio · listo para publicar en Render · **372 tests** en verde.
 
 | Documento | Contenido |
 |---|---|
-| [docs/PRD.md](docs/PRD.md) | Documento de Requerimientos de Producto (v2.6): alcance, personas, requerimientos funcionales (RF-01…RF-93) y no funcionales, historias de usuario con criterios de aceptación, riesgos y métricas. |
-| [docs/ARD.md](docs/ARD.md) | Arquitectura y Requerimientos Técnicos (v2.6): stack, diagramas (flujo y modelo de datos), endpoints, autorización, auditoría, 18 mini-ADRs y calidad. |
+| [docs/PRD.md](docs/PRD.md) | Documento de Requerimientos de Producto (v2.7): alcance, personas, requerimientos funcionales (RF-01…RF-115) y no funcionales, historias de usuario con criterios de aceptación, riesgos y métricas. |
+| [docs/ARD.md](docs/ARD.md) | Arquitectura y Requerimientos Técnicos (v2.7): stack, diagramas (flujo y modelo de datos), endpoints, autorización, auditoría, 19 mini-ADRs y calidad. |
 
 Ambos documentos describen el estado del producto al **Sprint 4 completo +
-consignas de la cátedra (HU-13 y HU-14)** (versión 21-10-2026) y son el
+consignas de la cátedra (HU-13 y HU-14) + extras de producto (cobro con QR,
+pantalla del cliente, conectar Mercado Pago, recuperación de contraseña y
+publicación en Render)** (versión 05-11-2026) y son el
 entregable de documentación del trabajo práctico.
 
 ---
@@ -44,6 +47,8 @@ entregable de documentación del trabajo práctico.
 | — | Cierre del flujo de HU-13: **entregar un pedido es cobrarlo** (la venta del mostrador queda vinculada al pedido de WhatsApp) | ✅ Completo (21-10) |
 | — | Cobro con QR de Mercado Pago (HU-15), pantalla para el celular del cliente (HU-16) y marca Norvex | ✅ Completo (23-10) |
 | — | Botón "Conectar con Mercado Pago" (la plata le llega al negocio) y sistema listo para publicar | ✅ Completo (23-10) |
+| — | Recuperación de contraseña por correo con Resend (flujo completo + páginas propias) | ✅ Completo (04-11) |
+| — | Demo idempotente (sin pérdida de stock al recargar) y entrega de pedidos sin Mercado Pago | ✅ Completo (05-11) |
 
 El detalle de cada sprint está en los apartados **Alcance de Sprint 1-4**;
 el avance item por item, en [Backlog](#backlog). Las dos consignas nuevas de
@@ -761,6 +766,26 @@ Abrí `http://127.0.0.1:8001/` en el navegador.
 > Después de eso, solo necesitás activar el entorno (paso 3) y levantar
 > el servidor (paso 10).
 
+### Recuperar una contraseña
+
+El usuario olvida su contraseña y la recupera solo, sin depender del
+administrador:
+
+1. En el login, tocá **"¿Olvidaste tu contraseña?"** e ingresá el correo del
+   usuario (el sistema no revela si el correo existe).
+2. El sistema manda un correo con el enlace (ver "Conectar con Mercado Pago"
+   no tiene nada que ver: esto es **Resend**).
+3. El enlace abre el formulario **"Nueva contraseña"** (bajo el namespace
+   `usuarios:`); al guardar, se inicia sesión con la nueva contraseña.
+4. Un enlace vencido o ya usado muestra **"Enlace no válido"** con la opción de
+   pedir uno nuevo, no un error 500.
+
+**En local (sin `RESEND_API_KEY`):** el correo se imprime en la consola del
+servidor (backend de consola), así que el enlace se copia de la terminal y el
+flujo no rompe. Para probar con un mail real, cargá `RESEND_API_KEY` en `.env`
+y asegurate de que el usuario tenga `email` cargado (si no, Django no manda
+nada).
+
 ### Publicar el sistema (Render)
 
 > Netlify **no** sirve: solo publica páginas estáticas y no corre Django.
@@ -827,12 +852,30 @@ Variables opcionales de Mercado Pago (HU-15):
 
 ```
 MP_ACCESS_TOKEN=TEST-...      # Access Token de prueba de tu app de Mercado Pago
+MP_CLIENT_ID=                # ID de la app de Mercado Pago (OAuth)
+MP_CLIENT_SECRET=            # Secret de la app de Mercado Pago (OAuth)
+MP_OAUTH_PRUEBA=true         # true = cuentas de prueba (sandbox)
 MP_NOTIFICATION_URL=          # URL pública al webhook (opcional)
+MP_NOMBRE_EN_RESUMEN=NORVEX   # Nombre que ve el cliente en su tarjeta (máx. 22 caracteres)
+NEON_FREE=                     # (obtiene el host de conexión si se usa Neon)
 ```
 
 Sin `MP_ACCESS_TOKEN` el cobro con QR funciona en **modo de prueba** (pago
 simulado). El token se saca de https://www.mercadopago.com.ar/developers/panel/app
 (Credenciales de prueba → Access Token).
+
+Variables de correo (Resend):
+
+```
+RESEND_API_KEY=               # API key de Resend (https://resend.com → API keys)
+DEFAULT_FROM_EMAIL=Norvex <onboarding@resend.dev>
+```
+
+Sin `RESEND_API_KEY` el sistema usa el backend de consola: el mail de
+recuperación se imprime en la terminal del servidor y el flujo no devuelve
+500. Para mandar correos reales hay que configurar Resend (ver "Conectar con
+Mercado Pago" para el proceso de un botón OAuth análogo, o la sección de
+recuperación de contraseña).
 
 `KIOSCO_WHATSAPP` es el WhatsApp del local para los pedidos del catálogo público
 (HU-13): formato internacional y solo dígitos, sin `+` ni espacios. Si queda en
@@ -863,12 +906,14 @@ python manage.py test --keepdb
 > corridas anteriores). Si necesitás recrearla desde cero, corré
 > `python manage.py test` sin el flag.
 
-**340 tests** actualmente:
+**379 tests** actualmente:
 
-- **`usuarios/tests.py` (9)**: login correcto e incorrecto, acceso anónimo
+- **`usuarios/tests.py` (13)**: login correcto e incorrecto, acceso anónimo
   bloqueado, cajero bloqueado en administración, administrador con acceso
-  total, y la redirección post-login según rol.
-- **`ventas/tests.py` (108)**: pantalla de cobro (login, cajero, admin,
+  total, y la redirección post-login según rol + **recuperación de
+  contraseña** (el mail trae el enlace, el enlace cambia la contraseña,
+  enlace inválido no rompe, Resend manda HTML + texto).
+- **`ventas/tests.py` (99)**: pantalla de cobro (login, cajero, admin,
   template) + catálogo (acceso 403 para el cajero en las 4 vistas, alta con
   costo y código, código duplicado rechazado, precio 0 rechazado, categoría
   nueva, edición, baja lógica, búsqueda por nombre/código, respuesta HTMX con
@@ -885,7 +930,7 @@ python manage.py test --keepdb
   resumen formatea los montos, 403 para el turno ajeno y auditoría del
   cierre) + **HU-14** (lo fiado no entra a la caja, la pantalla muestra la
   deuda otorgada y el cierre la congela en `Turno.deuda_otorgada`).
-- **`ventas/tests_cargar_demo.py` (9)**: el seed de datos de demo (catálogo
+- **`ventas/tests_cargar_demo.py` (10)**: el seed de datos de demo (catálogo
   completo con códigos únicos, ventas desde el 20/09/2026 sin fechas en el
   futuro, precios y costos congelados en el detalle, vuelto solo en efectivo,
   no duplica sin `--limpiar`, regenera idéntico con `--limpiar`, no pisa
@@ -904,7 +949,23 @@ python manage.py test --keepdb
   (todo cliente cargado tiene compras, la deuda es lo fiado menos lo pagado, los
   puntos suman las ventas, los pedidos pendientes no son clientes, los
   entregados cobran de verdad, no queda stock negativo y `--limpiar` devuelve el
-  stock y recarga la misma demo).
+  stock y recarga la misma demo (idempotente, ver abajo) + **nueva prueba de
+  idempotencia**: el ciclo completo `cargar_demo --limpiar` +
+  `cargar_demo_clientes --limpiar` se puede repetir dos veces seguidas sin
+  perder stock.
+- **`ventas/tests_mercadopago.py` (16)**: **HU-15** (cobro QR con modo de
+  prueba y con Mercado Pago real mockeado: venta pendiente, stock reservado,
+  puntos recién al aprobar, cancelar devuelve stock y carrito, no dos cobros
+  QR, cierre de turno con "Mercado Pago", display del celular, webhook que
+  reconsulta el pago, pago simulado solo en modo de prueba).
+- **`ventas/tests_conexion_mp.py` (16)**: **OAuth** (solo el Administrador
+  ve el panel, el botón lleva a Mercado Pago, conectar guarda la cuenta,
+  el token no se muestra, state falso rechazado, el dueño puede cancelar,
+  conectar otra cuenta reemplaza la anterior, desconectar vuelve al modo
+  previo, sin aplicación no se muestra el botón, prioridad cuenta conectada
+  → `.env` → modo de prueba, renovación del token por vencimiento con
+  fallback, el QR se cobra con la cuenta conectada y con https se manda el
+  webhook).
 - **`administracion/tests.py` (24)**: dashboard (login, admin, 403 cajero,
   403 sin grupo, estadísticas, KPI de stock bajo contando productos activos y
   linkeando al reporte) y CRUD de usuarios (listar con búsqueda y
@@ -927,7 +988,8 @@ python manage.py test --keepdb
   admin, cambio de estado auditado y POST obligatorio) + **cierre del flujo**
   ("entregado" exige cobrar, la entrega crea la `Venta` con el precio congelado
   y vincula cliente y venta, no se puede cobrar dos veces, la búsqueda de
-  cliente ignora los acentos y la entrega queda auditada).
+  cliente ignora los acentos y la entrega queda auditada) +
+  **la entrega no ofrece Mercado Pago** (solo efectivo/tarjeta/cuenta corriente).
 
 ## Estructura del proyecto
 
@@ -940,8 +1002,9 @@ kiosco_sprint1/
 ├── README.md                         # Este archivo.
 ├── AGENTS.md                         # Instrucciones para agentes IA.
 ├── docs/
-│   ├── PRD.md                        # Requerimientos de producto (v2.6).
-│   └── ARD.md                        # Arquitectura y requerimientos técnicos (v2.6).
+│   ├── PRD.md                        # Requerimientos de producto (v2.7).
+│   └── ARD.md                        # Arquitectura y requerimientos técnicos (v2.7).
+├── render.yaml                       # Publicación en Render (gunicorn + PostgreSQL).
 ├── .env                              # DATABASE_URL + WhatsApp del local (no se sube al repo).
 ├── .env.example                      # Plantilla de .env (sí se versiona).
 ├── .gitignore                        # __pycache__, venv/, db.sqlite3, .env…
@@ -959,13 +1022,18 @@ kiosco_sprint1/
 │   ├── views.py                      # LoginKioscoView, registro_usuario
 │   │                                 # (cuenta sin rol), post_login (según
 │   │                                 # rol), sin_rol.
-│   ├── urls.py                       # 5 rutas: login/, logout/, post-login/,
-│   │                                 # sin-rol/, registro/.
+│   ├── urls.py                       # 9 rutas: login/, logout/, post-login/,
+│   │                                 # sin-rol/, registro/ +
+│   │                                 # recuperar-password/ (4 rutas del flujo
+│   │                                 # de contraseña con Resend).
 │   ├── forms.py                      # LoginKioscoForm y RegistroUsuarioForm
 │   │                                 # (widgets kiosco-input).
 │   ├── decorators.py                 # @rol_requerido, RolRequeridoMixin,
 │   │                                 # es_administrador(), es_cajero().
-│   ├── tests.py                      # 9 tests.
+│   ├── email_backend.py              # ResendEmailBackend: manda el HTML
+│   │                                 # estilizado y el texto plano; sin API
+│   │                                 # key se imprime en la consola.
+│   ├── tests.py                      # 13 tests.
 │   ├── templatetags/
 │   │   └── pagination_tags.py        # {% paginacion %} (inclusion tag) y
 │   │                                 # {% param %} (preserva query params).
