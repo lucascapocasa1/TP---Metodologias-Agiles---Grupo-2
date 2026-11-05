@@ -189,7 +189,8 @@ class CobroConCuentaConectadaTests(BaseCobro):
             self.confirmar(metodo="mercado_pago", monto="")
         pago = PagoMercadoPago.objects.get()
         self.assertFalse(pago.simulado)
-        self.assertEqual(pago.link_pago, "https://mp/sandbox")  # cuenta de prueba
+        # Aun con cuenta de prueba se usa init_point: sandbox_init_point falla.
+        self.assertEqual(pago.link_pago, "https://mp/real")
         # Desde localhost no se manda webhook (Mercado Pago no puede llegar).
         self.assertNotIn("notification_url", llamar.call_args.args[2])
 

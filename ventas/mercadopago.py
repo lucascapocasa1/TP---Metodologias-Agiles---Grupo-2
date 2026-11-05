@@ -122,8 +122,9 @@ def crear_preferencia(venta, notification_url=None):
         datos["notification_url"] = notification_url
 
     respuesta = _llamar("POST", "/checkout/preferences", datos)
-    link = respuesta.get("sandbox_init_point") if usa_sandbox() else None
-    link = link or respuesta.get("init_point")
+    # Siempre init_point: con cuentas de prueba sandbox_init_point da
+    # "Oh, no, algo anduvo mal" (Mercado Pago lo dejó obsoleto).
+    link = respuesta.get("init_point")
     if not link:
         raise MercadoPagoError("Mercado Pago no devolvió un link de pago.")
     return respuesta["id"], link
