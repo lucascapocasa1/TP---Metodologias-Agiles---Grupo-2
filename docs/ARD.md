@@ -4,34 +4,19 @@
 
 | Campo | Valor |
 |---|---|
-| Documento | ARD v2.7 |
+| Documento | ARD v2.8 |
 | Fecha | 05/11/2026 |
-| Versión del código documentado | `main` (05-11-2026) + cobro con QR de Mercado Pago, pantalla del cliente, recuperación de contraseña y publicación en Render · 379 tests OK |
+| Versión del código documentado | `main` @ `ef1dd93` (fix: `init_point` también con cuentas de prueba) · 379 tests OK |
 | Documento relacionado | [PRD — Documento de Requerimientos de Producto](PRD.md) |
 
 > El PRD define el **qué**; este documento define el **cómo**: stack,
 > estructura, modelo de datos, superficie de endpoints, decisiones de diseño y
-> requerimientos técnicos de calidad. v2.0 incorpora el CRUD de productos con
-> HTMX, el módulo de reportes y el estilo neón único; **v2.1** agrega el
-> servicio de cobro del Sprint 3 (carrito en sesión, transacción de venta y
-> descuento de stock); **v2.2** agrega la app `clientes/` (modelo `Cliente`,
-> puntos de fidelidad y asociación en el cobro) y el comando `cargar_demo`;
-> **v2.3** agrega el cierre de turno (HU-10): modelo `Turno`, servicios de
-> apertura/cierre y pantalla dedicada; **v2.4** agrega la integración externa
-> (HU-13): app `pedidos/` con catálogo público sin login, `Pedido`/`ItemPedido`,
-> link a WhatsApp configurable y panel de pedidos; **v2.5** agrega la cuenta
-> corriente (HU-14): `Cliente.limite_credito`/`saldo_deuda`,
-> `PagoCuentaCorriente`, cobro fiado desde el POS con validación de límite y la
-> deuda otorgada informada aparte de la caja y de los ingresos; **v2.6** cierra
-> el círculo del pedido por WhatsApp (HU-13): **entregar es cobrar**, con
-> `Pedido.cliente`/`Pedido.venta`, un servicio de entrega que reutiliza el
-> núcleo de venta del POS y la pantalla "Entregar y cobrar"; **v2.7** suma el
-> **cobro con QR de Mercado Pago** (HU-15: venta pendiente con stock reservado,
-> `PagoMercadoPago`, webhook + consulta periódica y "Total Mercado Pago" en el
-> cierre de turno), la **pantalla del cliente** (HU-16), el botón **"Conectar
-> con Mercado Pago"** (OAuth, `ConexionMercadoPago`), la **recuperación de
-> contraseña** por mail (Resend) y la **publicación en Render** (gunicorn +
-> WhiteNoise).
+> requerimientos técnicos de calidad. v2.0-v2.6 agregan CRUD + HTMX, cobro del
+> Sprint 3, app `clientes/` + `cargar_demo`, cierre de turno, app `pedidos/`,
+> cuenta corriente "FIAR" y el núcleo de venta compartido con **entregar es
+> cobrar**. v2.7 suma QR de Mercado Pago + display + OAuth + Resend + Render.
+> v2.8 suma el fix `ef1dd93` (`init_point` también en sandbox) y la
+> documentación de cuentas sandbox.
 
 ---
 
@@ -142,6 +127,10 @@ flowchart LR
 | Datos de demo | Management command `cargar_demo` (semilla fija) | — | Carga reproducible de 56 productos y ventas desde el 20/09/2026 |
 
 **No se usa:** DRF, Celery, Redis, Docker, CI, bundler/`package.json`.
+
+**Frontend (detalle):** Django Templates + Bootstrap 5.3.3 + Icons por CDN, HTMX 1.9.12 para parciales sin recarga, CSS puro con custom properties (`styles.css` + `cobro_qr.css`) y JS vanilla (polling QR/display, tema en `localStorage`). Sin build ni Node.
+**Backend (detalle):** Python + Django 6.1.1, PostgreSQL (`psycopg2-binary`) con `DATABASE_URL` y fallback SQLite, `django-environ` para `.env`, auditoría por señales, Resend para correo y cliente de Mercado Pago con `urllib`. Producción: gunicorn + WhiteNoise en Render.
+**Cuentas sandbox (facultad):** ver PRD §4.13 y README — vendedor 3809513042 / `TESTUSER4734636893281846594` / `x7CWpT5XWB` (verificación 513042) conecta por OAuth; comprador 3809513038 / `TESTUSER5602888735222767984` / `QX5FnVgdxg` (verificación 513038) paga. Siempre `init_point` (fix `ef1dd93`).
 
 ---
 
@@ -951,7 +940,7 @@ Comandos del proyecto:
 - **Contexto:** la cátedra pidió "FIAR" con límite máximo por cliente. Antes de
   implementarlo (v2.2) quedaron abiertas las decisiones de negocio: dónde vive
   el límite y si la deuda se **guarda** o se **calcula**.
-- **Decisión (resuelta el 19-10, HU-14):**
+- **Decisión (HU-14):**
   - El límite es **por cliente**: `Cliente.limite_credito` (0 = sin cuenta
     corriente), editable solo por el Administrador desde el alta/edición.
   - La deuda se **guarda** en `Cliente.saldo_deuda` y cada cobro deja un
@@ -1081,7 +1070,9 @@ Comandos del proyecto:
      propio sistema (`/ventas/pagar/<token>/`), sin plata real.
   6. La plata llega a la cuenta del negocio por **OAuth** (`ConexionMercadoPago`),
      con prioridad cuenta conectada → `MP_ACCESS_TOKEN` del entorno → modo de
-     prueba. El token se renueva antes de `expira`.
+     prueba. El token se renueva antes de `expira`. El link es **siempre
+     `init_point`**, también con cuentas de prueba (fix `ef1dd93`, ver PRD §4.13
+     y README para las cuentas sandbox).
 - **Consecuencias:** el cobro digital queda integrado a la misma caja, al mismo
   cierre de turno (`total_mercado_pago`) y a las mismas reglas de fidelidad.
   Como la venta existe antes de pagarse, hay que **filtrar siempre por
@@ -1142,22 +1133,22 @@ Comandos del proyecto:
 
 | Riesgo / deuda | Impacto | Estado / acción prevista |
 |---|---|---|
-| ~~Templates de catálogo faltantes~~ | Bloqueaba HU-04/05 | ✅ Resuelto (03-10): 5 templates creados |
+| ~~Templates de catálogo faltantes~~ | Bloqueaba HU-04/05 | ✅ Resuelto: 5 templates creados |
 | ~~Catálogo sin chequeo de rol~~ | Rompía HU-02 | ✅ Resuelto: `@rol_requerido` en las 4 vistas |
 | `toggle_usuario` por GET | CSRF/seguridad | Abierto (R-03): cambiar a POST |
-| ~~`Venta` sin `metodo_pago` ni FK a cajero~~ | Bloqueaba HU-09/10 | ✅ Resuelto (05-10): campos + migración `0004` |
-| ~~`Venta`/`DetalleVenta` sin lógica de negocio~~ | Bloqueaba HU-07/08/09 | ✅ Resuelto (05-10): `services.py` con transacción y descuento de stock |
-| ~~Pantalla de cobro placeholder~~ | — | ✅ Resuelto (05-10): carrito con HTMX/JS, vuelto, pago exacto, billetes |
-| ~~Modelo `Cliente` inexistente~~ | Bloqueaba HU-12 | ✅ Resuelto (17-10): app `clientes/` + `Venta.cliente`/`puntos_ganados` (migración `0005`) |
-| ~~Modelo `Turno` inexistente~~ | Bloqueaba HU-10 | ✅ Resuelto (19-10): modelo `Turno` + `abrir/cerrar_turno` + pantalla (migración `0006`) |
-| Cuenta corriente ("FIAR") sin diseño cerrado | Bloqueaba HU-14 | ✅ Resuelto (19-10): límite por cliente (`Cliente.limite_credito`), deuda guardada (`saldo_deuda` + `PagoCuentaCorriente`) y lo fiado fuera de caja e ingresos (ADN-14, ADN-17) |
-| ~~Catálogo público con pedido por WhatsApp~~ | Bloqueaba HU-13 | ✅ Resuelto (19-10): app `pedidos/` con catálogo sin login, `Pedido`/`ItemPedido` (migración `0001`), link `wa.me` configurable y panel de pedidos |
-| ~~Settings de producción (`DEBUG`, `SECRET_KEY`, `MAILERS`)~~ | Bloqueaba despliegue y "olvidé mi contraseña" | ✅ Resuelto (23-10/04-11): `DEBUG`/`SECRET_KEY`/hosts desde el entorno, `MAILERS` con `ResendEmailBackend` y fallback a consola (R-06, R-10) |
-| ~~Cobro con QR de Mercado Pago~~ | Bloqueaba HU-15/16 | ✅ Resuelto (23-10): `PagoMercadoPago` + `cobro_qr.py` + `mercadopago.py` (migración `ventas/0008`), venta pendiente, webhook/consulta y display |
-| ~~Botón "Conectar con Mercado Pago"~~ | La plata caía en una cuenta de prueba | ✅ Resuelto (23-10): OAuth con `ConexionMercadoPago` (migración `ventas/0009`), renovación de token y desconexión |
-| ~~Recuperación de contraseña rota (`NoReverseMatch`)~~ | El mail de "olvidé mi contraseña" no se enviaba | ✅ Resuelto (04-11): templates propios con namespace `usuarios:`, backend con HTML + texto y 4 tests (R-10) |
-| ~~La demo perdía stock al recargarla~~ | Demo y pruebas inconsistentes | ✅ Resuelto (05-11): borrado selectivo + reposición desde ventas/ítems y test de ciclo completo (R-22) |
-| ~~La entrega de pedidos ofrecía Mercado Pago~~ | Método inválido para un cobro presencial | ✅ Resuelto (05-11): filtra por `METODOS_PAGO_VALIDOS` (R-21) |
+| ~~`Venta` sin `metodo_pago` ni FK a cajero~~ | Bloqueaba HU-09/10 | ✅ Resuelto: campos + migración `0004` |
+| ~~`Venta`/`DetalleVenta` sin lógica de negocio~~ | Bloqueaba HU-07/08/09 | ✅ Resuelto: `services.py` con transacción y descuento de stock |
+| ~~Pantalla de cobro placeholder~~ | — | ✅ Resuelto: carrito con HTMX/JS, vuelto, pago exacto, billetes |
+| ~~Modelo `Cliente` inexistente~~ | Bloqueaba HU-12 | ✅ Resuelto: app `clientes/` + `Venta.cliente`/`puntos_ganados` (migración `0005`) |
+| ~~Modelo `Turno` inexistente~~ | Bloqueaba HU-10 | ✅ Resuelto: modelo `Turno` + `abrir/cerrar_turno` + pantalla (migración `0006`) |
+| Cuenta corriente ("FIAR") sin diseño cerrado | Bloqueaba HU-14 | ✅ Resuelto: límite por cliente (`Cliente.limite_credito`), deuda guardada (`saldo_deuda` + `PagoCuentaCorriente`) y lo fiado fuera de caja e ingresos (ADN-14, ADN-17) |
+| ~~Catálogo público con pedido por WhatsApp~~ | Bloqueaba HU-13 | ✅ Resuelto: app `pedidos/` con catálogo sin login, `Pedido`/`ItemPedido` (migración `0001`), link `wa.me` configurable y panel de pedidos |
+| ~~Settings de producción (`DEBUG`, `SECRET_KEY`, `MAILERS`)~~ | Bloqueaba despliegue y "olvidé mi contraseña" | ✅ Resuelto: `DEBUG`/`SECRET_KEY`/hosts desde el entorno, `MAILERS` con `ResendEmailBackend` y fallback a consola (R-06, R-10) |
+| ~~Cobro con QR de Mercado Pago~~ | Bloqueaba HU-15/16 | ✅ Resuelto: `PagoMercadoPago` + `cobro_qr.py` + `mercadopago.py` (migración `ventas/0008`), venta pendiente, webhook/consulta y display |
+| ~~Botón "Conectar con Mercado Pago"~~ | La plata caía en una cuenta de prueba | ✅ Resuelto: OAuth con `ConexionMercadoPago` (migración `ventas/0009`), renovación de token y desconexión |
+| ~~Recuperación de contraseña rota (`NoReverseMatch`)~~ | El mail de "olvidé mi contraseña" no se enviaba | ✅ Resuelto: templates propios con namespace `usuarios:`, backend con HTML + texto y 4 tests (R-10) |
+| ~~La demo perdía stock al recargarla~~ | Demo y pruebas inconsistentes | ✅ Resuelto: borrado selectivo + reposición desde ventas/ítems y test de ciclo completo (R-22) |
+| ~~La entrega de pedidos ofrecía Mercado Pago~~ | Método inválido para un cobro presencial | ✅ Resuelto: filtra por `METODOS_PAGO_VALIDOS` (R-21) |
 | Cobro QR pendiente que nunca se paga | Stock reservado | Mitigado: cancelación manual que devuelve stock y carrito; la preferencia vence a los 30 minutos. Abierto: liberación automática al vencer (R-16) |
 | Dependencia de Mercado Pago y Resend | Cobro/correo no disponibles | Mitigado: modo de prueba y consola sin credenciales; errores visibles en la caja. Abierto: reintentos y aviso al Administrador (R-17) |
 | Plan gratis de Render duerme el sitio y la base vence a los 30 días | Producción inestable | Abierto: plan pago o PostgreSQL administrado (R-18) |
@@ -1168,7 +1159,7 @@ Comandos del proyecto:
 
 **Impacto esperado de las consignas nuevas en la arquitectura:**
 
-- **Sprint 4 (05-11):** ✅ cerrado el 19-10 con el modelo `Turno` para el cierre
+- **Sprint 4:** ✅ completo con el modelo `Turno` para el cierre
   de caja (reutiliza `reportes.py` para los totales por método).
 - **Consignas nuevas de la cátedra:** HU-13 (catálogo público) ✅ implementada
   como app `pedidos/` (vista pública sin rol, ruta `/catalogo/`); HU-14 (cuenta
@@ -1189,12 +1180,13 @@ Comandos del proyecto:
 
 | Versión | Fecha | Cambio |
 |---|---|---|
-| 1.0 | 24/09/2026 | Versión inicial (alcance Sprint 1 + 2 en curso) |
-| 2.0 | 05/10/2026 | CRUD de productos con HTMX, reportes, esquema ampliado (costo, código de barras, stock mínimo), 110 tests, endpoints y ADRs actualizados |
-| 2.1 | 05/10/2026 | Sprint 3: `Venta` ampliada (método de pago, cajero, vuelto), `services.py` de cobro, 5 endpoints de carrito, ADN-11 (carrito en sesión), búsqueda en tiempo real desde 3 letras, el filtro de dinero `montos`, 148 tests |
-| 2.2 | 19/10/2026 | Fidelidad de clientes (HU-12): app `clientes/` con `Cliente`, `services.py` de puntos, 9 endpoints nuevos, `Venta.cliente`/`puntos_ganados` (migración `0005`), ADN-13 (puntos congelados en la venta) y ADN-14 (por qué la cuenta corriente todavía no está); comando `cargar_demo`; 207 tests |
-| 2.3 | 19/10/2026 | Cierre de turno (HU-10): modelo `Turno` (migración `0006`), servicios `abrir/cerrar_turno` con snapshot congelado, endpoint `/ventas/turno/cierre/` y pantalla propia, ADN-15 (snapshot del cierre) y mapa de autorización del turno; Sprint 4 marcado completo; 224 tests |
-| 2.4 | 19/10/2026 | Integración externa (HU-13): app `pedidos/` con catálogo público sin login (`/catalogo/`), modelos `Pedido`/`ItemPedido` (migración `0001`), carrito de pedido en sesión, link `wa.me` configurable desde `.env` y panel interno de pedidos; ADN-16 (el pedido no es una venta); 7 endpoints nuevos; 256 tests |
-| 2.5 | 19/10/2026 | Cuenta corriente (HU-14): `Cliente.limite_credito`/`saldo_deuda` y `PagoCuentaCorriente` (migración `clientes/0002`), `Venta.metodo_pago` con `cuenta_corriente` y `Turno.deuda_otorgada` (migración `ventas/0007`), endpoint `clientes:registrar_pago`, validación del límite dentro de la transacción de cobro y `reportes.deuda_otorgada()`; ADN-14 reescrito y ADN-17 (deuda otorgada fuera de caja e ingresos); 299 tests |
-| 2.6 | 21/10/2026 | Cierre del flujo de pedidos (HU-13): `Pedido.cliente`/`Pedido.venta` (migración `pedidos/0002`), `ventas.services.registrar_venta_desde_items` como núcleo de venta compartido entre POS y entrega, `pedidos.services.registrar_entrega` (precio congelado, todo en una transacción con el pedido bloqueado), endpoints `pedidos:entregar` y `pedidos:buscar_cliente`, pantalla "Entregar y cobrar", "entregado" ya no se marca a mano, búsqueda de clientes sin acentos y comando `cargar_demo_clientes`; ADN-18 (entregar es cobrar); 340 tests |
-| 2.7 | 05/11/2026 | **Cobro con QR de Mercado Pago (HU-15)** y **pantalla del cliente (HU-16)**: `PagoMercadoPago` + `cobro_qr.py`/`mercadopago.py`/`views_qr.py` (migración `ventas/0008`), venta pendiente con stock reservado y puntos al aprobar, webhook verificado contra la API + consulta periódica, cancelación con devolución de stock, `Turno.total_mercado_pago`; **\"Conectar con Mercado Pago\"** (OAuth, `ConexionMercadoPago`, migración `ventas/0009`); **recuperación de contraseña** con Resend (`usuarios/email_backend.py` + templates propios `password_reset_*`); **publicación en Render** (`render.yaml`, gunicorn + WhiteNoise, `DEBUG`/`SECRET_KEY`/hosts desde el entorno); ADN-19 (venta pendiente con QR) y RT-09 a RT-12; demo idempotente y entrega de pedidos sin `mercado_pago`; 379 tests |
+| 1.0 | — | Versión inicial (alcance Sprint 1 + 2 en curso) |
+| 2.0 | — | CRUD de productos con HTMX, reportes, esquema ampliado (costo, código de barras, stock mínimo), 110 tests, endpoints y ADRs actualizados |
+| 2.1 | — | Sprint 3: `Venta` ampliada (método de pago, cajero, vuelto), `services.py` de cobro, 5 endpoints de carrito, ADN-11 (carrito en sesión), búsqueda en tiempo real desde 3 letras, el filtro de dinero `montos`, 148 tests |
+| 2.2 | — | Fidelidad de clientes (HU-12): app `clientes/` con `Cliente`, `services.py` de puntos, 9 endpoints nuevos, `Venta.cliente`/`puntos_ganados` (migración `0005`), ADN-13 (puntos congelados en la venta) y ADN-14 (por qué la cuenta corriente todavía no está); comando `cargar_demo`; 207 tests |
+| 2.3 | — | Cierre de turno (HU-10): modelo `Turno` (migración `0006`), servicios `abrir/cerrar_turno` con snapshot congelado, endpoint `/ventas/turno/cierre/` y pantalla propia, ADN-15 (snapshot del cierre) y mapa de autorización del turno; Sprint 4 marcado completo; 224 tests |
+| 2.4 | — | Integración externa (HU-13): app `pedidos/` con catálogo público sin login (`/catalogo/`), modelos `Pedido`/`ItemPedido` (migración `0001`), carrito de pedido en sesión, link `wa.me` configurable desde `.env` y panel interno de pedidos; ADN-16 (el pedido no es una venta); 7 endpoints nuevos; 256 tests |
+| 2.5 | — | Cuenta corriente (HU-14): `Cliente.limite_credito`/`saldo_deuda` y `PagoCuentaCorriente` (migración `clientes/0002`), `Venta.metodo_pago` con `cuenta_corriente` y `Turno.deuda_otorgada` (migración `ventas/0007`), endpoint `clientes:registrar_pago`, validación del límite dentro de la transacción de cobro y `reportes.deuda_otorgada()`; ADN-14 y ADN-17; 299 tests |
+| 2.6 | — | Cierre del flujo de pedidos (HU-13): `Pedido.cliente`/`Pedido.venta` (migración `pedidos/0002`), `ventas.services.registrar_venta_desde_items` como núcleo de venta compartido entre POS y entrega, `pedidos.services.registrar_entrega` (precio congelado, transacción única), endpoints `pedidos:entregar` y `pedidos:buscar_cliente`, pantalla "Entregar y cobrar", búsqueda sin acentos y comando `cargar_demo_clientes`; ADN-18; 340 tests |
+| 2.7 | — | **Cobro con QR de Mercado Pago (HU-15)** y **pantalla del cliente (HU-16)**: `PagoMercadoPago` + `cobro_qr.py`/`mercadopago.py`/`views_qr.py` (migración `ventas/0008`), venta pendiente, webhook + consulta, `Turno.total_mercado_pago`; **OAuth `ConexionMercadoPago`** (migración `ventas/0009`); **Resend** + **Render** (gunicorn/WhiteNoise); ADN-19; demo idempotente; 379 tests |
+| 2.8 | 05/11/2026 | Fix `ef1dd93`: `init_point` también con cuentas de prueba; cuentas sandbox documentadas; 379 tests |

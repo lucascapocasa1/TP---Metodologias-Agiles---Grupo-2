@@ -46,6 +46,29 @@ Publicado en: `https://norvex.onrender.com/`
 
 ---
 
+## Tecnologías
+
+### Backend
+- **Python 3.10+** con **Django 6.1.1** (Django puede servir por WSGI/ASGI: `config/wsgi.py` / `config/asgi.py`).
+- **PostgreSQL** como base principal mediante `psycopg2-binary` (lectura de `DATABASE_URL` con `django-environ`; sin `DATABASE_URL` cae a SQLite para desarrollo).
+- Arquitectura por apps propias: `usuarios`, `ventas`, `clientes`, `pedidos`, `administracion`, `auditoria`. Lógica de negocio en `services.py` de cada app.
+- Autenticación con **Django Authentication** + roles por **Django Groups** y decorador `rol_requerido`.
+- Auditoría con **Django signals** (`user_logged_in` / `user_logged_out`).
+- Configuración por variables de entorno con `.env` (ver **Configuración**); locale `es-ar`, zona horaria `America/Argentina/Buenos_Aires`.
+- **Resend API** para correos (recuperación de contraseña, ver `usuarios/email_backend.py`); sin API key usa backend de consola.
+- **Mercado Pago Checkout Pro + OAuth**: cliente con `urllib` de la librería estándar (sin dependencias extra), webhook y consulta de pagos cada 3 s.
+- Producción: **WhiteNoise** para estáticos y **gunicorn** como servidor WSGI, publicado en **Render** con PostgreSQL.
+
+### Frontend
+- Plantillas **Django Template Language (DTL)** en `templates/` con layout base `base.html`, Bootstrap 5 + Bootstrap Icons por CDN.
+- **HTMX** por CDN para actualizaciones parciales sin recargar (búsqueda de productos, carrito, buscadores de cliente y catálogo público).
+- **CSS puro** en `static/css/styles.css` con tokens via CSS custom properties; no usa bundler ni build step. Cobro QR con `static/css/cobro_qr.css`.
+- **JavaScript vanilla** para polling (caja QR y pantalla del cliente), tema claro/oscuro en `localStorage['kiosco-tema']` y `prefers-reduced-motion`.
+- Estilo único **neón cian** (`data-tema="neon"` forzado en `<head>`), identidad "toldo de barrio", tipografías Righteous + Space Grotesk desde Google Fonts.
+- Responsive básico (navbar, login y tablas); errores 403/404 con templates propios.
+
+---
+
 ## Decisiones técnicas
 
 - **Base de datos:** PostgreSQL con `DATABASE_URL` en `.env` (fallback a SQLite si no se define).

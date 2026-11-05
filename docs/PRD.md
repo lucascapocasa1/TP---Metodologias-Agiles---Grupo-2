@@ -4,48 +4,14 @@
 
 | Campo | Valor |
 |---|---|
-| Documento | PRD v2.7 |
+| Documento | PRD v2.8 |
 | Fecha | 05/11/2026 |
-| Versión del código documentado | `main` (05-11-2026) + cobro con QR de Mercado Pago, pantalla del cliente, recuperación de contraseña y publicación en Render |
+| Versión del código documentado | `main` @ `ef1dd93` (incluye fix: `init_point` también con cuentas de prueba) |
 | Proyecto | Sistema Kiosco (Norvex) — TP Metodologías Ágiles (UNAB) |
-| Estado del producto | **Sprint 1 ✅ · Sprint 2 ✅ · Sprint 3 ✅ · Sprint 4 ✅ (reportes + clientes + cierre de turno) · HU-13 ✅ (catálogo público + WhatsApp **y entrega cobrada**) · HU-14 ✅ (cuenta corriente "FIAR") · HU-15 ✅ (cobro con QR de Mercado Pago) · HU-16 ✅ (pantalla del cliente) · recuperación de contraseña ✅ (Resend) · publicación en Render ✅ · 379 tests en verde** |
+| Estado del producto | **Sprint 1 ✅ · Sprint 2 ✅ · Sprint 3 ✅ · Sprint 4 ✅ · HU-13 ✅ (catálogo público + WhatsApp con cobro de la entrega) · HU-14 ✅ (cuenta corriente "FIAR") · HU-15 ✅ (cobro QR Mercado Pago) · HU-16 ✅ (pantalla del cliente) · recuperación de contraseña ✅ (Resend) · publicación en Render ✅ · 379 tests en verde** |
 | Documento relacionado | [ARD — Arquitectura y requerimientos técnicos](ARD.md) |
 
-> Historial: v1.0 (24-09) documentaba el alcance de Sprints 1 y 2 en curso.
-> v2.0 refleja el cierre del Sprint 2 (catálogo con CRUD + HTMX), la entrega
-> adelantada de los reportes del Sprint 4 y dejaba como único bloque pendiente
-> la caja/cobro del Sprint 3.
-> v2.1 cierra el Sprint 3 (HU-07/08/09): carrito de cobro con escáner,
-> edición de cantidades y cobro efectivo/tarjeta con vuelto y descuento de
-> stock, adelantado al 05-10 respecto de la entrega del 15-10.
-> v2.2 cierra la fidelidad de clientes (HU-12, entregada el 17-10: app
-> `clientes/`, CRUD, DNI único y puntos 1 cada $100 asociados a la venta) y
-> suma las dos consignas nuevas de la cátedra (catálogo online con pedido por
-> WhatsApp y cuenta corriente), todavía **pendientes**.
-> v2.3 cierra el Sprint 4 integrando el cierre de turno (HU-10, 19-10: modelo
-> `Turno` con snapshot de totales, pantalla de apertura/cierre y control de
-> responsable); suite en 224 tests.
-> v2.4 implementa la integración externa (HU-13, 19-10: app `pedidos/` con
-> catálogo público sin login, pedido registrado, link a WhatsApp y panel
-> interno); suite en 256 tests.
-> v2.5 cierra las consignas de la cátedra con la cuenta corriente (HU-14,
-> 19-10: saldo de deuda por cliente con límite, cobro fiado desde el POS,
-> registro de pagos solo para el Administrador y la deuda otorgada mostrada
-> aparte de la caja y de los ingresos); suite en 299 tests.
-> v2.6 cierra el círculo del pedido por WhatsApp: **entregar es cobrar**. El
-> pedido entregado genera la `Venta` con su cliente y queda vinculado a ella
-> (precio congelado, stock, puntos y fiado con las mismas reglas del POS);
-> además la demo de clientes queda reproducible y coherente con
-> `manage.py cargar_demo_clientes`; suite en 340 tests.
-> v2.7 suma lo que entró a `main` después del cierre de HU-13: **cobro con QR
-> de Mercado Pago** (HU-15: la venta queda pendiente hasta que el pago se
-> aprueba, webhook + consulta periódica, cierre de turno con "Total Mercado
-> Pago"), **pantalla para el celular del cliente** (HU-16), **botón "Conectar
-> con Mercado Pago"** (OAuth: la plata llega a la cuenta del negocio),
-> **recuperación de contraseña por mail** (Resend) y **publicación del sistema
-> en Render** (gunicorn + WhiteNoise, `DEBUG`/`SECRET_KEY` desde el entorno).
-> También deja la demo **idempotente** (no pierde stock al recargarla) y saca
-> Mercado Pago de la entrega de pedidos; suite en 379 tests.
+> Historial: v1.0 cubre Sprints 1 y 2 en curso. v2.0-v2.6 agregan progresivamente el Sprint 2 (catálogo + HTMX), el Sprint 3 (caja), la fidelidad (HU-12), el cierre de turno (HU-10), el catálogo público + WhatsApp (HU-13), la cuenta corriente "FIAR" (HU-14) y el cierre del flujo con **entregar es cobrar**. v2.7 suma los extras: cobro QR (HU-15), pantalla del cliente (HU-16), OAuth "Conectar con Mercado Pago", recuperación de contraseña con Resend y publicación en Render, con demo idempotente. v2.8 suma el fix `ef1dd93` (siempre `init_point` en el QR, incluso con cuentas de prueba) y la documentación de cuentas sandbox para facultad.
 
 ---
 
@@ -81,10 +47,10 @@ provoca:
 | O4 | Interfaz clara y personalizable para el local | Identidad propia + modo oscuro, contraste AA | ✅ Alcanzado (estilo neón fijo + dark) |
 | O5 | Visibilidad del negocio | Reportes de ventas, stock, costos y rentabilidad | ✅ Alcanzado (entrega adelantada del Sprint 4) |
 | O6 | Base sólida para caja y reportes | Modelos de venta normalizados y testeados | ✅ Alcanzado (Sprint 3) |
-| O7 | Reconocer al cliente frecuente | Cliente identificado por DNI con historial y puntos acumulados | ✅ Alcanzado (HU-12, 17-10) |
-| O8 | Cobrar sin efectivo ni tarjeta física | QR de Mercado Pago integrado a la caja, con confirmación automática del pago | ✅ Alcanzado (HU-15, 23-10) |
-| O9 | Poner el sistema en producción sin tocar código | Publicación con `render.yaml`, variables de entorno y estáticos servidos por WhiteNoise | ✅ Alcanzado (23-10) |
-| O10 | Que el dueño no dependa del soporte para recuperar su cuenta | Recuperación de contraseña autoservicio por correo electrónico | ✅ Alcanzado (04-11) |
+| O7 | Reconocer al cliente frecuente | Cliente identificado por DNI con historial y puntos acumulados | ✅ Alcanzado |
+| O8 | Cobrar sin efectivo ni tarjeta física | QR de Mercado Pago integrado a la caja, con confirmación automática del pago | ✅ Alcanzado |
+| O9 | Poner el sistema en producción sin tocar código | Publicación con `render.yaml`, variables de entorno y estáticos servidos por WhiteNoise | ✅ Alcanzado |
+| O10 | Que el dueño no dependa del soporte para recuperar su cuenta | Recuperación de contraseña autoservicio por correo electrónico | ✅ Alcanzado |
 
 ### 1.4 Glosario
 
@@ -126,36 +92,34 @@ provoca:
 | **Auditoría** | Registro automático de login/logout con IP; registro de operaciones CRUD de usuarios; lectura en solo lectura vía Django admin | transversal |
 | **Reportes de negocio** | Ventas (KPIs, serie de 14 días, top 10, más rentables) y stock (valorizado, bajo, por categoría, margen bajo) | 4 (adelantado) |
 | **Caja y cobro** | Carrito con lector de código de barras, edición de cantidades, cobro efectivo/tarjeta con vuelto, descuento de stock, comprobante y auditoría de la venta | 3 |
-| **Fidelidad de clientes** | Modelo `Cliente` (DNI/CUIT único y normalizado, baja lógica), CRUD para el Administrador, búsqueda y alta rápida desde el cobro, asociación de la venta al cliente y puntos (1 cada $100) con historial | 4 (adelantado 17-10) |
-| **Pedidos online** | Catálogo público sin login (solo "Disponible"/"Agotado"), carrito de pedido, registro del `Pedido` y envío por WhatsApp; panel interno para ver y cambiar el estado | consigna (adelantada 19-10) |
-| **Cuenta corriente** | Cliente con límite de crédito, cobro fiado desde el POS, saldo de deuda con historial de pagos y deuda otorgada informada aparte de la caja y de los ingresos | consigna (adelantada 19-10) |
-| **Cobro con QR (Mercado Pago)** | Método `mercado_pago` en la caja: venta pendiente con stock reservado, QR de Checkout Pro, webhook + consulta periódica, cancelación con devolución del stock y "Total Mercado Pago" en el cierre de turno | extra (23-10) |
-| **Pantalla del cliente** | Vista `/ventas/display/` para un celular del mostrador: espera → QR → "¡Pago aprobado!", actualizada sola | extra (23-10) |
-| **Conectar Mercado Pago** | Botón OAuth en Panel → Mercado Pago: el negocio autoriza su cuenta y los cobros le llegan directo; renovación automática del token y desconexión auditada | extra (23-10) |
-| **Recuperación de contraseña** | Flujo completo por correo (pedir enlace → mail con Resend → elegir contraseña nueva), con páginas propias y enlace inválido controlado | extra (04-11) |
-| **Publicación** | `render.yaml` con gunicorn + WhiteNoise, migraciones y `setup_inicial` en el build; `DEBUG`, `SECRET_KEY`, `ALLOWED_HOSTS` y CSRF desde el entorno | extra (23-10) |
+| **Fidelidad de clientes** | Modelo `Cliente` (DNI/CUIT único y normalizado, baja lógica), CRUD para el Administrador, búsqueda y alta rápida desde el cobro, asociación de la venta al cliente y puntos (1 cada $100) con historial | 4 |
+| **Pedidos online** | Catálogo público sin login (solo "Disponible"/"Agotado"), carrito de pedido, registro del `Pedido` y envío por WhatsApp; panel interno para ver y cambiar el estado | consigna |
+| **Cuenta corriente** | Cliente con límite de crédito, cobro fiado desde el POS, saldo de deuda con historial de pagos y deuda otorgada informada aparte de la caja y de los ingresos | consigna |
+| **Cobro con QR (Mercado Pago)** | Método `mercado_pago` en la caja: venta pendiente con stock reservado, QR de Checkout Pro (`init_point` siempre), webhook + consulta periódica, cancelación con devolución del stock y "Total Mercado Pago" en el cierre de turno | extra |
+| **Pantalla del cliente** | Vista `/ventas/display/` para un celular del mostrador: espera → QR → "¡Pago aprobado!", actualizada sola | extra |
+| **Conectar Mercado Pago** | Botón OAuth en Panel → Mercado Pago: el negocio autoriza su cuenta y los cobros le llegan directo; renovación automática del token y desconexión auditada | extra |
+| **Recuperación de contraseña** | Flujo completo por correo (pedir enlace → mail con Resend → elegir contraseña nueva), con páginas propias y enlace inválido controlado | extra |
+| **Publicación** | `render.yaml` con gunicorn + WhiteNoise, migraciones y `setup_inicial` en el build; `DEBUG`, `SECRET_KEY`, `ALLOWED_HOSTS` y CSRF desde el entorno | extra |
 | **Datos de demo** | Comandos `cargar_demo` (56 productos y ventas desde el 20/09/2026 con semilla fija) y `cargar_demo_clientes` (clientes y pedidos); ambos `--limpiar` son **idempotentes** y reponen el stock | 4 |
 | **Experiencia de usuario** | Identidad "toldo de barrio" con estilo neón cian fijo, marca **Norvex**, modo oscuro, responsive, accesibilidad, formato de dinero unificado (`montos`) | transversal |
 
 ### 2.2 Estado de lo planificado y fuera del alcance actual
 
 - **Sprint 4 — Cierres (entrega 05-11):** ✅ **Completo.** HU-10 (cierre de
-  turno), HU-11 (top 10 y reportes) y HU-12 (clientes frecuentes) entregadas;
-  el cierre de turno se integró el 19-10.
-- **Consignas nuevas de la cátedra** (sin sprint/fecha asignados; ambas ✅
-  **completas el 19-10**):
-  - **Integración externa (HU-13):** ✅ **Completo (19-10).** Catálogo online
+  turno), HU-11 (top 10 y reportes) y HU-12 (clientes frecuentes) entregadas.
+- **Consignas nuevas de la cátedra** ✅ **Completas**:
+  - **Integración externa (HU-13):** ✅ **Completo.** Catálogo online
     público con armado de pedido para retiro ("take away"), pedido registrado
     en el sistema y envío por WhatsApp al local.
-  - **Cuenta corriente ("FIAR", HU-14):** ✅ **Completo (19-10).** Saldo de
+  - **Cuenta corriente ("FIAR", HU-14):** ✅ **Completo.** Saldo de
     deuda por cliente frecuente con límite máximo definido por el
     administrador, cobro a cuenta corriente en la pantalla del POS, registro
     de pagos (solo Administrador) y deuda otorgada excluida de la caja y de
     los ingresos.
-- **Extras de producto (posteriores al cierre de HU-13):** ✅ **Completos.**
-  Cobro con QR de Mercado Pago (HU-15) y pantalla para el cliente (HU-16)
-  el 23-10; botón "Conectar con Mercado Pago" (OAuth) y publicación en Render
-  también el 23-10; recuperación de contraseña por mail con Resend el 04-11.
+- **Extras de producto:** ✅ **Completos.**
+  Cobro con QR de Mercado Pago (HU-15) y pantalla para el cliente (HU-16);
+  botón "Conectar con Mercado Pago" (OAuth) y publicación en Render;
+  recuperación de contraseña por mail con Resend.
 - **Por definir:** multi-negocio (varias sucursales en una misma instalación),
   comercio configurable en colores/logo desde la interfaz, facturación
   electrónica y una interfaz propia para consultar la auditoría.
@@ -163,8 +127,7 @@ provoca:
 
 ### 2.3 Restricciones
 
-- Entregas fijas: Sprint 1 (24-09) ✅ · Sprint 2 (01-10) ✅ · Sprint 3 (15-10,
-  cerrado el 05-10) ✅ · Sprint 4 (05-11, cerrado el 19-10) ✅.
+- Entregas fijas: Sprint 1 (24-09) ✅ · Sprint 2 (01-10) ✅ · Sprint 3 (15-10) ✅ · Sprint 4 (05-11) ✅.
 - Aplicación **web** (navegador), sin app nativa; se usa en PC del kiosco y
   eventualmente en celular/tablet.
 - Trabajo en equipo con merge a `main`; los artefactos deben poder integrarse
@@ -197,7 +160,7 @@ provoca:
 ## 4. Requerimientos funcionales
 
 Prioridad: **M** = Must (imprescindible), **S** = Should, **C** = Could.
-Estado verificado contra el código el 05-11-2026 (`main` @ `e65c817`).
+Estado verificado contra el código (`main` @ `ef1dd93`).
 
 ### 4.1 Autenticación y control de acceso
 
@@ -355,10 +318,9 @@ Estado verificado contra el código el 05-11-2026 (`main` @ `e65c817`).
 ### 4.13 Cobro con QR de Mercado Pago (HU-15)
 
 | ID | Requerimiento | Prioridad | HU | Estado |
-|---|---|---|---|---|
 | RF-94 | La caja ofrece **Mercado Pago (QR)** como método de pago, además de efectivo, tarjeta y cuenta corriente; el cajero confirma y el sistema genera el QR | M | HU-15 | ✅ Hecho (`ventas/cobro_qr.py`, `cobro_confirmar`) |
 | RF-95 | Al iniciar el cobro se crea la `Venta` con `finalizada=False` usando el **mismo núcleo** de venta del POS: el stock queda **reservado**, pero la venta no cuenta en reportes ni en el turno y los puntos se suman recién al aprobarse el pago | M | HU-15 | ✅ Hecho (`services._crear_venta(..., finalizada=False)`) |
-| RF-96 | El servidor pide a Mercado Pago (Checkout Pro) una preferencia con los ítems de la venta, referencia `norvex-venta-<id>`, vencimiento a 30 minutos y nombre en el resumen de la tarjeta | M | HU-15 | ✅ Hecho (`mercadopago.crear_preferencia`) |
+| RF-96 | El servidor pide a Mercado Pago (Checkout Pro) una preferencia con los ítems de la venta, referencia `norvex-venta-<id>`, vencimiento a 30 minutos y nombre en el resumen de la tarjeta. Se usa siempre **`init_point`** (también con cuentas de prueba, fix `ef1dd93`) | M | HU-15 | ✅ Hecho (`mercadopago.crear_preferencia`) |
 | RF-97 | El pago se confirma por **webhook** (el aviso no se cree a ciegas: se vuelve a consultar el pago a la API) y, si no hay webhook, la caja consulta cada pocos segundos si hay un pago aprobado para esa referencia | M | HU-15 | ✅ Hecho (`mercadopago_webhook`, `pago_estado`, `buscar_pago_aprobado`) |
 | RF-98 | Al aprobarse el pago la venta pasa a `finalizada=True` y el cliente de fidelidad suma sus puntos; al cancelarse, el **stock vuelve** y los productos regresan al carrito para cobrar de otra forma | M | HU-15 | ✅ Hecho (`aprobar_pago`, `cancelar_cobro`) |
 | RF-99 | Un cobro ya aprobado **no se puede cancelar**; un cajero no puede tener dos cobros QR pendientes a la vez | M | HU-15 | ✅ Hecho (`pago_pendiente`, validación de estado con `select_for_update`) |
@@ -366,6 +328,9 @@ Estado verificado contra el código el 05-11-2026 (`main` @ `e65c817`).
 | RF-101 | El cierre de turno informa **"Total Mercado Pago (QR)"** como parte de la caja, separado de efectivo y tarjeta, y mantiene la deuda otorgada aparte | M | HU-15 | ✅ Hecho (`Turno.total_mercado_pago`, `total_en_caja`) |
 | RF-102 | Iniciar y cancelar un cobro QR queda **auditado** | S | HU-15 | ✅ Hecho (`registrar_accion`) |
 | RF-103 | El botón **"Conectar con Mercado Pago"** (OAuth) permite que la plata llegue a la cuenta del negocio: cuenta conectada → `MP_ACCESS_TOKEN` del entorno → modo de prueba; renueva el token antes de vencer y la desconexión vuelve al modo anterior | M | HU-15 | ✅ Hecho (`ConexionMercadoPago`, `views_conexion.py`, migración `ventas/0009`) |
+
+> **Cuentas de prueba (sandbox, para facultad):** comprador Norvex (ID 3809513038, usuario `TESTUSER5602888735222767984`, clave `QX5FnVgdxg`, verificación 513038) y vendedor Norvex (ID 3809513042, usuario `TESTUSER4734636893281846594`, clave `x7CWpT5XWB`, verificación 513042). El vendedor conecta la cuenta por OAuth y el comprador paga el QR desde la app. Con cuentas de prueba se usa `init_point` (fix `ef1dd93`). Ver README para el detalle.
+> **Tecnologías (resumen):** frontend DTL + Bootstrap 5 + HTMX + CSS/JS puros sin build; backend Django 6.1.1 + PostgreSQL; ver ARD §2 para el stack completo.
 
 ### 4.14 Pantalla para el cliente en un celular (HU-16)
 
@@ -469,7 +434,7 @@ se están quedando sin stock, para saber qué tengo que salir a reponer.
 - *Estado: ✅ Hecho (`stock_minimo` configurable, default 5; badge en la
   tabla y en los reportes de stock).*
 
-### Sprint 3 (Entrega 15-10) — ✅ Completo (cerrado el 05-10)
+### Sprint 3 (Entrega 15-10) — ✅ Completo
 
 **HU-07 — Carga rápida de productos al carrito**
 Como cajero, quiero escanear o tipear un código de barras y que el producto se
@@ -496,9 +461,9 @@ el monto entregado y que el sistema calcule el vuelto exacto.
   vuelto y botones de billetes/pago exacto, auditoría y comprobante;
   `metodo_pago` en `Venta`; 31 tests nuevos de cobro).*
 
-### Sprint 4 (Entrega 05-11) — ✅ Completo (cerrado el 19-10)
+### Sprint 4 (Entrega 05-11) — ✅ Completo
 
-**HU-10 — Cierre de turno** — ✅ **Hecho (19-10-2026).**
+**HU-10 — Cierre de turno** — ✅ **Hecho.**
 - CA: se registra el total en efectivo, en tarjeta, la cantidad de operaciones y
   qué usuario estaba a cargo.
 - *Implementado con el modelo `Turno` (migración `0006`), los servicios
@@ -514,7 +479,7 @@ el monto entregado y que el sistema calcule el vuelto exacto.
   productos más rentables; más el reporte de stock en
   `/administracion/reportes/stock/`. 59 tests.*
 
-**HU-12 — Clientes frecuentes (opcional)** — ✅ **Hecho (17-10-2026).**
+**HU-12 — Clientes frecuentes (opcional)** — ✅ **Hecho.**
 - CA: el cajero busca por CUIT/DNI y trae los datos automáticamente; si es
   nuevo, lo carga en una ventanita rápida.
 - *Implementado en la app `clientes/`: modelo `Cliente` (DNI/CUIT único y
@@ -524,7 +489,7 @@ el monto entregado y que el sistema calcule el vuelto exacto.
 
 ### Consignas nuevas de la cátedra
 
-**HU-13 — Catálogo online con pedido para retirar (take away)** — ✅ **Hecho (19-10-2026), flujo cerrado (21-10-2026).**
+**HU-13 — Catálogo online con pedido para retirar (take away)** — ✅ **Hecho.**
 Como vecino, quiero ver el catálogo del kiosco con el stock y los precios
 actuales, armar mi pedido y enviarlo por WhatsApp, para pasar a retirarlo sin
 hacer cola.
@@ -538,14 +503,14 @@ hacer cola.
   `wa.me` con el mensaje armado y panel interno de pedidos para el
   Administrador (marcar entregado/cancelado). El stock se muestra como
   **"Disponible" / "Agotado"**, nunca la cantidad exacta. 32 tests.*
-- *Cierre del flujo (21-10-2026): entregar un pedido **es cobrarlo**. El panel
+- *Cierre del flujo: entregar un pedido **es cobrarlo**. El panel
   pide cliente (opcional), método de pago y monto; se crea la `Venta` con el
   **precio congelado** del pedido usando el mismo núcleo del POS (stock,
   puntos y fiado), y el pedido queda vinculado a la venta y al cliente
   (`Pedido.cliente` / `Pedido.venta`, migración `pedidos/0002`). 19 tests
   nuevos + 8 de la demo.*
 
-**HU-14 — Cuenta corriente ("FIAR") para clientes frecuentes** — ✅ **Hecho (19-10-2026).**
+**HU-14 — Cuenta corriente ("FIAR") para clientes frecuentes** — ✅ **Hecho.**
 Como administrador, quiero que un cliente registrado pueda llevarse productos
 y acumular deuda hasta un límite máximo que yo defino, para fidelizar a los
 vecinos de confianza.
@@ -561,9 +526,9 @@ vecinos de confianza.
   otorgada se informa aparte de la caja y de los ingresos y se congela en
   `Turno.deuda_otorgada`. 43 tests nuevos de cuenta corriente.*
 
-### Extras de producto (23-10 y 04-11) — ✅ Completo
+### Extras de producto — ✅ Completo
 
-**HU-15 — Cobro con QR de Mercado Pago** — ✅ **Hecho (23-10-2026).**
+**HU-15 — Cobro con QR de Mercado Pago** — ✅ **Hecho.**
 Como cajero, quiero cobrar con un QR de Mercado Pago para que el cliente pague
 con la app desde su celular, sin efectivo ni tarjeta.
 - CA: al elegir **Mercado Pago (QR)** se genera el QR y la venta queda
@@ -579,7 +544,7 @@ con la app desde su celular, sin efectivo ni tarjeta.
   `ventas/views_qr.py`, `Turno.total_mercado_pago` y modo de prueba con pago
   simulado. 16 tests.*
 
-**HU-16 — Pantalla para el cliente en un celular** — ✅ **Hecho (23-10-2026).**
+**HU-16 — Pantalla para el cliente en un celular** — ✅ **Hecho.**
 Como dueño, quiero dejar un celular en el mostrador mirando al cliente que
 muestre el QR de cada cobro, para que lo escanee cómodo.
 - CA: el celular se actualiza solo (espera → QR → "¡Pago aprobado!") sin que
@@ -587,7 +552,7 @@ muestre el QR de cada cobro, para que lo escanee cómodo.
 - *Implementado: `/ventas/display/` + `display_estado`, con la URL adaptada a
   la IP de la PC en la red local para que el celular pueda entrar.*
 
-**HU-17 — Recuperación de contraseña** — ✅ **Hecho (04-11-2026).**
+**HU-17 — Recuperación de contraseña** — ✅ **Hecho.**
 Como usuario, quiero recuperar mi contraseña por correo para volver a entrar
 sin depender de que un administrador me la cambie.
 - CA: pido el enlace con mi correo, me llega un mail y elijo una contraseña
@@ -597,7 +562,7 @@ sin depender de que un administrador me la cambie.
   `.txt`, asunto propio), backend `ResendEmailBackend` y fallback a consola
   sin `RESEND_API_KEY`. 4 tests.*
 
-**HU-18 — Publicación del sistema** — ✅ **Hecho (23-10-2026).**
+**HU-18 — Publicación del sistema** — ✅ **Hecho.**
 Como responsable del proyecto, quiero publicar el sistema en internet para que
 el kiosco lo use desde cualquier lugar y para que funcione el OAuth de Mercado
 Pago (que exige `https`).
@@ -653,7 +618,7 @@ Pago (que exige `https`).
 - [ ] Comentarios y nombres en español; documentación (README/backlog) actualizada.
 - [ ] Sin regresiones en las funcionalidades ya entregadas.
 
-**Criterios de aceptación del Sprint 3 (cumplidos el 05-10):**
+**Criterios de aceptación del Sprint 3 (cumplidos):**
 
 - [x] Escanear/tipear un código y ver el producto en el carrito sin usar el mouse.
 - [x] Modificar cantidades o quitar ítems y ver el total recalculado.
@@ -662,7 +627,7 @@ Pago (que exige `https`).
       método de pago y cajero.
 - [x] Los tests previos siguen en verde y se suman los nuevos (148 en ese momento).
 
-**Criterios de aceptación del Sprint 4 (cumplidos el 19-10-2026):**
+**Criterios de aceptación del Sprint 4 (cumplidos):**
 
 - [x] El administrador ve el reporte del top 10 de productos más vendidos por
       período (HU-11).
@@ -674,7 +639,7 @@ Pago (que exige `https`).
       operaciones y quién estuvo a cargo (HU-10).
 - [x] Los tests previos siguen en verde y se suman los nuevos (256 en total).
 
-**Criterios de aceptación de las consignas de la cátedra (cumplidos el 19-10-2026):**
+**Criterios de aceptación de las consignas de la cátedra (cumplidos):**
 
 - [x] El vecino arma un pedido desde el catálogo público y lo envía por
       WhatsApp, y el pedido queda registrado y visible en el panel (HU-13).
@@ -687,7 +652,7 @@ Pago (que exige `https`).
       **deuda otorgada** (HU-14).
 - [x] Los tests previos siguen en verde y se suman los nuevos (340 en total).
 
-**Criterios de aceptación del cierre de HU-13 (cumplidos el 21-10-2026):**
+**Criterios de aceptación del cierre de HU-13 (cumplidos):**
 
 - [x] Un pedido **no se puede marcar como entregado a mano**: para entregarlo
       hay que cobrarlo (RF-85, RF-90).
@@ -708,7 +673,7 @@ Pago (que exige `https`).
       todos los clientes cargados tienen compras reales (RF-93).
 - [x] Los tests previos siguen en verde y se suman los nuevos (340 en total).
 
-**Criterios de aceptación de los extras (cumplidos el 23-10 y el 04-11-2026):**
+**Criterios de aceptación de los extras (cumplidos):**
 
 - [x] El cajero cobra con **QR de Mercado Pago** y la venta queda pendiente
       hasta que el pago se aprueba; recién ahí suma puntos (HU-15).
@@ -735,13 +700,11 @@ Pago (que exige `https`).
 |---|---|---|---|
 | 1 | 24-09 | Login, roles, 403 server-side, post-login por rol | ✅ Completo |
 | 2 | 01-10 | Catálogo: CRUD, código de barras, búsqueda HTMX, alerta de stock, gestión de usuarios | ✅ Completo |
-| 3 | 15-10 | Carrito con lector de código de barras, edición de carrito, cobro efectivo/tarjeta con vuelto, método de pago, descuento de stock | ✅ Completo (cerrado 05-10) |
-| 4 | 05-11 | **Reportes (HU-11) ✅** · **Clientes frecuentes (HU-12) ✅ (17-10)** · **Cierre de turno (HU-10) ✅ (19-10)** | ✅ Completo |
-| - | sin fecha | **Consignas nuevas de la cátedra:** catálogo online + pedido por WhatsApp (HU-13) ✅ (19-10) y cuenta corriente "FIAR" (HU-14) ✅ (19-10) | ✅ 2/2 |
-| - | 21-10 | **Cierre del flujo de HU-13:** entregar un pedido **es cobrarlo** (pedido ↔ venta ↔ cliente), precio congelado, núcleo de venta compartido con el POS y demo reproducible | ✅ Completo |
-| - | 23-10 | **Cobro con QR de Mercado Pago (HU-15)**, **pantalla para el cliente (HU-16)** y marca **Norvex** | ✅ Completo |
-| - | 23-10 | **Botón "Conectar con Mercado Pago"** (OAuth) y **publicación en Render** (gunicorn + WhiteNoise) | ✅ Completo |
-| - | 04-11 | **Recuperación de contraseña** por mail con Resend (flujo completo y páginas propias) | ✅ Completo |
+| 3 | 15-10 | Carrito con lector de código de barras, edición de carrito, cobro efectivo/tarjeta con vuelto, método de pago, descuento de stock | ✅ Completo |
+| 4 | 05-11 | **Reportes (HU-11) ✅** · **Clientes frecuentes (HU-12) ✅** · **Cierre de turno (HU-10) ✅** | ✅ Completo |
+| - | — | **Consignas nuevas de la cátedra:** catálogo online + pedido por WhatsApp (HU-13) ✅ y cuenta corriente "FIAR" (HU-14) ✅ | ✅ 2/2 |
+| - | — | **Cierre del flujo de HU-13:** entregar un pedido **es cobrarlo** (pedido ↔ venta ↔ cliente), precio congelado, núcleo de venta compartido con el POS y demo reproducible | ✅ Completo |
+| - | — | **Extras:** cobro QR (HU-15) + display (HU-16) + marca Norvex, OAuth "Conectar con Mercado Pago" + publicación en Render, recuperación de contraseña con Resend, demo idempotente y fix `init_point` en cuentas de prueba | ✅ Completo |
 
 ---
 
@@ -749,30 +712,30 @@ Pago (que exige `https`).
 
 | ID | Tipo | Descripción | Impacto | Estado / Mitigación |
 |---|---|---|---|---|
-| R-01 | ~~Riesgo~~ | Templates de catálogo faltantes (500 en `/ventas/productos/`) | Alto | ✅ **Resuelto (03-10):** 5 templates creados |
+| R-01 | ~~Riesgo~~ | Templates de catálogo faltantes (500 en `/ventas/productos/`) | Alto | ✅ **Resuelto:** 5 templates creados |
 | R-02 | ~~Riesgo~~ | Rutas de catálogo sin chequeo de rol | Alto | ✅ **Resuelto:** `@rol_requerido("Administrador")` en las 4 vistas |
 | R-03 | Riesgo | `toggle_usuario` cambia estado vía **GET** (sin POST/CSRF) | Medio | Abierto: convertir a POST con token |
-| R-04 | ~~Riesgo~~ | `Venta` sin método de pago ni FK al cajero responsable | Alto | ✅ **Resuelto (05-10):** `metodo_pago`, `usuario`, `monto_entregado`, `vuelto` (migración `0004`) |
-| R-05 | ~~Riesgo~~ | No hay lógica de venta: no descuenta stock ni calcula total | Alto | ✅ **Resuelto (05-10):** `ventas/services.py` con transacción, `select_for_update` y descuento de stock |
-| R-06 | ~~Riesgo~~ | `SECRET_KEY` hardcodeada, `DEBUG=True` fijo y `ALLOWED_HOSTS` vacío | Alto si se despliega | ✅ **Resuelto (23-10):** `DEBUG`, `SECRET_KEY`, `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS` desde el entorno; en producción cookies seguras y proxy SSL |
+| R-04 | ~~Riesgo~~ | `Venta` sin método de pago ni FK al cajero responsable | Alto | ✅ **Resuelto:** `metodo_pago`, `usuario`, `monto_entregado`, `vuelto` (migración `0004`) |
+| R-05 | ~~Riesgo~~ | No hay lógica de venta: no descuenta stock ni calcula total | Alto | ✅ **Resuelto:** `ventas/services.py` con transacción, `select_for_update` y descuento de stock |
+| R-06 | ~~Riesgo~~ | `SECRET_KEY` hardcodeada, `DEBUG=True` fijo y `ALLOWED_HOSTS` vacío | Alto si se despliega | ✅ **Resuelto:** `DEBUG`, `SECRET_KEY`, `ALLOWED_HOSTS` y `CSRF_TRUSTED_ORIGINS` desde el entorno; en producción cookies seguras y proxy SSL |
 | R-07 | Riesgo | Paginación implementada pero sin usar en los templates | Bajo | Abierto: conectar `{% paginacion %}` |
 | R-08 | Riesgo | Auditoría sin tests ni interfaz propia | Medio | Abierto: tests de señales + listado |
 | R-09 | Riesgo | El dashboard no muestra KPIs de negocio (solo métricas de usuarios) | Bajo | Abierto: los KPIs viven en `/reportes/` |
-| R-10 | ~~Riesgo~~ | Configuración de correo inválida (`MAILERS` en vez de `EMAIL_BACKEND`) | Bajo | ✅ **Resuelto (04-11):** `MAILERS` + `ResendEmailBackend`, templates de mail propios con el namespace correcto, fallback a consola sin API key y 4 tests del flujo |
+| R-10 | ~~Riesgo~~ | Configuración de correo inválida (`MAILERS` en vez de `EMAIL_BACKEND`) | Bajo | ✅ **Resuelto:** `MAILERS` + `ResendEmailBackend`, templates de mail propios con el namespace correcto, fallback a consola sin API key y 4 tests del flujo |
 | R-11 | Supuesto | Los usuarios de prueba (`admin`/`cajero1`, contraseña `kiosco2024`) son solo para desarrollo | — | No usar en producción; rotar credenciales |
 | R-12 | Supuesto | El local dispone de PC con navegador moderno y conexión local al servidor | — | Fallback a SQLite para demo sin PostgreSQL |
-| R-13 | ~~Riesgo~~ | Los pedidos del catálogo público (HU-13) llegan por WhatsApp y no quedan registrados en el sistema | Medio | ✅ **Resuelto (19-10):** cada pedido se guarda como `Pedido` + `ItemPedido` y el kiosquero lo ve en el panel de pedidos |
-| R-14 | ~~Riesgo~~ | Lo fiado por cuenta corriente (HU-14) no es plata que entra a la caja | Medio | ✅ **Resuelto (19-10):** `METODOS_EN_CAJA = ("efectivo", "tarjeta")`; lo fiado se muestra aparte como **deuda otorgada** (en el turno y en los reportes) y no suma a los ingresos |
-| R-15 | ~~Riesgo~~ | Un pedido de WhatsApp podía quedar **"entregado" sin cobrarse** (ni venta, ni stock descontado, ni cliente con compras) | Medio | ✅ **Resuelto (21-10):** entregar **es cobrar** (`pedidos.services.registrar_entrega`): el pedido queda con su `Venta` y su `Cliente`, y "entregado" ya no se marca a mano |
+| R-13 | ~~Riesgo~~ | Los pedidos del catálogo público (HU-13) llegan por WhatsApp y no quedan registrados en el sistema | Medio | ✅ **Resuelto:** cada pedido se guarda como `Pedido` + `ItemPedido` y el kiosquero lo ve en el panel de pedidos |
+| R-14 | ~~Riesgo~~ | Lo fiado por cuenta corriente (HU-14) no es plata que entra a la caja | Medio | ✅ **Resuelto:** `METODOS_EN_CAJA = ("efectivo", "tarjeta")`; lo fiado se muestra aparte como **deuda otorgada** (en el turno y en los reportes) y no suma a los ingresos |
+| R-15 | ~~Riesgo~~ | Un pedido de WhatsApp podía quedar **"entregado" sin cobrarse** (ni venta, ni stock descontado, ni cliente con compras) | Medio | ✅ **Resuelto:** entregar **es cobrar** (`pedidos.services.registrar_entrega`): el pedido queda con su `Venta` y su `Cliente`, y "entregado" ya no se marca a mano |
 | R-16 | Riesgo | Un cobro QR pendiente que el cliente nunca paga deja **stock reservado** | Medio | Mitigado: el cajero puede cancelar (devuelve el stock y los ítems al carrito) y la preferencia vence a los 30 minutos. Abierto: liberar el stock automáticamente al vencer |
 | R-17 | Riesgo | Dependencia de servicios externos (**Mercado Pago**, **Resend**) | Medio | Mitigado: sin credenciales el QR cae a modo de prueba y el correo a consola; si Mercado Pago falla, el cobro muestra el error y la caja sigue con efectivo/tarjeta. Abierto: reintentos y aviso al Administrador |
 | R-18 | Riesgo | El plan gratis de Render **duerme** el sitio y la base vence a los 30 días | Medio para producción | Abierto: usar plan pago o apuntar `DATABASE_URL` a un PostgreSQL administrado (Supabase) |
 | R-19 | Riesgo | Una sola cuenta de Mercado Pago por **instalación** (no hay multi-negocio) | Bajo | Abierto: `ConexionMercadoPago` está pensada para agregarle un FK al negocio si el sistema escala |
-| R-20 | ~~Riesgo~~ | El webhook de Mercado Pago no puede llegar a `localhost` | Medio | ✅ **Mitigado (23-10):** la caja consulta el estado del pago cada pocos segundos; el webhook se usa cuando el sistema está publicado con `https` |
-| R-21 | Riesgo | El QR ofrece **Mercado Pago** en pantallas donde no se cobra en el acto (entrega de pedidos) | Bajo | ✅ **Resuelto (05-11):** el formulario de entrega filtra por `METODOS_PAGO_VALIDOS` y solo ofrece efectivo, tarjeta y cuenta corriente |
-| R-22 | Riesgo | La demo perdía **stock** en cada recarga (`cargar_demo --limpiar` borraba ventas ajenas sin reponer) | Alto para demos y pruebas | ✅ **Resuelto (05-11):** borrado selectivo de las ventas anónimas, reposición desde ventas e ítems de pedidos y verificación de idempotencia con test |
-| D-01 | Dependencia | Consignas/entregas del TP con fechas fijas (Sprint 4: 05-11) | — | ✅ Cumplida: Sprint 4 cerrado el 19-10 |
-| D-02 | ~~Dependencia~~ | HU-13 requería el teléfono del kiosco configurable | — | ✅ **Resuelto (19-10):** `KIOSCO_WHATSAPP`/`KIOSCO_NOMBRE` en `.env` (con `.env.example`), leídos por `pedidos/config.py` |
+| R-20 | ~~Riesgo~~ | El webhook de Mercado Pago no puede llegar a `localhost` | Medio | ✅ **Mitigado:** la caja consulta el estado del pago cada pocos segundos; el webhook se usa cuando el sistema está publicado con `https` |
+| R-21 | Riesgo | El QR ofrece **Mercado Pago** en pantallas donde no se cobra en el acto (entrega de pedidos) | Bajo | ✅ **Resuelto:** el formulario de entrega filtra por `METODOS_PAGO_VALIDOS` y solo ofrece efectivo, tarjeta y cuenta corriente |
+| R-22 | Riesgo | La demo perdía **stock** en cada recarga (`cargar_demo --limpiar` borraba ventas ajenas sin reponer) | Alto para demos y pruebas | ✅ **Resuelto:** borrado selectivo de las ventas anónimas, reposición desde ventas e ítems de pedidos y verificación de idempotencia con test |
+| D-01 | Dependencia | Consignas/entregas del TP con fechas fijas (Sprint 4: 05-11) | — | ✅ Cumplida: Sprint 4 completo |
+| D-02 | ~~Dependencia~~ | HU-13 requería el teléfono del kiosco configurable | — | ✅ **Resuelto:** `KIOSCO_WHATSAPP`/`KIOSCO_NOMBRE` en `.env` (con `.env.example`), leídos por `pedidos/config.py` |
 
 ---
 
@@ -783,10 +746,10 @@ Pago (que exige `https`).
 | Tests automatizados en verde | 100% de la suite | **379/379 OK** (usuarios 13, ventas 141 —99 + 10 de `cargar_demo` + 16 de Mercado Pago + 16 de conexión OAuth—, clientes 83, pedidos 53, administración 89 —24 + 65 de reportes—, auditoría 0) |
 | Historias Sprint 1 | 3/3 | 3/3 ✅ |
 | Historias Sprint 2 | 3/3 | 3/3 ✅ (HU-04, HU-05, HU-06 cerradas) |
-| Historias Sprint 3 | 3/3 al 15-10 | 3/3 ✅ (HU-07, HU-08, HU-09 cerradas el 05-10) |
+| Historias Sprint 3 | 3/3 al 15-10 | 3/3 ✅ (HU-07, HU-08, HU-09 cerradas) |
 | Historias Sprint 4 | 3/3 al 05-11 | 3/3 ✅ (HU-10, HU-11 y HU-12 cerradas) |
-| Consignas nuevas de la cátedra (HU-13/HU-14) | por definir | 2/2 ✅ (HU-13 y HU-14 cerradas el 19-10) |
-| Extras de producto (HU-15 a HU-18) | por definir | 4/4 ✅ (QR + display y OAuth/publicación el 23-10; recuperación de contraseña el 04-11) |
+| Consignas nuevas de la cátedra (HU-13/HU-14) | por definir | 2/2 ✅ (HU-13 y HU-14 cerradas) |
+| Extras de producto (HU-15 a HU-18) | por definir | 4/4 ✅ (QR + display, OAuth/publicación, recuperación de contraseña) |
 | Rutas críticas protegidas por rol | 100% | ✅ administración, catálogo, clientes, reportes, pedidos, turno ajeno y conectar/desconectar Mercado Pago → 403 para Cajero (el catálogo público es la excepción intencional: sin login) |
 | Demo reproducible e idempotente | 2 recargas seguidas dejan el mismo estado | ✅ verificado (56 productos, 11 clientes, 681 ventas; 0 stock negativo; deuda = fiado) |
 | Bloqueantes abiertos | 0 al entregar | **0 de severidad alta** (R-04, R-05, R-06, R-10, R-21 y R-22 resueltos) |
@@ -797,12 +760,13 @@ Pago (que exige `https`).
 
 | Versión | Fecha | Cambio |
 |---|---|---|
-| 1.0 | 24/09/2026 | Versión inicial (alcance Sprint 1 + 2 en curso) |
-| 2.0 | 05/10/2026 | Cierre del Sprint 2 (CRUD + HTMX + alerta de stock), reportes del Sprint 4 entregados, 110 tests, riesgos resueltos/abiertos actualizados |
-| 2.1 | 05/10/2026 | Cierre del Sprint 3: RF-37 a RF-41 completadas, HU-07/08/09 ✅, R-04/R-05 resueltos, 148 tests |
-| 2.2 | 19/10/2026 | Fidelidad de clientes (HU-12) ✅: app `clientes/`, RF-45 a RF-51, riesgos R-13/R-14 y dependencia D-02; consignas nuevas de la cátedra (HU-13 catálogo público + WhatsApp, HU-14 cuenta corriente) documentadas como pendientes; 207 tests |
-| 2.3 | 19/10/2026 | Cierre del Sprint 4 (HU-10) ✅: modelo `Turno` con snapshot de totales, RF-54 a RF-58, pantalla de apertura/cierre y control de responsable; reenumerados los RF de auditoría (RF-59…) y UX (RF-63…); Sprint 4 marcado completo; 224 tests |
-| 2.4 | 19/10/2026 | Integración externa (HU-13) ✅: app `pedidos/` con catálogo público sin login, `Pedido`/`ItemPedido` registrados, link a WhatsApp configurable y panel interno de pedidos; RF-70 a RF-74; riesgos R-13/D-02 resueltos; 256 tests |
-| 2.5 | 19/10/2026 | Cuenta corriente "FIAR" (HU-14) ✅: `Cliente.limite_credito`/`saldo_deuda` + `PagoCuentaCorriente`, cobro fiado desde el POS con validación de límite, pagos solo para el Administrador, deuda otorgada fuera de la caja y de los ingresos (`Turno.deuda_otorgada`); RF-75 a RF-84; riesgo R-14 resuelto; consignas de la cátedra 2/2; 299 tests |
-| 2.6 | 21/10/2026 | Cierre del flujo de pedidos (HU-13): entregar un pedido **es cobrarlo**. `Pedido.cliente` + `Pedido.venta` (migración `pedidos/0002`), servicio `registrar_entrega` con el núcleo de venta del POS (stock, puntos y fiado) y el **precio congelado** del pedido, pantalla "Entregar y cobrar" con búsqueda de cliente (sin depender de los acentos), "entregado" ya no se marca a mano y la entrega queda auditada. RF-85 a RF-93. Demo reproducible con `manage.py cargar_demo_clientes` (clientes con compras reales + pedidos de WhatsApp, los entregados cobrados con el flujo real); 340 tests |
-| 2.7 | 05/11/2026 | **Cobro con QR de Mercado Pago (HU-15)** y **pantalla del cliente (HU-16)**: `PagoMercadoPago` (migración `ventas/0008`), venta pendiente con stock reservado, webhook + consulta periódica, cancelación con devolución de stock y `Turno.total_mercado_pago`; **"Conectar con Mercado Pago"** (OAuth, `ConexionMercadoPago`, migración `ventas/0009`); **recuperación de contraseña** con Resend y templates propios; **publicación en Render** (gunicorn + WhiteNoise, `DEBUG`/`SECRET_KEY`/hosts desde el entorno). RF-94 a RF-115, RNF-16 a RNF-19, R-06/R-10/R-21/R-22 resueltos. Demo **idempotente** (borrado selectivo + reposición de stock) y entrega de pedidos sin `mercado_pago`; 379 tests |
+| 1.0 | — | Versión inicial (alcance Sprint 1 + 2 en curso) |
+| 2.0 | — | Cierre del Sprint 2 (CRUD + HTMX + alerta de stock), reportes del Sprint 4 entregados, 110 tests |
+| 2.1 | — | Cierre del Sprint 3: RF-37 a RF-41 completadas, HU-07/08/09 ✅, R-04/R-05 resueltos, 148 tests |
+| 2.2 | — | Fidelidad de clientes (HU-12) ✅: app `clientes/`, RF-45 a RF-51; consignas HU-13/HU-14 documentadas; 207 tests |
+| 2.3 | — | Cierre del Sprint 4 (HU-10) ✅: modelo `Turno` con snapshot de totales, RF-54 a RF-58; Sprint 4 completo; 224 tests |
+| 2.4 | — | Integración externa (HU-13) ✅: app `pedidos/` catálogo público, `Pedido`/`ItemPedido`, WhatsApp configurable y panel; RF-70 a RF-74; 256 tests |
+| 2.5 | — | Cuenta corriente "FIAR" (HU-14) ✅: `limite_credito`/`saldo_deuda` + `PagoCuentaCorriente`, cobro fiado y deuda otorgada fuera de caja/ingresos; RF-75 a RF-84; 299 tests |
+| 2.6 | — | Cierre del flujo de pedidos (HU-13): entregar **es cobrar**. `Pedido.cliente`/`Pedido.venta`, `registrar_entrega` con núcleo de venta del POS y precio congelado, demo reproducible con `cargar_demo_clientes`; RF-85 a RF-93; 340 tests |
+| 2.7 | — | **QR Mercado Pago (HU-15)** + **display (HU-16)** + **OAuth "Conectar"** + **Resend** + **Render** (gunicorn/WhiteNoise). RF-94 a RF-115, demo idempotente y entrega sin `mercado_pago`; 379 tests |
+| 2.8 | 05/11/2026 | Fix `ef1dd93`: `init_point` también con cuentas de prueba; cuentas sandbox documentadas en README; búsqueda de cliente sin acentos y demo idempotente ya cubiertos; 379 tests |
