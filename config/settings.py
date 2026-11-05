@@ -181,16 +181,23 @@ LOGIN_REDIRECT_URL = 'usuarios:post_login'  # decide a dónde va cada rol
 LOGOUT_REDIRECT_URL = 'usuarios:login'
 
 
-# Email / Mailers
-MAILERS = {
-    'default': {
-        'BACKEND': 'usuarios.email_backend.ResendEmailBackend',
-    },
-}
-
 # Configuración de Resend
 RESEND_API_KEY = env("RESEND_API_KEY", default="")
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="Norvex <onboarding@resend.dev>")
+
+# Email / Mailers
+# Sin RESEND_API_KEY (desarrollo local) el mail se imprime en la consola del
+# servidor: el link de recuperación queda visible y el flujo no rompe con un
+# error de API key.
+MAILERS = {
+    'default': {
+        'BACKEND': (
+            'usuarios.email_backend.ResendEmailBackend'
+            if RESEND_API_KEY
+            else 'django.core.mail.backends.console.EmailBackend'
+        ),
+    },
+}
 
 
 # --- Mercado Pago (cobro con QR) ---

@@ -22,7 +22,7 @@ from decimal import ROUND_CEILING, Decimal
 
 from django.contrib.auth.models import User
 from django.core.management.base import BaseCommand, CommandError
-from django.db.models import F
+from django.db.models import F, Q
 from django.utils import timezone
 
 from clientes.demo_data import (
@@ -133,13 +133,36 @@ class Command(BaseCommand):
         nombres = [p["nombre"] for p in PEDIDOS_DEMO]
 
         pedidos = Pedido.objects.filter(nombre_cliente__in=nombres)
+        # Pedidos entregados cuya venta ya no existe (por ejemplo, porque una
+        # versión anterior de `cargar_demo --limpiar` borraba todas las
+        # ventas): se repone su stock desde los ítems, que es lo único que
+        # queda de esa compra.
+        huerfanos = list(pedidos.filter(estado="entregado", venta__isnull=True))
+        items_huerfanos = list(
+            ItemPedido.objects.filter(pedido__in=huerfanos).values(
+                "producto_id", "cantidad"
+            )
+        )
         pedidos_borrados = pedidos.count()
-        pedidos.delete()
 
-        ventas = Venta.objects.filter(cliente__dni__in=dnis)
+        # Se repone el stock de las ventas de los clientes y también el de las
+        # ventas de los pedidos: un pedido puede ser de un consumidor final
+        # sin cliente cargado y su venta no entra por el filtro de DNI.
+        ventas = Venta.objects.filter(
+            Q(cliente__dni__in=dnis) | Q(pedidos__in=pedidos)
+        )
         consumos = self._restaurar_stock(ventas)
         ventas_borradas = ventas.count()
         ventas.delete()
+        pedidos.delete()
+
+        for item in items_huerfanos:
+            Producto.objects.filter(pk=item["producto_id"]).update(
+                stock=F("stock") + item["cantidad"]
+            )
+            consumos[item["producto_id"]] = (
+                consumos.get(item["producto_id"], 0) + item["cantidad"]
+            )
 
         clientes_borrados = Cliente.objects.filter(dni__in=dnis).delete()[0]
 

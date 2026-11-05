@@ -18,6 +18,12 @@ urlpatterns = [
         "recuperar-password/",
         auth_views.PasswordResetView.as_view(
             template_name="usuarios/password_reset_form.html",
+            # Sin estos templates propios, Django usa los de
+            # `django.contrib.admin`, que arman el link con
+            # `{% url 'password_reset_confirm' %}` (sin namespace) y el envío
+            # termina en NoReverseMatch.
+            subject_template_name="usuarios/password_reset_subject.txt",
+            email_template_name="usuarios/password_reset_email.txt",
             html_email_template_name="usuarios/password_reset_email.html",
             success_url="/usuarios/recuperar-password/enviado/",
         ),

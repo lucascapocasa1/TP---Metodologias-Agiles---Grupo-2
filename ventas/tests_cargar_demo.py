@@ -140,3 +140,44 @@ class CargarDemoTests(TestCase):
             len({nombre for nombre, *_ in cargar_demo.CATALOGO}),
             "nombres de productos duplicados en el catálogo",
         )
+
+    def test_limpiar_respeta_las_ventas_con_cliente_y_de_pedidos(self):
+        """`--limpiar` borra solo las ventas anónimas que creó este comando.
+
+        Las ventas de clientes y las de pedidos de WhatsApp las administra
+        `cargar_demo_clientes`, que repone su stock al limpiarlas. Si este
+        comando las borrara, ese stock se perdería en cada recarga de la demo.
+        """
+        from clientes.models import Cliente
+        from pedidos.models import Pedido
+
+        self._cargar(ventas_por_dia=2)
+        cliente = Cliente.objects.create(
+            nombre="Ana", apellido="Demo", dni="30111222"
+        )
+        con_cliente = Venta.objects.create(
+            total=Decimal("1000.00"),
+            finalizada=True,
+            metodo_pago="efectivo",
+            cliente=cliente,
+        )
+        pedido = Pedido.objects.create(
+            nombre_cliente="Consumidor Final",
+            telefono="1100000000",
+            comentario="",
+            total=Decimal("900.00"),
+        )
+        de_pedido = Venta.objects.create(
+            total=Decimal("900.00"), finalizada=True, metodo_pago="efectivo"
+        )
+        pedido.venta = de_pedido
+        pedido.save(update_fields=["venta"])
+        anonima = Venta.objects.create(
+            total=Decimal("500.00"), finalizada=True, metodo_pago="efectivo"
+        )
+
+        self._cargar(limpiar=True, ventas_por_dia=2)
+
+        self.assertTrue(Venta.objects.filter(pk=con_cliente.pk).exists())
+        self.assertTrue(Venta.objects.filter(pk=de_pedido.pk).exists())
+        self.assertFalse(Venta.objects.filter(pk=anonima.pk).exists())

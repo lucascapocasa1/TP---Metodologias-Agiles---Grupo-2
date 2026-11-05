@@ -1054,3 +1054,41 @@ class DemoClientesTests(TestCase):
         self.assertEqual(Pedido.objects.count(), pedidos)
         for producto in Producto.objects.all():
             self.assertEqual(producto.stock, stock[producto.nombre])
+
+    def test_el_ciclo_completo_de_la_demo_no_pierde_stock(self):
+        """La secuencia documentada se puede repetir sin comerse el stock.
+
+        `cargar_demo --limpiar` va antes que `cargar_demo_clientes --limpiar`.
+        Si el primero borrara las ventas de los clientes y de los pedidos, el
+        segundo ya no podría reponer su stock y la demo se iría vaciando en
+        cada recarga.
+        """
+        from django.core.management import call_command
+
+        # `cargar_demo` elige un cajero al azar para las ventas del mostrador.
+        User.objects.create_user(
+            username="cajero_demo", password="claveSegura123"
+        )
+        self._cargar()
+        stock = {
+            producto.nombre: producto.stock
+            for producto in Producto.objects.all()
+        }
+
+        for _ in range(2):
+            call_command("cargar_demo", "--limpiar", verbosity=0)
+            call_command("cargar_demo_clientes", "--limpiar", verbosity=0)
+
+        for producto in Producto.objects.all():
+            self.assertEqual(
+                producto.stock,
+                stock[producto.nombre],
+                f"«{producto.nombre}» perdió stock al recargar la demo.",
+            )
+        self.assertEqual(
+            Pedido.objects.filter(
+                estado="entregado", venta__isnull=True
+            ).count(),
+            0,
+            "quedaron pedidos entregados sin su venta",
+        )

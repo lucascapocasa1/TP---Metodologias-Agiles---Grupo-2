@@ -240,7 +240,17 @@ class Command(BaseCommand):
             return
 
         if limpiar and existentes:
-            borradas = Venta.objects.filter(fecha__gte=desde).delete()
+            # Solo se borran las ventas del mostrador anónimo (las que crea
+            # este comando). Las de clientes y las de pedidos de WhatsApp las
+            # administra `cargar_demo_clientes`, que repone su stock al
+            # limpiarlas. Si se borraran acá, ese comando ya no podría reponer
+            # el stock y la demo se comería unidades en cada recarga.
+            propias = Venta.objects.filter(
+                fecha__gte=desde,
+                cliente__isnull=True,
+                pedidos__isnull=True,
+            )
+            borradas = propias.delete()
             self.stdout.write(f"Ventas borradas: {borradas[0]}.")
             self.stdout.write("Productos: no se tocan (solo ventas).")
 

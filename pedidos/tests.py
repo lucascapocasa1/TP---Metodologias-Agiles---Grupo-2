@@ -529,6 +529,21 @@ class EntregaPedidoTests(BasePedidos):
         )
         self.assertContains(respuesta, "Entregar y cobrar")
 
+    def test_la_entrega_no_ofrece_mercado_pago(self):
+        """El QR no se cobra en el acto: la venta queda pendiente.
+
+        Si se ofreciera acá, elegirlo devuelve "método de pago válido" y el
+        pedido no se puede entregar.
+        """
+        self.login_admin()
+        respuesta = self.client.get(
+            reverse("pedidos:detalle_pedido", args=[self.pedido.pk])
+        )
+        self.assertContains(respuesta, 'value="efectivo"')
+        self.assertContains(respuesta, 'value="tarjeta"')
+        self.assertContains(respuesta, 'value="cuenta_corriente"')
+        self.assertNotContains(respuesta, 'value="mercado_pago"')
+
     def test_buscar_clientes_del_panel(self):
         self.login_admin()
         respuesta = self.client.get(

@@ -18,7 +18,7 @@ from clientes import services as fidelidad
 from clientes.models import Cliente
 from usuarios.decorators import rol_requerido
 from ventas.models import Categoria, Producto, Venta
-from ventas.services import formatear_monto
+from ventas.services import METODOS_PAGO_VALIDOS, formatear_monto
 
 from . import config, services
 from .models import Pedido
@@ -173,7 +173,14 @@ def detalle_pedido(request, pedido_id):
         {
             "pedido": pedido,
             "detalles": pedido.detalles.all(),
-            "metodos_pago": Venta.METODO_PAGO,
+            # Mercado Pago (QR) no se cobra en el acto: tiene su propio flujo
+            # (la venta queda pendiente hasta que se aprueba el pago), así que
+            # no se ofrece al entregar un pedido.
+            "metodos_pago": [
+                (valor, etiqueta)
+                for valor, etiqueta in Venta.METODO_PAGO
+                if valor in METODOS_PAGO_VALIDOS
+            ],
         },
     )
 
