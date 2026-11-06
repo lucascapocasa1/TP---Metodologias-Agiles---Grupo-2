@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+{% block titulo %}Confirmar acceso{% endblock %}
+{% block contenido %}
+<div class="login-split">
+    <section class="login-toldo">
+        <p class="toldo-wordmark">{% include "includes/norvex_marca.svg" with clase="norvex-marca" %} Norvex</p>
+        <p class="toldo-bajada">Gestión y cobro para tu negocio: caja, stock, clientes y QR de Mercado Pago.</p>
+        <div class="barcode barcode--toldo" aria-hidden="true"></div>
+        <span class="sticker">Acceso solo para el personal</span>
+    </section>
+
+    <section class="login-panel">
+        <div class="login-caja">
+            <h1>Confirmá tu contraseña</h1>
+            <p class="login-bajada">
+                Hola <strong>{{ usuario.username }}</strong>: esta zona es solo para
+                administradores. Volvé a poner tu contraseña para entrar.
+            </p>
+
+            {% if error %}
+                <div class="kiosco-alert kiosco-alert-danger mb-3" role="alert">
+                    <i class="bi bi-exclamation-triangle-fill" aria-hidden="true"></i>
+                    <span>Contraseña incorrecta.</span>
+                </div>
+            {% endif %}
+
+            <form method="post" class="login-form">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ next }}">
+                <div class="form-group mb-1">
+                    <label class="kiosco-label" for="id_password">Contraseña</label>
+                    <input type="password" name="password" id="id_password"
+                           class="kiosco-input" placeholder="Contraseña"
+                           required autofocus autocomplete="current-password">
+                </div>
+
+                <div class="text-end mb-3">
+                    <a href="{% url 'usuarios:password_reset' %}" class="text-info small text-decoration-none">
+                        ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
+
+                <button type="submit" class="btn btn-kiosco btn-submit">Entrar al panel</button>
+            </form>
+
+            <div class="login-invitado">
+                <a href="{% url 'usuarios:post_login' %}" class="btn-kiosco-outline btn-chico">
+                    <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al sistema
+                </a>
+            </div>
+        </div>
+    </section>
+</div>
+<script>
+// Corte de doble submit (mismo patrón que el login).
+(function() {
+    var f = document.querySelector('.login-form');
+    if (!f) return;
+    f.addEventListener('submit', function() {
+        var b = f.querySelector('.btn-submit');
+        if (!b || b.disabled) return;
+        b.disabled = true;
+        b.classList.add('btn-ok');
+        b.textContent = '✓ Verificando…';
+    });
+})();
+</script>
+{% endblock %}

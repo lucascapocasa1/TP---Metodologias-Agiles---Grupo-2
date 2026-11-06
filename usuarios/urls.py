@@ -12,6 +12,12 @@ urlpatterns = [
     path("post-login/", views.post_login, name="post_login"),
     path("sin-rol/", views.sin_rol, name="sin_rol"),
     path("registro/", views.registro_usuario, name="registro"),
+    # Segundo candado del panel de Django (/admin/).
+    path(
+        "confirmar-acceso-admin/",
+        views.confirmar_acceso_admin,
+        name="confirmar_acceso_admin",
+    ),
     
     # Recuperación de contraseña con Resend
     path(
