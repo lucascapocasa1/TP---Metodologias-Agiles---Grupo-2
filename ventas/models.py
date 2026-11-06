@@ -7,6 +7,14 @@ from django.db import models
 class Categoria(models.Model):
      nombre = models.CharField(max_length=100)
      descripcion = models.TextField(blank=True, null=True)
+     negocio = models.ForeignKey(
+         "negocios.Negocio",
+         on_delete=models.CASCADE,
+         related_name="categorias",
+         verbose_name="Negocio",
+         null=True,
+         blank=True,
+     )
      def __str__(self):
          return self.nombre
 class Producto(models.Model):
@@ -34,6 +42,14 @@ class Producto(models.Model):
                    "actual es menor o igual a este valor.",
      )
      categoria = models.ForeignKey(Categoria, on_delete=models.CASCADE, related_name='productos')
+     negocio = models.ForeignKey(
+         "negocios.Negocio",
+         on_delete=models.CASCADE,
+         related_name="productos",
+         verbose_name="Negocio",
+         null=True,
+         blank=True,
+     )
      activo = models.BooleanField(default=True)
      def __str__(self):
          return f"{self.nombre} - ${self.precio}"
@@ -120,6 +136,14 @@ class Venta(models.Model):
          verbose_name="Puntos de fidelidad ganados",
          help_text="Puntos que sumó esta venta al cliente: 1 cada $100.",
      )
+     negocio = models.ForeignKey(
+         "negocios.Negocio",
+         on_delete=models.CASCADE,
+         related_name="ventas",
+         verbose_name="Negocio",
+         null=True,
+         blank=True,
+     )
 
      def __str__(self):
          return f"Venta N° {self.id} - {self.fecha.strftime('%d/%m/%Y')}"
@@ -158,6 +182,14 @@ class Turno(models.Model):
         blank=True,
         related_name="turnos",
         verbose_name="Usuario a cargo",
+    )
+    negocio = models.ForeignKey(
+        "negocios.Negocio",
+        on_delete=models.CASCADE,
+        related_name="turnos",
+        verbose_name="Negocio",
+        null=True,
+        blank=True,
     )
     fecha_apertura = models.DateTimeField(auto_now_add=True)
     fecha_cierre = models.DateTimeField(
@@ -289,6 +321,14 @@ class ConexionMercadoPago(models.Model):
         null=True,
         blank=True,
         related_name="+",
+    )
+    negocio = models.ForeignKey(
+        "negocios.Negocio",
+        on_delete=models.CASCADE,
+        related_name="conexiones_mercado_pago",
+        verbose_name="Negocio",
+        null=True,
+        blank=True,
     )
     conectada = models.DateTimeField(auto_now_add=True)
     actualizada = models.DateTimeField(auto_now=True)

@@ -72,6 +72,7 @@ INSTALLED_APPS = [
     'pedidos',
     'administracion',
     'auditoria',
+    'negocios',
 ]
 
 MIDDLEWARE = [

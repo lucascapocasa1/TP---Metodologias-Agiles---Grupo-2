@@ -102,6 +102,14 @@ class PagoCuentaCorriente(models.Model):
         related_name="pagos",
         verbose_name="Cliente",
     )
+    negocio = models.ForeignKey(
+        "negocios.Negocio",
+        on_delete=models.CASCADE,
+        related_name="pagos_cuenta_corriente",
+        verbose_name="Negocio",
+        null=True,
+        blank=True,
+    )
     monto = models.DecimalField(
         max_digits=10, decimal_places=2, verbose_name="Monto pagado"
     )

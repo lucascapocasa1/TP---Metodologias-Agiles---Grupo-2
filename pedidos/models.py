@@ -70,6 +70,14 @@ class Pedido(models.Model):
                   "asociado (puede no existir todavía y darse de alta al "
                   "momento de retirar).",
     )
+    negocio = models.ForeignKey(
+        "negocios.Negocio",
+        on_delete=models.CASCADE,
+        related_name="pedidos",
+        verbose_name="Negocio",
+        null=True,
+        blank=True,
+    )
     venta = models.ForeignKey(
         "ventas.Venta",
         on_delete=models.SET_NULL,

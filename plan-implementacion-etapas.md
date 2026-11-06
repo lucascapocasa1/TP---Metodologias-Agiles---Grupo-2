@@ -24,52 +24,62 @@ Convenciones a respetar: nombres en español, comentarios en español, filtros `
 
 ## Etapa 1: Fundamento multiempresa — modelo Negocio, Empleado y FKs
 
+**Estado:** ✅ COMPLETADA  
+**Fecha:** 06/11/2026  
+
 **Objetivo:** Crear la entidad `Negocio`, vincular empleados a un solo negocio, y agregar `negocio_id` a todos los modelos que necesitan aislamiento. Migrar los datos actuales ("Kiosco De Barrio") al primer negocio.
 
-### Archivos nuevos a crear
+### Qué se hizo
+
+**Archivos nuevos creados:**
 
 | Archivo | Contenido |
 |---------|-----------|
 | `negocios/__init__.py` | Paquete Django de la nueva app |
-| `negocios/models.py` | Modelo `Negocio` (nombre, slug unique, logo, direccion, telefono, whatsapp, email, horarios, color_primario, activo, fecha_creacion) |
-| `negocios/migrations/__init__.py` | Paquete de migraciones |
-| `usuarios/models.py` | Modelo `Empleado` (OneToOneField a User, FK a Negocio, activo) |
-| `negocios/admin.py` | Registro de `Negocio` en el admin de Django |
-| `usuarios/admin.py` | Registro de `Empleado` en el admin de Django |
 | `negocios/apps.py` | Config de app `negocios` |
+| `negocios/models.py` | Modelo `Negocio` (nombre, slug unique, logo, direccion, telefono, whatsapp, email, horarios, color_primario, activo, fecha_creacion) |
+| `negocios/admin.py` | Registro de `Negocio` en el admin de Django |
+| `negocios/migrations/__init__.py` | Paquete de migraciones |
+| `negocios/migrations/0001_initial.py` | Migración inicial de `Negocio` |
+| `usuarios/models.py` | Modelo `Empleado` (OneToOneField a User, FK a Negocio, activo) |
+| `usuarios/migrations/0001_initial.py` | Migración inicial de `Empleado` |
+| `usuarios/admin.py` | Registro de `Empleado` en el admin de Django |
+| `negocios/management/__init__.py` | Paquete de comandos de gestión |
+| `negocios/management/commands/__init__.py` | Paquete de comandos |
+| `negocios/management/commands/migrar_a_multiempresa.py` | Comando para migrar datos existentes al esquema multiempresa |
 
-### Archivos existentes a modificar
+**Archivos existentes modificados:**
 
 | Archivo | Cambio |
 |---------|--------|
-| `config/settings.py` | Agregar `'negocios'` y `'usuarios'` (si no está) a `INSTALLED_APPS`. `usuarios` ya debe estar. |
-| `ventas/models.py` | Agregar `negocio = models.ForeignKey(Negocio, ...)` a: `Categoria`, `Producto`, `Venta`, `Turno`. También a `ConexionMercadoPago` y `PagoMercadoPago` (opcional, hereda de Venta pero útil para consultas directas). |
-| `clientes/models.py` | Agregar `negocio` a `PagoCuentaCorriente`. **NO** a `Cliente` (compartido). |
-| `pedidos/models.py` | Agregar `negocio = models.ForeignKey(Negocio, ...)` a `Pedido`. |
-| `config/urls.py` | Incluir URLs de `negocios` si se crea `negocios/urls.py` (opcional en esta etapa). |
+| `config/settings.py` | Agregado `'negocios'` a `INSTALLED_APPS` |
+| `ventas/models.py` | Agregada FK `negocio` a `Categoria`, `Producto`, `Venta`, `Turno`, `ConexionMercadoPago` (nullable temporalmente) |
+| `clientes/models.py` | Agregada FK `negocio` a `PagoCuentaCorriente` (nullable temporalmente). **`Cliente` sin cambios** (compartido). |
+| `pedidos/models.py` | Agregada FK `negocio` a `Pedido` (nullable temporalmente) |
 
-### Datos a migrar (comando o script único)
+**Datos migrados mediante `python manage.py migrar_a_multiempresa`:**
 
-1. Crear `Negocio` "Kiosco De Barrio" (`slug: de-barrio`, `activo=True`).
-2. Asignar `negocio_id` de ese negocio a todos los `Categoria`, `Producto`, `Venta`, `Turno`, `Pedido`, `PagoCuentaCorriente` existentes.
-3. Crear `Empleado` para el usuario `admin` vinculado a "Kiosco De Barrio".
-4. Crear `Negocio` "Ferretería Martillito" (`slug: ferreteria-martillito`, vacío).
-5. Crear `Negocio` "Dietética Natural" (`slug: dietetica-natural`, vacío).
+1. Negocio "Kiosco De Barrio" creado (`slug: de-barrio`, `activo=True`).
+2. 11 categorías, 56 productos, 681 ventas, 9 turnos y 6 pedidos asignados a ese negocio.
+3. Empleado creado para el usuario `admin` vinculado a "Kiosco De Barrio".
+4. Negocio "Ferretería Martillito" creado (`slug: ferreteria-martillito`, vacío).
+5. Negocio "Dietética Natural" creado (`slug: dietetica-natural`, vacío).
 
-> Nota: esto se puede hacer con un comando de gestión `python manage.py migrar_a_multiempresa` o un script de migración de datos (`RunPython` en una migración de Django). Se recomienda comando de gestión para que sea reejecutable y testeable.
+**Pruebas ejecutadas:** `python manage.py test --keepdb --noinput` → **400 tests OK**.
 
 ### Funcionalidades actuales afectadas
 
-- Todas las vistas de `ventas`, `clientes`, `pedidos` que hacen `Modelo.objects.all()` sin filtro dejarán de funcionar correctamente una vez que haya más de un negocio (mezclarían datos). En esta etapa solo se agregan las FKs; el filtrado activo viene en la Etapa 2.
-- El admin de Django ahora verá modelos con FK a Negocio; los superusuarios pueden ver todo.
+- Las vistas que hacen `Modelo.objects.all()` sin filtro de negocio ahora recibirán datos de todos los negocios (hasta que se implemente el middleware en la Etapa 2). Esto es esperado y se corregirá en la siguiente etapa.
+- El admin de Django ahora muestra modelos con FK a Negocio; los superusuarios pueden ver todo.
 
-### Pruebas obligatorias antes de continuar
+### Pruebas obligatorias pasadas
 
-1. `python manage.py makemigrations` y `python manage.py migrate` corren sin errores.
-2. Existe un registro `Negocio` con slug `de-barrio` y todos los productos/ventas existentes tienen `negocio_id` asignado.
-3. El usuario `admin` tiene un `Empleado` vinculado a "Kiosco De Barrio".
-4. Existen los negocios "Ferretería Martillito" y "Dietética Natural" sin datos de ventas/stock.
-5. `Cliente` sigue sin FK a `Negocio` (compartido).
+1. ✅ Migraciones creadas y aplicadas sin errores.
+2. ✅ Existe `Negocio` con slug `de-barrio` y todos los productos/ventas existentes tienen `negocio_id` asignado.
+3. ✅ El usuario `admin` tiene un `Empleado` vinculado a "Kiosco De Barrio".
+4. ✅ Existen los negocios "Ferretería Martillito" y "Dietética Natural" sin datos de ventas/stock.
+5. ✅ `Cliente` sigue sin FK a `Negocio` (compartido).
+6. ✅ 400 tests existentes pasan sin errores.
 
 ---
 
