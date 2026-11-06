@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block titulo %}Crear empleado — Superadmin{% endblock %}
+{% block contenido %}
+<div class="superadmin-panel">
+    <div class="superadmin-header">
+        <div class="superadmin-header-left">
+            <h1><i class="bi bi-person-plus" aria-hidden="true"></i> Crear empleado</h1>
+            <p class="superadmin-subtitle">Registra un nuevo empleado y asígnalo a un negocio</p>
+        </div>
+        <div class="superadmin-header-right">
+            <a href="{% url 'administracion:lista_negocios' %}" class="btn-kiosco-outline btn-ancho">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a negocios
+            </a>
+        </div>
+    </div>
+
+    <div class="superadmin-form-wrap">
+        <form method="post" class="superadmin-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="kiosco-alert kiosco-alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="form-grid">
+                <div class="form-col form-col-2">
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_username">Usuario <span class="obligatorio" aria-hidden="true">*</span></label>
+                        {{ form.username }}
+                        {% if form.username.errors %}
+                        <div class="error-texto">{{ form.username.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_password">Contraseña <span class="obligatorio" aria-hidden="true">*</span></label>
+                        {{ form.password }}
+                        {% if form.password.errors %}
+                        <div class="error-texto">{{ form.password.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_first_name">Nombre</label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                        <div class="error-texto">{{ form.first_name.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_last_name">Apellido</label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                        <div class="error-texto">{{ form.last_name.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-col form-col-2">
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_negocio">Negocio <span class="obligatorio" aria-hidden="true">*</span></label>
+                        {{ form.negocio }}
+                        {% if form.negocio.errors %}
+                        <div class="error-texto">{{ form.negocio.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_rol">Rol <span class="obligatorio" aria-hidden="true">*</span></label>
+                        {{ form.rol }}
+                        <div class="texto-suave">Administrador: acceso total al negocio. Cajero: solo pantalla de cobro.</div>
+                        {% if form.rol.errors %}
+                        <div class="error-texto">{{ form.rol.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-kiosco btn-ancho">
+                    <i class="bi bi-person-plus" aria-hidden="true"></i> Crear empleado
+                </button>
+                <a href="{% url 'administracion:lista_negocios' %}" class="btn-link-suave">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

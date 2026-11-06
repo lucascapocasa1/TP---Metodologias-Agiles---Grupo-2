@@ -79,3 +79,22 @@ class RolRequeridoMixin:
         raise PermissionDenied(
             "No tenés permisos para acceder a esta sección del sistema."
         )
+
+
+def superadmin_requerido(vista):
+    """
+    Decorador para vistas de superadmin.
+    Solo usuarios con is_superuser=True pueden entrar.
+    Un empleado con rol "Administrador" de un negocio NO puede acceder.
+    """
+
+    @wraps(vista)
+    @login_required
+    def _envoltorio(request, *args, **kwargs):
+        if request.user.is_superuser:
+            return vista(request, *args, **kwargs)
+        raise PermissionDenied(
+            "Solo el superadmin puede acceder a esta sección de la plataforma."
+        )
+
+    return _envoltorio

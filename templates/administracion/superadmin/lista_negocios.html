@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block titulo %}Negocios — Superadmin{% endblock %}
+{% block contenido %}
+<div class="superadmin-panel">
+    <div class="superadmin-header">
+        <div class="superadmin-header-left">
+            <h1><i class="bi bi-building" aria-hidden="true"></i> Negocios de la plataforma</h1>
+            <p class="superadmin-subtitle">Gestión de comercios que usan Norvex</p>
+        </div>
+        <div class="superadmin-header-right">
+            <a href="{% url 'administracion:crear_negocio' %}" class="btn-kiosco btn-ancho">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear negocio
+            </a>
+        </div>
+    </div>
+
+    {% if negocios %}
+    <div class="superadmin-table-wrap">
+        <table class="superadmin-table">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Slug (URL)</th>
+                    <th>WhatsApp</th>
+                    <th>Email</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for negocio in negocios %}
+                <tr>
+                    <td>
+                        <strong>{{ negocio.nombre }}</strong>
+                    </td>
+                    <td>
+                        <code>{{ negocio.slug }}</code>
+                    </td>
+                    <td>
+                        {% if negocio.whatsapp %}{{ negocio.whatsapp }}{% else %}<span class="texto-suave">—</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if negocio.email %}{{ negocio.email }}{% else %}<span class="texto-suave">—</span>{% endif %}
+                    </td>
+                    <td>
+                        {% if negocio.activo %}
+                        <span class="badge-activo">
+                            <i class="bi bi-check-circle-fill" aria-hidden="true"></i> Activo
+                        </span>
+                        {% else %}
+                        <span class="badge-inactivo">
+                            <i class="bi bi-x-circle-fill" aria-hidden="true"></i> Inactivo
+                        </span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{% url 'administracion:editar_negocio' negocio_id=negocio.pk %}" class="btn-link-suave">
+                            <i class="bi bi-pencil" aria-hidden="true"></i> Editar
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="kiosco-alert kiosco-alert-info">
+        <i class="bi bi-info-circle-fill"></i> No hay negocios registrados aún.
+    </div>
+    {% endif %}
+
+    <div class="superadmin-acciones mt-4">
+        <a href="{% url 'administracion:crear_negocio' %}" class="btn-kiosco btn-ancho">
+            <i class="bi bi-plus-lg" aria-hidden="true"></i> Crear negocio
+        </a>
+        <a href="{% url 'administracion:crear_empleado' %}" class="btn-kiosco-outline btn-ancho">
+            <i class="bi bi-person-plus" aria-hidden="true"></i> Crear empleado
+        </a>
+    </div>
+</div>
+{% endblock %}

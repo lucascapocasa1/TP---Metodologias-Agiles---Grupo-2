@@ -21,4 +21,6 @@ urlpatterns = [
     path('clientes/', include('clientes.urls')),
     path('ventas/', include('ventas.urls')),
     path('administracion/', include('administracion.urls')),
+    # Panel de superadmin (solo is_superuser=True).
+    path('superadmin/', include('administracion.urls_superadmin')),
 ]

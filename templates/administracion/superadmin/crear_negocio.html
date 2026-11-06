@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block titulo %}Crear negocio — Superadmin{% endblock %}
+{% block contenido %}
+<div class="superadmin-panel">
+    <div class="superadmin-header">
+        <div class="superadmin-header-left">
+            <h1><i class="bi bi-building-plus" aria-hidden="true"></i> Crear negocio</h1>
+            <p class="superadmin-subtitle">Regístrate un nuevo comercio en la plataforma</p>
+        </div>
+        <div class="superadmin-header-right">
+            <a href="{% url 'administracion:lista_negocios' %}" class="btn-kiosco-outline btn-ancho">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a negocios
+            </a>
+        </div>
+    </div>
+
+    <div class="superadmin-form-wrap">
+        <form method="post" class="superadmin-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="kiosco-alert kiosco-alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="form-grid">
+                <div class="form-col form-col-2">
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_nombre">Nombre del negocio <span class="obligatorio" aria-hidden="true">*</span></label>
+                        {{ form.nombre }}
+                        {% if form.nombre.errors %}
+                        <div class="error-texto">{{ form.nombre.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_slug">Slug (URL) <span class="obligatorio" aria-hidden="true">*</span></label>
+                        {{ form.slug }}
+                        <div class="texto-suave">Ejemplo: ferreteria-martillito. Se usará en /t/&lt;slug&gt;/</div>
+                        {% if form.slug.errors %}
+                        <div class="error-texto">{{ form.slug.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_whatsapp">WhatsApp</label>
+                        {{ form.whatsapp }}
+                        <div class="texto-suave">Solo dígitos, formato internacional (ej. 5491155554444)</div>
+                        {% if form.whatsapp.errors %}
+                        <div class="error-texto">{{ form.whatsapp.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_email">Email de contacto</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                        <div class="error-texto">{{ form.email.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="form-col form-col-2">
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_direccion">Dirección</label>
+                        {{ form.direccion }}
+                        {% if form.direccion.errors %}
+                        <div class="error-texto">{{ form.direccion.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_telefono">Teléfono</label>
+                        {{ form.telefono }}
+                        {% if form.telefono.errors %}
+                        <div class="error-texto">{{ form.telefono.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_horarios">Horarios de atención</label>
+                        {{ form.horarios }}
+                        <div class="texto-suave">Ejemplo: Lun a Vie 9:00-18:00, Sáb 9:00-13:00</div>
+                        {% if form.horarios.errors %}
+                        <div class="error-texto">{{ form.horarios.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_color_primario">Color primario</label>
+                        {{ form.color_primario }}
+                        {% if form.color_primario.errors %}
+                        <div class="error-texto">{{ form.color_primario.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_logo">URL del logo</label>
+                        {{ form.logo }}
+                        <div class="texto-suave">URL de una imagen (opcional)</div>
+                        {% if form.logo.errors %}
+                        <div class="error-texto">{{ form.logo.errors }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="id_activo">Activo</label>
+                        {{ form.activo }}
+                        <span class="texto-suave">Si está inactivo, la tienda online no estará disponible</span>
+                        {% if form.activo.errors %}
+                        <div class="error-texto">{{ form.activo.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn-kiosco btn-ancho">
+                    <i class="bi bi-save" aria-hidden="true"></i> Crear negocio
+                </button>
+                <a href="{% url 'administracion:lista_negocios' %}" class="btn-link-suave">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

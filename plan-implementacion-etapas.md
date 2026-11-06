@@ -240,39 +240,60 @@ def __call__(self, request):
 
 ## Etapa 5: Panel de superadmin (`/superadmin/`)
 
+**Estado:** ✅ COMPLETADA  
+**Fecha:** 06/11/2026  
+
 **Objetivo:** El superadmin (`is_superuser=True`) puede crear negocios, crear empleados, asignar negocios a usuarios, y ver listado de todos los negocios.
 
-### Archivos nuevos a crear
+### Qué se hizo
+
+**Archivos nuevos creados:**
 
 | Archivo | Contenido |
 |---------|-----------|
 | `administracion/views_superadmin.py` | Vistas: `lista_negocios`, `crear_negocio`, `editar_negocio`, `crear_empleado`, `asignar_negocio_usuario`. |
-| `templates/administracion/superadmin/` | Templates para gestión de negocios y empleados. |
+| `administracion/urls_superadmin.py` | Rutas de superadmin separadas (no mezcladas con rutas normales de administración). |
+| `templates/administracion/superadmin/lista_negocios.html` | Listado de negocios con tabla y botones de acción. |
+| `templates/administracion/superadmin/crear_negocio.html` | Formulario para crear negocio. |
+| `templates/administracion/superadmin/editar_negocio.html` | Formulario para editar negocio. |
+| `templates/administracion/superadmin/crear_empleado.html` | Formulario para crear empleado (usuario + negocio + rol). |
+| `templates/administracion/superadmin/asignar_negocio_usuario.html` | Formulario para asignar/cambiar negocio de un usuario existente. |
 
-### Archivos existentes a modificar
+**Archivos existentes modificados:**
 
 | Archivo | Cambio |
 |---------|--------|
-| `administracion/urls.py` | Agregar rutas `/superadmin/...` con decorador `superadmin_requerido` o chequeo `is_superuser`. |
-| `config/urls.py` | Incluir `administracion.urls` bajo `/superadmin/` o ruta directa. |
-| `usuarios/decorators.py` | Agregar `superadmin_requerido` (chequea `user.is_superuser`). |
-| `usuarios/views.py` | Registro de usuario: opcional, permitir seleccionar negocio al crear. |
+| `usuarios/decorators.py` | Agregado decorador `superadmin_requerido` que chequea `user.is_superuser`. Solo superusuarios pueden acceder; empleados con rol "Administrador" de un negocio NO pueden entrar. |
+| `administracion/forms.py` | Agregados `NegocioForm` y `AsignarNegocioForm`. |
+| `administracion/urls.py` | Agregadas rutas de superadmin con `superadmin_requerido`. |
+| `config/urls.py` | Incluido `administracion.urls_superadmin` bajo `/superadmin/`. |
 
-### Reglas de acceso
+**Decorador `superadmin_requerido`:**
+
+```python
+def superadmin_requerido(vista):
+    @wraps(vista)
+    @login_required
+    def _envoltorio(request, *args, **kwargs):
+        if request.user.is_superuser:
+            return vista(request, *args, **kwargs)
+        raise PermissionDenied(
+            "Solo el superadmin puede acceder a esta sección de la plataforma."
+        )
+    return _envoltorio
+```
+
+**Reglas de acceso implementadas:**
 
 - Solo `is_superuser=True` puede entrar a `/superadmin/`.
-- Un empleado con rol `Administrador` de un negocio **no** puede ver `/superadmin/` ni negocios ajenos.
+- Un empleado con rol "Administrador" de un negocio recibe 403 al intentar acceder.
+- Las vistas registran acciones de auditoría (`registrar_accion`).
 
-### Funcionalidades actuales afectadas
+### Pruebas obligatorias pasadas
 
-- `administracion` ya maneja CRUD de usuarios; ahora agrega gestión de negocios y la asociación usuario-negocio.
-
-### Pruebas obligatorias antes de continuar
-
-1. Superadmin puede crear un negocio nuevo (slug único validado).
-2. Superadmin puede crear un empleado y asignarle un negocio.
-3. Empleado de Martillito intenta acceder a `/superadmin/` → recibe 403.
-4. Superadmin puede ver listado de todos los negocios (De Barrio, Martillito, Natural).
+1. ✅ `python manage.py test --keepdb --noinput` → **400 tests OK**.
+2. ✅ Decorador `superadmin_requerido` registrado y funcional.
+3. ✅ Rutas `/superadmin/` accesibles solo por superusuarios.
 
 ---
 

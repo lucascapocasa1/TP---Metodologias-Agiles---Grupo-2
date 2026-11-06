@@ -1,6 +1,9 @@
 from django import forms
 from django.contrib.auth.models import Group, User
 
+from negocios.models import Negocio
+from usuarios.models import Empleado
+
 
 class UsuarioForm(forms.ModelForm):
     """Formulario para crear y editar usuarios."""
@@ -93,3 +96,99 @@ class AsignarRolForm(forms.Form):
         super().__init__(*args, **kwargs)
         if usuario:
             self.fields["grupos"].initial = usuario.groups.all()
+
+
+class NegocioForm(forms.ModelForm):
+    """Formulario para crear y editar un negocio (superadmin)."""
+
+    class Meta:
+        model = Negocio
+        fields = [
+            "nombre",
+            "slug",
+            "logo",
+            "direccion",
+            "telefono",
+            "whatsapp",
+            "email",
+            "horarios",
+            "color_primario",
+            "activo",
+        ]
+        widgets = {
+            "nombre": forms.TextInput(
+                attrs={"class": "kiosco-input", "placeholder": "Nombre del negocio"}
+            ),
+            "slug": forms.TextInput(
+                attrs={"class": "kiosco-input", "placeholder": "ej: ferreteria-martillito"}
+            ),
+            "logo": forms.URLInput(
+                attrs={"class": "kiosco-input", "placeholder": "https://ejemplo.com/logo.png"}
+            ),
+            "direccion": forms.TextInput(
+                attrs={"class": "kiosco-input", "placeholder": "Dirección física"}
+            ),
+            "telefono": forms.TextInput(
+                attrs={"class": "kiosco-input", "placeholder": "Teléfono"}
+            ),
+            "whatsapp": forms.TextInput(
+                attrs={"class": "kiosco-input", "placeholder": "5491155554444"}
+            ),
+            "email": forms.EmailInput(
+                attrs={"class": "kiosco-input", "placeholder": "email@negocio.com"}
+            ),
+            "horarios": forms.Textarea(
+                attrs={"class": "kiosco-input", "rows": 3, "placeholder": "Lun a Vie 9:00-18:00"}
+            ),
+            "color_primario": forms.TextInput(
+                attrs={"class": "kiosco-input", "type": "color"}
+            ),
+            "activo": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+
+
+class AsignarNegocioForm(forms.Form):
+    """Formulario para crear un empleado: usuario + negocio + rol."""
+
+    username = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(
+            attrs={"class": "kiosco-input", "placeholder": "Nombre de usuario"}
+        ),
+        label="Usuario",
+    )
+    password = forms.CharField(
+        widget=forms.PasswordInput(
+            attrs={"class": "kiosco-input", "placeholder": "Contraseña"}
+        ),
+        min_length=6,
+        label="Contraseña",
+    )
+    first_name = forms.CharField(
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(
+            attrs={"class": "kiosco-input", "placeholder": "Nombre"}
+        ),
+        label="Nombre",
+    )
+    last_name = forms.CharField(
+        max_length=150,
+        required=False,
+        widget=forms.TextInput(
+            attrs={"class": "kiosco-input", "placeholder": "Apellido"}
+        ),
+        label="Apellido",
+    )
+    negocio = forms.ModelChoiceField(
+        queryset=Negocio.objects.filter(activo=True).order_by("nombre"),
+        widget=forms.Select(attrs={"class": "kiosco-input"}),
+        label="Negocio",
+    )
+    rol = forms.ModelChoiceField(
+        queryset=Group.objects.filter(name__in=["Administrador", "Cajero"]).order_by(
+            "name"
+        ),
+        widget=forms.Select(attrs={"class": "kiosco-input"}),
+        label="Rol",
+    )
