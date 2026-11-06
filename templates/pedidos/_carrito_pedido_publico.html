@@ -1,0 +1,97 @@
+{% load formatos %}
+<div class="pedido-caja">
+    <h2 class="pedido-caja-titulo">
+        <i class="bi bi-bag-heart" aria-hidden="true"></i> Tu pedido
+    </h2>
+
+    {% if error %}
+    <div class="kiosco-alert kiosco-alert-danger mb-2">
+        <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+    </div>
+    {% endif %}
+
+    {% if items %}
+    <ul class="pedido-items">
+        {% for item in items %}
+        <li class="pedido-item">
+            <div class="pedido-item-info">
+                <span class="pedido-item-nombre">{{ item.producto.nombre }}</span>
+                <span class="pedido-item-cant">
+                    {{ item.cantidad }} × ${{ item.producto.precio|montos }}
+                </span>
+            </div>
+            <div class="pedido-item-acciones">
+                <span class="pedido-item-subtotal">${{ item.subtotal|montos }}</span>
+                <button type="button" class="btn-quitar"
+                        hx-post="{% url 'pedidos:pedido_quitar_publico' slug=negocio.slug %}"
+                        hx-vals='{"producto_id": {{ item.producto.pk }}}'
+                        hx-target="#pedido-panel"
+                        hx-swap="innerHTML"
+                        aria-label="Quitar {{ item.producto.nombre }}">
+                    <i class="bi bi-trash" aria-hidden="true"></i>
+                </button>
+            </div>
+        </li>
+        {% endfor %}
+    </ul>
+
+    <div class="pedido-total">
+        <span>Total</span>
+        <strong>${{ total|montos }}</strong>
+    </div>
+
+    <form method="post" action="{% url 'pedidos:pedido_confirmar_publico' slug=negocio.slug %}" class="pedido-form">
+        {% csrf_token %}
+        <p class="pedido-form-titulo">
+            <i class="bi bi-person-vcard-fill" aria-hidden="true"></i> Tus datos
+        </p>
+        <div class="form-row">
+            <label class="kiosco-label" for="nombre_cliente">
+                Tu nombre <span class="pedido-form-oblig" aria-hidden="true">*</span>
+            </label>
+            <input class="kiosco-input" type="text" id="nombre_cliente" name="nombre_cliente"
+                   maxlength="120" required placeholder="Ej: Lucía Gómez">
+        </div>
+        <div class="form-row">
+            <label class="kiosco-label" for="telefono">
+                Teléfono <span class="pedido-form-opc">(opcional)</span>
+            </label>
+            <input class="kiosco-input" type="tel" id="telefono" name="telefono"
+                   maxlength="30" placeholder="Para avisarte cuando esté">
+        </div>
+        <div class="form-row">
+            <label class="kiosco-label" for="comentario">
+                Comentario <span class="pedido-form-opc">(opcional)</span>
+            </label>
+            <textarea class="kiosco-input" id="comentario" name="comentario" rows="2"
+                      placeholder="Ej: paso a las 18"></textarea>
+        </div>
+        <div class="form-row">
+            <label class="kiosco-label" for="tipo_entrega">
+                ¿Cómo lo recibís?
+            </label>
+            <select class="kiosco-input" id="tipo_entrega" name="tipo_entrega">
+                <option value="retiro">Retiro en el local — sin cargo</option>
+                <option value="domicilio">Envío a domicilio — $1.000</option>
+            </select>
+        </div>
+        <button type="submit" class="btn-kiosco btn-ancho pedido-form-boton">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i> Confirmar pedido
+        </button>
+    </form>
+
+    <form method="post" action="{% url 'pedidos:pedido_confirmar_publico' slug=negocio.slug %}" class="pedido-vaciar">
+        {% csrf_token %}
+        <input type="hidden" name="accion" value="vaciar">
+        <button type="submit" class="btn-link-suave">
+            <i class="bi bi-x-circle" aria-hidden="true"></i> Vaciar pedido
+        </button>
+    </form>
+    {% else %}
+    <div class="pedido-vacio">
+        <i class="bi bi-bag" aria-hidden="true"></i>
+        <p>Todavía no agregaste productos.</p>
+        <p class="pedido-vacio-ayuda">Elegí lo que quieras y tocá «Agregar».</p>
+    </div>
+    {% endif %}
+</div>

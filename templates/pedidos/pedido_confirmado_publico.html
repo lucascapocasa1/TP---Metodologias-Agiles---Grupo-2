@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load formatos %}
+{% block titulo %}Pedido confirmado — {{ negocio.nombre }}{% endblock %}
+{% block contenido %}
+<div class="pedido-confirmado">
+    <div class="pedido-confirmado-caja">
+        <div class="pedido-confirmado-icono">
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+        </div>
+        <h1>¡Listo, {{ pedido.nombre_cliente }}!</h1>
+        <p class="pedido-confirmado-sub">
+            Registramos tu <strong>Pedido #{{ pedido.pk }}</strong> de
+            <strong>{{ negocio.nombre }}</strong>.
+        </p>
+
+        <div class="pedido-resumen">
+            <h2>Detalle del pedido</h2>
+            <ul class="pedido-items">
+                {% for detalle in detalles %}
+                <li class="pedido-item">
+                    <div class="pedido-item-info">
+                        <span class="pedido-item-nombre">{{ detalle.nombre_producto }}</span>
+                        <span class="pedido-item-cant">
+                            {{ detalle.cantidad }} × ${{ detalle.precio_unitario|montos }}
+                        </span>
+                    </div>
+                    <span class="pedido-item-subtotal">${{ detalle.subtotal|montos }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+            <div class="pedido-total">
+                <span>Total</span>
+                <strong>${{ pedido.total|montos }}</strong>
+            </div>
+            {% if pedido.tipo_entrega == "domicilio" and pedido.costo_envio > 0 %}
+            <div class="pedido-total pedido-total-envio">
+                <span>Envío a domicilio</span>
+                <strong>${{ pedido.costo_envio|montos }}</strong>
+            </div>
+            {% endif %}
+            {% if pedido.comentario %}
+            <p class="pedido-comentario">
+                <i class="bi bi-chat-left-text" aria-hidden="true"></i>
+                {{ pedido.comentario }}
+            </p>
+            {% endif %}
+        </div>
+
+        {% if whatsapp_configurado and whatsapp_numero %}
+        <a href="{{ url_whatsapp }}" target="_blank" rel="noopener"
+           class="btn-kiosco btn-whatsapp btn-ancho">
+            <i class="bi bi-whatsapp" aria-hidden="true"></i> Enviar pedido por WhatsApp
+        </a>
+        <p class="pedido-confirmado-nota">
+            Se va a abrir WhatsApp con el pedido ya escrito. Solo tenés que
+            apretar enviar. El local te confirma cuando lo tenés listo.
+        </p>
+        {% else %}
+        <div class="kiosco-alert kiosco-alert-warning">
+            <i class="bi bi-exclamation-circle-fill"></i>
+            El kiosco todavía no cargó su número de WhatsApp. Mostrale este
+            pedido <strong>#{{ pedido.pk }}</strong> al pasar por el local.
+        </div>
+        {% endif %}
+
+        <a href="{% url 'pedidos:catalogo_negocio' slug=negocio.slug %}" class="btn-kiosco-outline btn-ancho mt-2">
+            <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al catálogo
+        </a>
+    </div>
+</div>
+{% endblock %}

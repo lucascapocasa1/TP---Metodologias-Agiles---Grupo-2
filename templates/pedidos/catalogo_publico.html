@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% load formatos %}
+{% block titulo %}Catálogo — {{ negocio.nombre }}{% endblock %}
+{% block contenido %}
+<div class="catalogo-publico">
+    <header class="catalogo-hero">
+        <div class="catalogo-hero-texto">
+            <h1><i class="bi bi-shop" aria-hidden="true"></i> {{ negocio.nombre }}</h1>
+            <p class="catalogo-subtitulo">
+                Elegí lo que querés, armá el pedido y retiralo por el local.
+                {% if negocio.direccion %}<br>{{ negocio.direccion }}{% endif %}
+                {% if negocio.whatsapp %}<br>📱 {{ negocio.whatsapp }}{% endif %}
+            </p>
+        </div>
+    </header>
+
+    {% if error %}
+    <div class="kiosco-alert kiosco-alert-danger mb-3">
+        <i class="bi bi-exclamation-triangle-fill"></i> {{ error }}
+    </div>
+    {% endif %}
+    {% if exito %}
+    <div class="kiosco-alert kiosco-alert-success mb-3">
+        <i class="bi bi-check-circle-fill"></i> {{ exito }}
+    </div>
+    {% endif %}
+
+    <div class="catalogo-layout">
+        <section class="catalogo-lista" aria-label="Productos">
+            {% if categorias %}
+            <nav class="catalogo-filtros" aria-label="Categorías">
+                <a href="{% url 'pedidos:catalogo_negocio' slug=negocio.slug %}"
+                   class="chip {% if not categoria_actual %}chip-activo{% endif %}">Todo</a>
+                {% for cat in categorias %}
+                <a href="{% url 'pedidos:catalogo_negocio' slug=negocio.slug %}?categoria={{ cat.pk }}"
+                   class="chip {% if categoria_actual == cat.pk|stringformat:'s' %}chip-activo{% endif %}">
+                    {{ cat.nombre }}
+                </a>
+                {% endfor %}
+            </nav>
+            {% endif %}
+
+            <div class="catalogo-grid">
+                {% for producto in productos %}
+                <article class="producto-publico {% if producto.stock <= 0 %}producto-agotado{% endif %}">
+                    <div class="producto-publico-cuerpo">
+                        <span class="producto-publico-cat">{{ producto.categoria.nombre }}</span>
+                        <h3>{{ producto.nombre }}</h3>
+                        {% if producto.descripcion %}
+                        <p class="producto-publico-desc">{{ producto.descripcion }}</p>
+                        {% endif %}
+                        <p class="producto-publico-precio">${{ producto.precio|montos }}</p>
+
+                        {% if producto.stock > 0 %}
+                        <span class="badge-disponible">
+                            <i class="bi bi-check-circle-fill" aria-hidden="true"></i> Disponible
+                        </span>
+                        <form hx-post="{% url 'pedidos:pedido_agregar_publico' slug=negocio.slug %}"
+                              hx-target="#pedido-panel"
+                              hx-swap="innerHTML"
+                              class="producto-publico-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="producto_id" value="{{ producto.pk }}">
+                            <label class="sr-only" for="cant-{{ producto.pk }}">Cantidad</label>
+                            <input type="number" id="cant-{{ producto.pk }}" name="cantidad"
+                                   min="1" value="1" class="input-cantidad">
+                            <button type="submit" class="btn-kiosco btn-chico">
+                                <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar
+                            </button>
+                        </form>
+                        {% else %}
+                        <span class="badge-agotado">
+                            <i class="bi bi-x-circle-fill" aria-hidden="true"></i> Agotado
+                        </span>
+                        {% endif %}
+                    </div>
+                </article>
+                {% empty %}
+                <div class="catalogo-vacio">
+                    <i class="bi bi-inboxes" aria-hidden="true"></i>
+                    <p>No hay productos disponibles en este momento.</p>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+
+        <aside class="catalogo-pedido" id="pedido-panel" aria-label="Tu pedido">
+            {% include "pedidos/_carrito_pedido_publico.html" %}
+        </aside>
+    </div>
+</div>
+{% endblock %}

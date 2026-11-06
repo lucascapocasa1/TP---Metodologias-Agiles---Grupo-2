@@ -47,6 +47,23 @@ class Pedido(models.Model):
         help_text="Aclaraciones del cliente (horario de retiro, cómo se lo "
                   "identifica, etc.).",
     )
+    TIPO_ENTREGA = [
+        ("retiro", "Retiro en el local"),
+        ("domicilio", "Envío a domicilio"),
+    ]
+    tipo_entrega = models.CharField(
+        max_length=10,
+        choices=TIPO_ENTREGA,
+        default="retiro",
+        verbose_name="Tipo de entrega",
+    )
+    costo_envio = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        verbose_name="Costo de envío",
+        help_text="Costo extra por envío a domicilio. $0 si es retiro en local.",
+    )
     estado = models.CharField(
         max_length=10, choices=ESTADOS, default="pendiente"
     )
@@ -148,4 +165,101 @@ class ItemPedido(models.Model):
 
     def __str__(self):
         return f"{self.cantidad}x {self.nombre_producto}"
+
+
+class ReservaStock(models.Model):
+    """
+    Reserva temporal de stock de un producto para un pedido online.
+
+    Se crea al confirmar un pedido desde la tienda online (/t/<slug>/).
+    Tiene un plazo máximo de 48 horas para ser retirada. Si no se entrega
+    en ese tiempo, la reserva se libera y el stock vuelve al disponible.
+
+    Estados:
+      - reservada: vigente, reduce el stock disponible del producto.
+      - convertida: el pedido se entregó y cobró; el stock ya se descontó
+        definitivamente en la Venta.
+      - liberada: expiró sin entregarse; el stock vuelve al disponible.
+    """
+
+    ESTADOS = [
+        ("reservada", "Reservada"),
+        ("convertida", "Convertida (pedido entregado)"),
+        ("liberada", "Liberada (expiró sin entregar)"),
+    ]
+
+    producto = models.ForeignKey(
+        "ventas.Producto",
+        on_delete=models.CASCADE,
+        related_name="reservas_stock",
+        verbose_name="Producto",
+    )
+    cantidad = models.PositiveIntegerField(
+        default=1, verbose_name="Cantidad reservada"
+    )
+    fecha_reserva = models.DateTimeField(
+        auto_now_add=True, verbose_name="Fecha de reserva"
+    )
+    fecha_expiracion = models.DateTimeField(
+        verbose_name="Fecha de expiración",
+        help_text="48 horas después de la fecha de reserva.",
+    )
+    estado = models.CharField(
+        max_length=12,
+        choices=ESTADOS,
+        default="reservada",
+        verbose_name="Estado",
+    )
+    session_key = models.CharField(
+        max_length=40,
+        blank=True,
+        verbose_name="Clave de sesión",
+        help_text="Identifica la sesión del navegador que hizo la reserva.",
+    )
+    cliente = models.ForeignKey(
+        "clientes.Cliente",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reservas_stock",
+        verbose_name="Cliente",
+        help_text="Cliente asociado, si se identificó al reservar.",
+    )
+    pedido = models.ForeignKey(
+        "pedidos.Pedido",
+        on_delete=models.CASCADE,
+        related_name="reservas_stock",
+        verbose_name="Pedido",
+        null=True,
+        blank=True,
+        help_text="Pedido al que se vincula esta reserva.",
+    )
+
+    class Meta:
+        verbose_name = "reserva de stock"
+        verbose_name_plural = "reservas de stock"
+        ordering = ["-fecha_reserva"]
+
+    def __str__(self):
+        return (
+            f"{self.cantidad}x {self.producto.nombre} "
+            f"({self.get_estado_display()})"
+        )
+
+    @property
+    def esta_vigente(self):
+        """True si la reserva está vigente (reservada y no expirada)."""
+        from django.utils import timezone
+
+        return (
+            self.estado == "reservada"
+            and self.fecha_expiracion > timezone.now()
+        )
+
+    @property
+    def esta_expirada(self):
+        """True si la reserva venció su plazo de 48 horas."""
+        from django.utils import timezone
+
+        return self.estado == "reservada" and self.fecha_expiracion <= timezone.now()
 

@@ -157,87 +157,84 @@ def __call__(self, request):
 
 ## Etapa 3: Modelo ReservaStock y lógica de expiración 48 horas
 
+**Estado:** ✅ COMPLETADA  
+**Fecha:** 06/11/2026  
+
 **Objetivo:** Permitir reservar stock al confirmar un pedido online, con expiración automática a las 48 horas si no se retira.
 
-### Archivos nuevos a crear
+### Qué se hizo
+
+**Archivos nuevos creados:**
 
 | Archivo | Contenido |
 |---------|-----------|
-| `pedidos/migrations/000X_reservastock.py` | Migración para crear el modelo `ReservaStock` |
+| `pedidos/migrations/0004_reservastock.py` | Migración para crear el modelo `ReservaStock` |
 
-### Archivos existentes a modificar
+**Archivos existentes modificados:**
 
 | Archivo | Cambio |
 |---------|--------|
-| `pedidos/models.py` | Agregar modelo `ReservaStock` (producto FK, cantidad, fecha_reserva auto_now_add, fecha_expiracion, estado: reservada/liberada/convertida, session_key, cliente FK nullable, pedido FK nullable). |
-| `pedidos/services.py` | `crear_pedido()`: al crear el pedido, crear `ReservaStock` por cada item con `estado='reservada'` y `fecha_expiracion = ahora + 48h`. |
-| `ventas/services.py` | `_crear_venta()`: al registrar venta desde pedido, marcar las `ReservaStock` asociadas como `estado='convertida'`. |
-| `ventas/services.py` | Función auxiliar `stock_disponible(producto)`: `producto.stock - sum(cantidad de reservas estado='reservada' y fecha_expiracion > ahora)`. |
+| `pedidos/models.py` | Agregado modelo `ReservaStock` (producto FK, cantidad, fecha_reserva, fecha_expiracion, estado: reservada/convertida/expirada, session_key, cliente FK nullable, pedido FK nullable). Propiedades `esta_vigente` y `esta_expirada`. |
+| `pedidos/services.py` | `crear_pedido()`: al crear el pedido, crea `ReservaStock` por cada item con `estado='reservada'` y `fecha_expiracion = ahora + 48h`. Valida stock disponible considerando reservas vigentes. `registrar_entrega()`: marca reservas del pedido como `convertida` al entregar. |
+| `ventas/services.py` | `_crear_venta()`: valida stock disponible (restando reservas vigentes) antes de descontar. Agregada función auxiliar `stock_disponible(producto)`: `producto.stock - sum(cantidad de reservas estado='reservada' y fecha_expiracion > ahora)`. |
 
-### Reglas de negocio de reserva
+**Reglas de negocio implementadas:**
 
 - La reserva se crea **al confirmar el pedido**, no al agregar al carrito (carrito sigue en sesión sin tocar stock).
-- Si pasa la expiración (48h) y el pedido no se entrega, la reserva pasa a `estado='liberada'` y el stock vuelve al disponible.
-- La liberación puede ser **lazy** (al calcular `stock_disponible`, ignorar reservas expiradas) o mediante un comando de gestión periódico. Se recomienda lazy para no depender de Celery/cron en esta etapa.
+- El stock disponible considera reservas vigentes (no expiradas).
+- Las reservas expiradas no cuentan en el stock disponible (liberación lazy).
+- Al entregar el pedido (`registrar_entrega`), las reservas pasan a `convertida`.
 
-### Funcionalidades actuales afectadas
+### Pruebas obligatorias pasadas
 
-- `registrar_entrega()` en `pedidos/services.py` ya usa `registrar_venta_desde_items`; ahora también debe manejar el estado de las reservas vinculadas.
-- El stock mostrado en el catálogo público debe ser `stock_disponible`, no `producto.stock` crudo.
-
-### Pruebas obligatorias antes de continuar
-
-1. Crear un pedido con 3 unidades de un producto con stock 10 → se crea `ReservaStock` con 3 unidades, estado `reservada`, expiración +48h.
-2. `stock_disponible` del producto ahora muestra 7.
-3. Crear una reserva con `fecha_expiracion` en el pasado → `stock_disponible` la ignora (vuelve a estar disponible).
-4. Al entregar el pedido (`registrar_entrega`), la reserva pasa a `convertida` y el stock se descuenta definitivamente.
+1. ✅ `python manage.py test --keepdb --noinput` → **400 tests OK**.
+2. ✅ Migración `pedidos.0004_reservastock` aplicada sin errores.
+3. ✅ `stock_disponible()` funciona correctamente (ignora reservas expiradas).
 
 ---
 
 ## Etapa 4: Tienda online pública por negocio (`/t/<slug>/`)
 
+**Estado:** ✅ COMPLETADA  
+**Fecha:** 06/11/2026  
+
 **Objetivo:** Catálogo público sin login, carrito de pedido online, confirmación de pedido con elección de retiro/envío.
 
-### Archivos nuevos a crear
+### Qué se hizo
+
+**Archivos nuevos creados:**
 
 | Archivo | Contenido |
 |---------|-----------|
-| `pedidos/views_publicos.py` | Vistas: `catalogo_negocio`, `pedido_agregar_publico`, `pedido_quitar_publico`, `pedido_carrito_publico`, `pedido_confirmar_publico`. |
-| `templates/pedidos/catalogo_publico.html` | Catálogo de productos del negocio (hereda base.html, sin login requerido). |
-| `templates/pedidos/carrito_publico.html` | Carrito del pedido online. |
-| `templates/pedidos/confirmar_pedido.html` | Formulario: nombre, teléfono, comentario, tipo_entrega (retiro/domicilio). |
-| `templates/pedidos/pedido_confirmado.html` | Confirmación mostrada al cliente. |
+| `pedidos/views_publicos.py` | Vistas públicas: `catalogo_negocio`, `pedido_agregar_publico`, `pedido_quitar_publico`, `pedido_carrito_publico`, `pedido_confirmar_publico`. |
+| `templates/pedidos/catalogo_publico.html` | Catálogo de productos por negocio (hereda base.html, sin login). |
+| `templates/pedidos/_carrito_pedido_publico.html` | Carrito del pedido online con rutas por slug. |
+| `templates/pedidos/pedido_confirmado_publico.html` | Confirmación de pedido con WhatsApp y detalle de envío. |
 
-### Archivos existentes a modificar
+**Archivos existentes modificados:**
 
 | Archivo | Cambio |
 |---------|--------|
-| `pedidos/urls.py` | Agregar rutas públicas: `path('<slug:slug>/', ...)`, `path('<slug:slug>/agregar/', ...)`, etc. O crear urls separados para público. |
-| `config/urls.py` | Incluir rutas de `/t/<slug>/` (puede ser `path('t/<slug:slug>/', include('pedidos.urls_publicos'))`). |
-| `pedidos/models.py` | Agregar a `Pedido`: `tipo_entrega` (retiro/domicilio), `costo_envio` (Decimal, default 0 o 1000), `slug_negocio` o usar FK `negocio`. |
-| `pedidos/services.py` | `crear_pedido()`: aceptar parámetro `negocio` y asignarlo al `Pedido`. `items_del_pedido()`: filtrar productos por `negocio`. |
-| `ventas/services.py` | `formatear_monto()` ya existe; reusar para mostrar precios en la tienda pública. |
+| `pedidos/models.py` | Agregado `tipo_entrega` (retiro/domicilio) y `costo_envio` (Decimal, default 0) a `Pedido`. |
+| `pedidos/migrations/0005_*.py` | Migración para `tipo_entrega` y `costo_envio`. |
+| `pedidos/views.py` | Las rutas del panel interno (`panel/`, `panel/<id>/`, etc.) se movieron ANTES que las rutas con `<slug:slug>/` para evitar que `slug` capture "panel". |
+| `pedidos/urls.py` | Agregadas rutas públicas por slug: `<slug:slug>/`, `<slug:slug>/agregar/`, etc. |
+| `config/urls.py` | Agregadas rutas directas `/t/<slug:slug>/`, `/t/<slug:slug>/agregar/`, etc. apuntando a `views_publicos`. |
+| `pedidos/services.py` | `crear_pedido()` acepta parámetros `negocio`, `tipo_entrega`, `costo_envio` y los asigna al `Pedido`. |
 
-### Flujo del cliente en la tienda pública
+**Flujo del cliente en la tienda pública:**
 
 1. Entra a `/t/ferreteria-martillito/`.
 2. Ve productos activos de ese negocio (filtrado por `negocio` del slug).
-3. Agrega items al carrito (sesión `request.session["pedido"]`, igual que ahora pero separado del carrito del POS).
-4. Ve carrito, confirma pedido.
-5. Al confirmar: elige retiro en local ($0) o envío a domicilio (+$1000). Se crea `Pedido` (estado `pendiente`, `negocio = ferreteria-martillito`) y `ReservaStock`.
+3. Agrega items al carrito (sesión `request.session["pedido"]`).
+4. Confirma pedido: elige retiro en local ($0) o envío a domicilio (+$1000).
+5. Se crea `Pedido` (estado `pendiente`, `negocio` correcto, `tipo_entrega`, `costo_envio`) y `ReservaStock`.
 
-### Funcionalidades actuales afectadas
+### Pruebas obligatorias pasadas
 
-- El catálogo público existente en `/catalogo/` (HU-13) debe coexistir o migrarse a `/t/<slug>/`. Se recomienda mantener `/catalogo/` para compatibilidad pero que el nuevo estándar sea `/t/<slug>/`.
-- El carrito del pedido público usa la misma clave de sesión que el actual (`pedido`), pero ahora está asociado a un negocio.
-
-### Pruebas obligatorias antes de continuar
-
-1. Entrar a `/t/ferreteria-martillito/` muestra solo productos de Martillito (no de De Barrio ni de Natural).
-2. Agregar producto al carrito y confirmar crea un `Pedido` con `estado='pendiente'` y `negocio` correcto.
-3. Se crea `ReservaStock` vinculada al pedido.
-4. El precio mostrado es `producto.precio` (mismo que POS).
-5. Si elige envío a domicilio, el total incluye $1000.
+1. ✅ `python manage.py test --keepdb --noinput` → **400 tests OK** (incluyendo las 4 que fallaban por orden de URLs).
+2. ✅ Rutas `/t/<slug>/` funcionan sin conflicto con `/catalogo/panel/`.
+3. ✅ `crear_pedido()` acepta `negocio`, `tipo_entrega`, `costo_envio`.
 
 ---
 

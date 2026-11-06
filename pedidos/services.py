@@ -8,11 +8,13 @@ el cliente confirma: así no quedan pedidos basura si solo estaba mirando.
 from decimal import Decimal, InvalidOperation
 
 from django.db import transaction
+from django.utils import timezone
+from datetime import timedelta
 
 from clientes.models import Cliente
 from ventas.models import Producto
 
-from .models import ItemPedido, Pedido
+from .models import ItemPedido, Pedido, ReservaStock
 
 CLAVE_PEDIDO = "pedido"
 MAX_UNIDADES_POR_ITEM = 99  # techo sensato para un pedido de kiosco
@@ -139,11 +141,22 @@ def buscar_producto_publico(producto_id):
 
 
 @transaction.atomic
-def crear_pedido(request, nombre_cliente, telefono="", comentario=""):
+def crear_pedido(
+    request,
+    nombre_cliente,
+    telefono="",
+    comentario="",
+    negocio=None,
+    tipo_entrega="retiro",
+    costo_envio=Decimal("0.00"),
+):
     """Persiste el pedido de la sesión y lo vacía.
 
     Devuelve el `Pedido` creado. Lanza `ErrorPedido` si no hay nada que pedir
     o si falta el nombre. El total queda congelado con los precios actuales.
+
+    Si se pasa `negocio`, se asigna al Pedido para aislamiento multiempresa.
+    `tipo_entrega` y `costo_envio` se usan para el envío opcional a domicilio.
     """
     nombre_cliente = (nombre_cliente or "").strip()
     if not nombre_cliente:
@@ -153,12 +166,15 @@ def crear_pedido(request, nombre_cliente, telefono="", comentario=""):
     if not items:
         raise ErrorPedido("Todavía no agregaste ningún producto al pedido.")
 
-    total = total_del_pedido(items)
+    total = total_del_pedido(items) + costo_envio
     pedido = Pedido.objects.create(
         nombre_cliente=nombre_cliente[:120],
         telefono=(telefono or "").strip()[:30],
         comentario=(comentario or "").strip(),
         total=total,
+        negocio=negocio,
+        tipo_entrega=tipo_entrega,
+        costo_envio=costo_envio,
     )
     ItemPedido.objects.bulk_create(
         [
@@ -172,6 +188,34 @@ def crear_pedido(request, nombre_cliente, telefono="", comentario=""):
             for item in items
         ]
     )
+
+    # Crear reservas de stock con expiración de 48 horas.
+    fecha_expiracion = timezone.now() + timedelta(hours=48)
+    session_key = request.session.session_key or ""
+    for item in items:
+        producto = item["producto"]
+        # Validar stock disponible considerando reservas vigentes.
+        reservas_vigentes = producto.reservas_stock.filter(
+            estado="reservada",
+            fecha_expiracion__gt=timezone.now(),
+        )
+        stock_reservado = sum(r.cantidad for r in reservas_vigentes)
+        stock_disponible = producto.stock - stock_reservado
+        if stock_disponible < item["cantidad"]:
+            raise ErrorPedido(
+                f"Stock insuficiente de «{producto.nombre}\": "
+                f"quedan {stock_disponible} unidades disponibles."
+            )
+        ReservaStock.objects.create(
+            producto=producto,
+            cantidad=item["cantidad"],
+            fecha_expiracion=fecha_expiracion,
+            estado="reservada",
+            session_key=session_key,
+            cliente=None,
+            pedido=pedido,
+        )
+
     vaciar_pedido(request)
     return pedido
 
@@ -285,5 +329,9 @@ def registrar_entrega(pedido, cliente, metodo_pago, usuario, monto_entregado=Non
         pedido.venta = venta
         pedido.estado = "entregado"
         pedido.save(update_fields=["cliente", "venta", "estado"])
+
+        # Marcar reservas del pedido como convertidas: el stock ya se descontó
+        # definitivamente en la Venta.
+        pedido.reservas_stock.filter(estado="reservada").update(estado="convertida")
 
     return venta

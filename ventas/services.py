@@ -272,10 +272,16 @@ def _crear_venta(items, metodo_pago, cliente, usuario, monto_entregado, finaliza
         producto = productos_bloqueados.get(item["producto"].pk)
         if producto is None:
             raise ErrorCobro("Un producto del carrito ya no existe.")
-        if producto.stock < item["cantidad"]:
+        reservas_vigentes = producto.reservas_stock.filter(
+            estado="reservada",
+            fecha_expiracion__gt=timezone.now(),
+        )
+        stock_reservado = sum(r.cantidad for r in reservas_vigentes)
+        stock_disponible = producto.stock - stock_reservado
+        if stock_disponible < item["cantidad"]:
             raise ErrorCobro(
                 f"Stock insuficiente de «{producto.nombre}»: "
-                f"quedan {producto.stock} unidades."
+                f"quedan {stock_disponible} unidades disponibles."
             )
 
     venta = Venta.objects.create(
@@ -469,3 +475,26 @@ def cerrar_turno(turno):
             ]
         )
     return turno
+
+
+# ========== STOCK DISPONIBLE (reservas de stock) ==========
+
+
+def stock_disponible(producto):
+    """
+    Calcula el stock disponible de un producto considerando las reservas
+    vigentes (no expiradas).
+
+    stock_disponible = producto.stock - sum(cantidad de reservas estado='reservada'
+    y fecha_expiracion > ahora).
+
+    Las reservas expiradas no cuentan: ya se liberaron lógicamente.
+    """
+    from django.utils import timezone
+
+    reservas_vigentes = producto.reservas_stock.filter(
+        estado="reservada",
+        fecha_expiracion__gt=timezone.now(),
+    )
+    stock_reservado = sum(r.cantidad for r in reservas_vigentes)
+    return producto.stock - stock_reservado
