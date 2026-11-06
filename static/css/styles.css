@@ -873,14 +873,369 @@ strong {
 }
 
 /* ============================================================
-   Utilidades
+   Landing pública: comercios asociados
    ============================================================ */
-.text-kiosco {
-  color: var(--caramelo) !important;
+.landing-panel {
+  max-width: min(1100px, 100% - 2.5rem);
+  margin-inline: auto;
+  padding-block: 2.25rem 4rem;
 }
 
-.bg-kiosco {
-  background-color: var(--sol) !important;
+.landing-hero {
+  margin-bottom: 2.5rem;
+}
+
+.landing-hero-texto h1 {
+  font-size: clamp(2rem, 4vw, 2.6rem);
+  margin-bottom: 0.75rem;
+}
+
+.landing-subtitulo {
+  color: var(--texto-suave);
+  font-size: 1.05rem;
+  max-width: 56ch;
+  margin: 0;
+}
+
+.landing-titulo-seccion {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-bottom: 1.25rem;
+  color: var(--texto);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.landing-titulo-seccion::before {
+  content: '';
+  width: 6px;
+  height: 1.2em;
+  background: var(--sol);
+  box-shadow: 0 0 12px rgba(255, 176, 32, 0.5);
+  border-radius: 2px;
+}
+
+.landing-negocios .landing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 1.25rem;
+}
+
+.landing-tarjeta {
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+  overflow: hidden;
+  transition: transform var(--transicion), box-shadow var(--transicion);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.landing-tarjeta:hover {
+  transform: translate(-1px, -1px);
+  box-shadow: 5px 5px 0 var(--sombra);
+}
+
+.landing-tarjeta-cuerpo {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.landing-tarjeta-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+
+.landing-logo {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radio-chico);
+  object-fit: cover;
+  border: 1.5px solid var(--contorno);
+  box-shadow: var(--dureza-chica);
+  flex-shrink: 0;
+}
+
+.landing-logo-sin-img {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radio-chico);
+  border: 1.5px solid var(--contorno);
+  background: var(--papel);
+  color: var(--texto-suave);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.35rem;
+  flex-shrink: 0;
+  box-shadow: var(--dureza-chica);
+}
+
+.landing-tarjeta-header h3 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+.landing-direccion,
+.landing-whatsapp {
+  font-size: 0.85rem;
+  color: var(--texto-suave);
+  margin: 0.25rem 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.landing-tarjeta .btn-kiosco {
+  margin-top: auto;
+  width: auto;
+  padding: 0.55em 1.1em;
+  font-size: 0.875rem;
+}
+
+[data-tema="neon"] .landing-tarjeta {
+  border-color: var(--contorno);
+}
+
+[data-tema="neon"] .landing-tarjeta:hover {
+  border-color: var(--sol);
+  box-shadow: 0 0 18px rgba(0, 200, 224, 0.35);
+}
+
+[data-tema="neon"] .landing-tarjeta-header h3 {
+  text-shadow: 0 0 6px rgba(0, 200, 224, 0.3);
+}
+
+[data-tema="neon"] .landing-logo {
+  border-color: var(--contorno);
+  box-shadow: 0 0 10px rgba(0, 200, 224, 0.25);
+}
+
+/* ============================================================
+   Carrito público (aside del catálogo por negocio)
+   ============================================================ */
+.catalogo-pedido {
+  max-width: 340px;
+  width: 100%;
+}
+
+.pedido-caja {
+  background: var(--superficie);
+  border: var(--borde);
+  border-radius: var(--radio);
+  box-shadow: var(--dureza);
+  padding: 1.1rem;
+}
+
+.pedido-caja-titulo {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+  color: var(--texto);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pedido-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  margin-bottom: 0.75rem;
+}
+
+.pedido-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid var(--linea-azulejo);
+  font-size: 0.875rem;
+}
+
+.pedido-item:last-child {
+  border-bottom: none;
+}
+
+.pedido-item-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.pedido-item-nombre {
+  font-weight: 600;
+  color: var(--texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pedido-item-cant {
+  color: var(--texto-suave);
+  font-size: 0.8rem;
+}
+
+.pedido-item-acciones {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.pedido-item-subtotal {
+  font-weight: 700;
+  color: var(--texto);
+  min-width: 45px;
+  text-align: right;
+}
+
+.btn-quitar {
+  background: transparent;
+  border: none;
+  color: var(--texto-suave);
+  cursor: pointer;
+  padding: 0.35em;
+  border-radius: var(--radio-chico);
+  line-height: 1;
+  transition: color var(--transicion), transform var(--transicion);
+}
+
+.btn-quitar:hover {
+  color: var(--caramelo);
+  transform: scale(1.1);
+}
+
+.pedido-total {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 700;
+  font-size: 1.05rem;
+  margin: 0.5rem 0 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--linea-azulejo);
+}
+
+.pedido-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.pedido-form-titulo {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 0 0 0.5rem;
+  color: var(--texto);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.pedido-form-boton {
+  width: auto;
+  max-width: 260px;
+  margin-top: 0.25rem;
+}
+
+.pedido-vaciar {
+  margin-top: 0.75rem;
+}
+
+.btn-link-suave {
+  background: transparent;
+  border: none;
+  color: var(--texto-suave);
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.35em 0;
+  text-decoration: underline;
+  text-decoration-color: var(--sol);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+  transition: color var(--transicion);
+}
+
+.btn-link-suave:hover {
+  color: var(--sol);
+}
+
+.pedido-vacio {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  color: var(--texto-suave);
+}
+
+.pedido-vacio i {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+  display: block;
+  color: var(--texto-suave);
+}
+
+.pedido-vacio p {
+  margin: 0.25rem 0;
+  font-size: 0.9rem;
+}
+
+.pedido-vacio-ayuda {
+  color: var(--texto-suave);
+  font-size: 0.85rem;
+}
+
+[data-tema="neon"] .pedido-caja {
+  border-color: var(--contorno);
+  box-shadow: 0 0 14px rgba(0, 200, 224, 0.2);
+}
+
+[data-tema="neon"] .pedido-total {
+  border-top-color: var(--contorno);
+}
+
+[data-tema="neon"] .pedido-item {
+  border-bottom-color: var(--linea-azulejo);
+}
+
+[data-tema="neon"] .btn-link-suave {
+  text-decoration-color: var(--sol);
+}
+
+[data-tema="neon"] .btn-link-suave:hover {
+  color: var(--sol);
+}
+
+/* Botón "ancho": no debe estirarse todo el ancho del contenedor.
+   Se usa en "Entrar a tienda" de las tarjetas de la landing y
+   en "Confirmar pedido" del carrito público. Limitar su ancho
+   evita que quede desproporcionadamente largo en pantallas anchas. */
+.btn-ancho {
+  max-width: 300px;
+  width: auto;
+  display: inline-block;
+}
+
+[data-tema="neon"] .btn-ancho {
+  box-shadow: 0 0 14px rgba(255, 176, 32, 0.4);
+}
+
+[data-tema="neon"] .btn-ancho:hover,
+[data-tema="neon"] .btn-ancho:focus {
+  box-shadow: 0 0 24px rgba(255, 176, 32, 0.6);
 }
 
 .focus-ring-kiosco:focus-visible {
