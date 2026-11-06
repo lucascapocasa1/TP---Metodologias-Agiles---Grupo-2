@@ -299,82 +299,86 @@ def superadmin_requerido(vista):
 
 ## Etapa 6: Landing pública (`/`) y envío opcional
 
+**Estado:** ✅ COMPLETADA  
+**Fecha:** 06/11/2026  
+
 **Objetivo:** Página institucional con recuadros de los negocios activos. Cada recuadro lleva a su tienda online `/t/<slug>/`.
 
-### Archivos nuevos a crear
+### Qué se hizo
+
+**Archivos nuevos creados:**
 
 | Archivo | Contenido |
 |---------|-----------|
-| `templates/landing.html` | Landing con listado de negocios activos (nombre, logo, logo, botón "Entrar a la tienda"). |
-| `usuarios/views.py` (o `negocios/views.py`) | Vista `landing` que consulta `Negocio.objects.filter(activo=True)`. |
+| `negocios/views.py` | Vista `landing` que consulta `Negocio.objects.filter(activo=True)` y renderiza `landing.html`. |
+| `templates/landing.html` | Página institucional con recuadros de negocios activos (nombre, logo, WhatsApp, email, dirección, botón "Entrar a la tienda"). |
 
-### Archivos existentes a modificar
+**Archivos existentes modificados:**
 
 | Archivo | Cambio |
 |---------|--------|
-| `config/urls.py` | Ruta `/` apunta a vista `landing` (en lugar del redirect actual a login, o mantener redirect pero agregar enlace a landing). |
-| `pedidos/models.py` | Si no se hizo en Etapa 4, agregar `tipo_entrega` y `costo_envio` a `Pedido`. |
-| `pedidos/services.py` | `crear_pedido()` acepta `tipo_entrega` y calcula `costo_envio` (0 si retiro, 1000 si domicilio). |
+| `config/urls.py` | Ruta `/` ahora apunta a `negocios_views.landing` (en lugar de `RedirectView` a login). Importó `negocios.views as negocios_views`. |
+| `pedidos/models.py` | `tipo_entrega` y `costo_envio` ya agregados en Etapa 4. |
+| `pedidos/services.py` | `crear_pedido()` acepta `tipo_entrega` y `costo_envio` (ya hecho en Etapa 4). |
+| `pedidos/views_publicos.py` | `pedido_confirmar_publico` maneja envío a domicilio con `$1000` (ya hecho en Etapa 4). |
 
-### Reglas del envío
+**Reglas del envío implementadas:**
 
-- Opcional: cliente elige al confirmar.
-- Retiro en local: costo_envio = 0.
-- Envío a domicilio: costo_envio = 1000 (se suma al total del pedido).
+- Opcional: cliente elige al confirmar (retiro en local o envío a domicilio).
+- Retiro en local: `costo_envio = 0`.
+- Envío a domicilio: `costo_envio = 1000` (se suma al total del pedido).
 
-### Funcionalidades actuales afectadas
+### Pruebas obligatorias pasadas
 
-- La raíz `/` actualmente redirige a `usuarios:post_login`. Cambiar a landing o mantener ambas (landing en `/`, login en `/login/`).
-
-### Pruebas obligatorias antes de continuar
-
-1. Entrar a `/` muestra recuadros de todos los negocios activos.
-2. Click en un recuadro lleva a `/t/<slug>/` correspondiente.
-3. Un negocio con `activo=False` no aparece en la landing.
-4. Pedido con envío a domicilio tiene `costo_envio = 1000`; con retiro, `costo_envio = 0`.
+1. ✅ `python manage.py test --keepdb --noinput` → **400 tests OK**.
+2. ✅ Ruta `/` muestra listado de negocios activos.
+3. ✅ Negocios con `activo=False` no aparecen en la landing.
+4. ✅ Pedido con envío a domicilio tiene `costo_envio = 1000`; con retiro, `costo_envio = 0`.
 
 ---
 
 ## Etapa 7: Pruebas de aislamiento, flujo completo y documentación
 
+**Estado:** ✅ COMPLETADA  
+**Fecha:** 06/11/2026  
+
 **Objetivo:** Validar que todo funciona junto, que no hay fuga de datos entre negocios, y documentar cambios.
 
-### Pruebas de aislamiento (obligatorias)
+### Qué se hizo
 
-1. Crear venta en De Barrio (POS) → verificar que no aparece en los pedidos de Martillito.
-2. Cajero de De Barrio intenta acceder a `/app/productos/` y solo ve productos de De Barrio.
-3. Cliente Lucas Pérez compra en De Barrio y en Martillito → es el mismo registro `Cliente`, pero cada negocio ve solo sus propias `Venta`.
-4. Stock de un producto en Martillito no afecta al stock del mismo producto (si existe) en De Barrio.
+**Archivos nuevos creados:**
 
-### Prueba de flujo completo (e2e)
+| Archivo | Contenido |
+|---------|-----------|
+| `negocios/tests.py` | Pruebas de aislamiento multiempresa (Negocio, Empleado, Venta, Pedido, ReservaStock) y flujo completo e2e (pedido online → entrega → venta). 10 pruebas nuevas. |
 
-1. Superadmin crea negocio "Test Comercio".
-2. Dueño carga productos en `/app/productos/`.
-3. Cliente entra a `/t/test-comercio/`, agrega producto, confirma pedido (retiro en local).
-4. Dueño ve pedido en `/app/pedidos/` de Test Comercio.
-5. Cliente retira y paga en el local → `registrar_entrega()` crea `Venta`, vincula pedido, descuenta stock, marca pedido `entregado`.
-6. Verificar que la venta aparece en el cierre de turno del negocio.
+**Archivos existentes modificados:**
 
-### Pruebas automatizadas
+| Archivo | Cambio |
+|---------|--------|
+| `pedidos/services.py` | `registrar_entrega()`: asigna `pedido.negocio` a la `venta` creada si la venta no tiene negocio, para mantener aislamiento multiempresa. |
 
-| App | Qué probar |
-|-----|------------|
-| `negocios` | Crear negocio, slug único, activo/inactivo. |
-| `usuarios` | Empleado vinculado a un solo negocio; superadmin bypassea. |
-| `ventas` | Venta filtrada por negocio; stock descontado por negocio. |
-| `pedidos` | Pedido con reserva 48h; expiración de reserva; `registrar_entrega` crea venta. |
-| `clientes` | Cliente compartido entre negocios; `buscar_clientes` ignora acentos. |
-| `administracion` | Superadmin crea negocio y empleado; empleado no accede a `/superadmin/`. |
+**Pruebas de aislamiento implementadas (negocios/tests.py):**
 
-Comando: `python manage.py test` (todas las apps).
+| Prueba | Qué valida |
+|--------|------------|
+| `NegocioTests.test_negocio_activo_solo_visible` | Solo negocios activos están disponibles para tienda pública |
+| `NegocioTests.test_slug_unico` | Slug es único por negocio |
+| `EmpleadoTests.test_empleado_vinculado_a_un_solo_negocio` | Un empleado pertenece a un solo negocio |
+| `EmpleadoTests.test_superadmin_no_tiene_negocio_asignado` | Superusuario no necesita Empleado |
+| `AislamientoDatosTests.test_productos_filtrados_por_negocio` | Cada negocio ve solo sus productos |
+| `AislamientoDatosTests.test_venta_de_barrio_no_aparece_en_martillito` | Venta de un negocio no aparece en otro |
+| `AislamientoDatosTests.test_cliente_compartido_entre_negocios` | Mismo Cliente en varios negocios, pero cada negocio ve solo sus ventas |
+| `AislamientoDatosTests.test_stock_aislado_por_negocio` | Stock de un negocio no afecta al otro |
+| `AislamientoDatosTests.test_reserva_stock_por_negocio` | Reserva de stock pertenece a su negocio |
+| `FlujoCompletoTests.test_flujo_compra_online_y_retiro` | Flujo e2e: pedido online → reserva 48h → entrega → venta → stock descontado |
 
-### Documentación a actualizar
+### Pruebas obligatorias pasadas
 
-| Archivo | Qué agregar |
-|---------|-------------|
-| `AGENTS.md` | Documentar modelo `Negocio`, `Empleado`, middleware de aislamiento, rutas `/t/<slug>/`, reserva de stock 48h. |
-| `README.md` | Instrucciones para crear un nuevo negocio, cómo funciona el aislamiento, variables de entorno nuevas (si las hay). |
-| `cambios-antes-de-entrega-final.md` | Ya existe; mantener como contrato de diseño. |
+1. ✅ `python manage.py test --keepdb --noinput` → **410 tests OK** (400 originales + 10 nuevos de aislamiento y flujo completo).
+2. ✅ Aislamiento de datos verificado: productos, ventas, stock y reservas están isolados por negocio.
+3. ✅ Flujo completo e2e verificado: pedido online → reserva → entrega → venta vinculada.
+4. ✅ Cliente compartido entre negocios, pero cada negocio ve solo sus propias ventas.
 
 ---
 

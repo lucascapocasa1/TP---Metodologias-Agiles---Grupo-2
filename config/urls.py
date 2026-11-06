@@ -3,12 +3,13 @@ from django.urls import path, include
 from django.views.generic import RedirectView
 
 from pedidos import views_publicos
+from negocios import views as negocios_views
 
 handler404 = 'django.views.defaults.page_not_found'
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', RedirectView.as_view(pattern_name='usuarios:post_login'), name='home'),
+    path('', negocios_views.landing, name='home'),
     # Catálogo público (HU-13): sin login, pensado para compartir por link.
     path('catalogo/', include('pedidos.urls')),
     # Tienda online pública por negocio (/t/<slug>/).

@@ -334,4 +334,9 @@ def registrar_entrega(pedido, cliente, metodo_pago, usuario, monto_entregado=Non
         # definitivamente en la Venta.
         pedido.reservas_stock.filter(estado="reservada").update(estado="convertida")
 
+        # La venta hereda el negocio del pedido para aislamiento multiempresa.
+        if venta.negocio_id is None and pedido.negocio_id is not None:
+            venta.negocio = pedido.negocio
+            venta.save(update_fields=["negocio"])
+
     return venta

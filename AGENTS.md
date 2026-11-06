@@ -37,30 +37,65 @@ No hay linter, formatter ni typecheck configurados.
 ```
 config/            # Settings y urls raíz del proyecto (DJANGO_SETTINGS_MODULE=config.settings)
 usuarios/          # Auth: login, logout, registro, roles/grupos, decorador de autorización,
-                   # templatetags (buscador, paginación), comando setup_inicial
+                   # templatetags (buscador, paginación), comando setup_inicial.
+                   # Modelo: Empleado (vincula User con Negocio).
+                   # Decorador: superadmin_requerido (solo is_superuser).
 ventas/            # Catálogo (Categoria, Producto: CRUD completo con código de barras,
                    # búsqueda HTMX, ordenamiento por columna y alerta de stock),
                    # ventas (Venta, DetalleVenta), pantalla de cobro, cierre de turno
-                   # y el comando de datos de demo cargar_demo
-clientes/          # Cliente (fidelidad + cuenta corriente "FIAR"), PagoCuentaCorriente,
+                   # y el comando de datos de demo cargar_demo.
+                   # Todos los modelos tienen FK a Negocio (multiempresa).
+clientes/          # Cliente (fidelidad + cuenta corriente "FIAR", compartido entre negocios),
+                   # PagoCuentaCorriente (tiene FK a Negocio),
                    # services.py (puntos, validar_fiado, buscar_clientes, cliente_bloqueado),
                    # demo_data.py y el comando cargar_demo_clientes
-pedidos/           # Catálogo público sin login (HU-13), Pedido/ItemPedido,
-                   # services.py (carrito del pedido y registrar_entrega) y config.py (WhatsApp)
-administracion/    # Dashboard y CRUD de usuarios (listar/crear/editar/eliminar/roles/toggle)
+pedidos/           # Catálogo público sin login (HU-13), Pedido/ItemPedido/ReservaStock,
+                   # services.py (carrito del pedido y registrar_entrega) y config.py (WhatsApp).
+                   # Pedido tiene FK a Negocio. ReservaStock con expiración 48h.
+administracion/    # Dashboard y CRUD de usuarios (listar/crear/editar/eliminar/roles/toggle).
+                   # Panel superadmin (/superadmin/): crear/editar negocios,
+                   # crear empleados, asignar negocio a usuario (solo is_superuser).
 auditoria/         # RegistroAuditoria + signals: audita cambios en usuarios y ventas
+negocios/          # NUEVA APP: modelo Negocio (multiempresa), vista landing pública,
+                   # comando migrar_a_multiempresa.
 static/            # CSS/JS compartido (styles.css con el estilo visual neón)
 templates/         # base.html + templates por app (también 403.html y 404.html)
+                   # landing.html (página pública de comercios asociados)
+                   # superadmin/ (templates de gestión de negocios y empleados)
 ```
 
-Modelos: `ventas` → `Categoria`, `Producto` (`codigo_barras` unique, `costo`, `stock_minimo`, property `stock_bajo`), `Venta`, `DetalleVenta`, `Turno`; `clientes` → `Cliente` (`limite_credito`, `saldo_deuda`), `PagoCuentaCorriente`; `pedidos` → `Pedido` (`cliente`, `venta`), `ItemPedido`; `auditoria` → `RegistroAuditoria`; `usuarios` y `administracion` no tienen modelos (usan `auth.User`).
+Modelos: `negocios` → `Negocio` (nombre, slug unique, logo, whatsapp, email, direccion, horarios, color_primario, activo).
+`usuarios` → `Empleado` (OneToOne con User, FK a Negocio, activo).
+`ventas` → `Categoria`, `Producto` (FK a Negocio), `Venta` (FK a Negocio), `DetalleVenta`, `Turno` (FK a Negocio), `PagoMercadoPago`, `ConexionMercadoPago` (FK a Negocio).
+`clientes` → `Cliente` (compartido, sin FK a Negocio), `PagoCuentaCorriente` (FK a Negocio).
+`pedidos` → `Pedido` (FK a Negocio), `ItemPedido`, `ReservaStock` (expiración 48h).
+`usuarios` y `administracion` no tienen modelos propios aparte de `Empleado` (usan `auth.User`).
 
-## Convenciones clave
+## Arquitectura multiempresa (multitenant)
 
-- **Roles vía Django Groups** (`"Administrador"`, `"Cajero"`), no permisos individuales.
-- **Autorización**: decorador `@rol_requerido("Rol")` (function views) o `RolRequeridoMixin` (CBVs) en `usuarios/decorators.py`. Superusers bypassean el chequeo. Sin rol → 403.
-- **Flujo de auth**: `LoginKioscoView` → `post_login` redirige por rol (admin → dashboard, cajero → cobro, sin rol → `sin_rol`). `LOGIN_URL = 'usuarios:login'`.
-- **URLs**: cada app define `app_name` y patrones con nombre. Raíz `/` → `usuarios:post_login`.
+- **Single database + shared schema**: una sola base de datos, todos los datos de todos los negocios en las mismas tablas, aislados por `negocio_id`.
+- **Middleware `NegocioMiddleware`**: resuelve `request.negocio` para cada request:
+  - `/t/<slug>/` (tienda pública): busca `Negocio` por slug de la URL.
+  - Rutas privadas (`/ventas/`, `/clientes/`, `/pedidos/`, `/administracion/`): usa `request.user.empleado.negocio`.
+  - `/superadmin/`: sin negocio único (superadmin ve todo).
+- **Aislamiento de datos desde el backend**: todas las consultas de modelos con FK a Negocio filtran por `negocio=request.negocio`. Nunca confiar en `negocio_id` enviado por el frontend.
+- **Cliente compartido**: `Cliente` no tiene FK a Negocio; un mismo cliente puede comprar en varios negocios. Cada negocio ve solo sus propias `Venta` y `Pedido`.
+- **Superadmin**: usuario con `is_superuser=True`. Puede crear negocios, empleados, y acceder a `/superadmin/`.
+
+## URLs
+
+- `/` → Landing pública con recuadros de negocios activos (cada uno lleva a su tienda `/t/<slug>/`).
+- `/t/<slug>/` → Tienda pública de un negocio (sin login).
+- `/catalogo/` → Catálogo público general (HU-13, mantiene compatibilidad).
+- `/app/` → Gestión privada (login requerido, filtrado por negocio del usuario).
+- `/superadmin/` → Panel de superadmin (solo `is_superuser=True`).
+- Raíz `/` ya no redirige a login: muestra la landing pública.
+
+## Comandos adicionales
+
+| Tarea | Comando |
+|---|---|
+| Migrar datos existentes a multiempresa | `python manage.py migrar_a_multiempresa` |
 - **Templates**: extienden `base.html` (Bootstrap 5 CDN). Blocks: `titulo`, `contenido`.
 - **HTMX**: CDN al final de `base.html`. Las vistas revisan `request.headers.get("HX-Request")` y devuelven solo el partial (ej. `ventas:lista_productos` → `ventas/_productos_tabla.html`).
 - **Frontend**: un solo estilo visual, **neón cian**, fijo — `data-tema="neon"` se fuerza en el `<head>` de `base.html` + `data-theme` (claro/oscuro) en `<html>`; tema oscuro en `localStorage['kiosco-tema']`. No existe selector de estilos (el botón `#estiloToggle` y las paletas cartelera/ticket fueron eliminados); botón `#darkToggle` sí. Vocabulario de animaciones "toldo" al final de `static/css/styles.css`; respetar `prefers-reduced-motion`.

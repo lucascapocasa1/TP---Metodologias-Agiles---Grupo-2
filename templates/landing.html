@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block titulo %}Norvex — Comercios asociados{% endblock %}
+{% block contenido %}
+<div class="landing-panel">
+    <header class="landing-hero">
+        <div class="landing-hero-texto">
+            <h1><i class="bi bi-store" aria-hidden="true"></i> Norvex</h1>
+            <p class="landing-subtitulo">
+                Elige el comercio donde querés comprar. Cada uno tiene su
+                propia tienda online con catálogo, precios y carrito.
+            </p>
+        </div>
+    </header>
+
+    {% if negocios %}
+    <div class="landing-negocios">
+        <h2 class="landing-titulo-seccion">Comercios disponibles</h2>
+        <div class="landing-grid">
+            {% for negocio in negocios %}
+            <article class="landing-tarjeta">
+                <div class="landing-tarjeta-cuerpo">
+                    <div class="landing-tarjeta-header">
+                        {% if negocio.logo %}
+                        <img src="{{ negocio.logo }}" alt="{{ negocio.nombre }}"
+                             class="landing-logo">
+                        {% else %}
+                        <div class="landing-logo-sin-img">
+                            <i class="bi bi-building" aria-hidden="true"></i>
+                        </div>
+                        {% endif %}
+                        <h3>{{ negocio.nombre }}</h3>
+                    </div>
+                    {% if negocio.direccion %}
+                    <p class="landing-direccion">
+                        <i class="bi bi-geo-alt-fill" aria-hidden="true"></i>
+                        {{ negocio.direccion }}
+                    </p>
+                    {% endif %}
+                    {% if negocio.whatsapp %}
+                    <p class="landing-whatsapp">
+                        <i class="bi bi-whatsapp" aria-hidden="true"></i>
+                        {{ negocio.whatsapp }}
+                    </p>
+                    {% endif %}
+                    <a href="{% url 'pedidos:catalogo_negocio' slug=negocio.slug %}"
+                       class="btn-kiosco btn-ancho mt-3">
+                        <i class="bi bi-cart" aria-hidden="true"></i>
+                        Entrar a la tienda
+                    </a>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </div>
+    {% else %}
+    <div class="kiosco-alert kiosco-alert-info">
+        <i class="bi bi-info-circle-fill"></i>
+        Todavía no hay comercios disponibles en la plataforma.
+    </div>
+    {% endif %}
+
+    <div class="landing-footer mt-5">
+        <p class="texto-suave">
+            <i class="bi bi-shield-check" aria-hidden="true"></i>
+            Cada comercio gestiona su propio stock, precios y pedidos.
+            Tus datos de compra son privados para cada negocio.
+        </p>
+    </div>
+</div>
+{% endblock %}
