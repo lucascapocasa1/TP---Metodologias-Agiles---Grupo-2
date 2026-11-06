@@ -42,22 +42,31 @@
 
     <form method="post" action="{% url 'pedidos:pedido_confirmar' %}" class="pedido-form">
         {% csrf_token %}
+        <p class="pedido-form-titulo">
+            <i class="bi bi-person-vcard-fill" aria-hidden="true"></i> Tus datos
+        </p>
         <div class="form-row">
-            <label for="nombre_cliente">Tu nombre *</label>
-            <input type="text" id="nombre_cliente" name="nombre_cliente"
+            <label class="kiosco-label" for="nombre_cliente">
+                Tu nombre <span class="pedido-form-oblig" aria-hidden="true">*</span>
+            </label>
+            <input class="kiosco-input" type="text" id="nombre_cliente" name="nombre_cliente"
                    maxlength="120" required placeholder="Ej: Lucía Gómez">
         </div>
         <div class="form-row">
-            <label for="telefono">Teléfono (opcional)</label>
-            <input type="tel" id="telefono" name="telefono"
+            <label class="kiosco-label" for="telefono">
+                Teléfono <span class="pedido-form-opc">(opcional)</span>
+            </label>
+            <input class="kiosco-input" type="tel" id="telefono" name="telefono"
                    maxlength="30" placeholder="Para avisarte cuando esté">
         </div>
         <div class="form-row">
-            <label for="comentario">Comentario (opcional)</label>
-            <textarea id="comentario" name="comentario" rows="2"
+            <label class="kiosco-label" for="comentario">
+                Comentario <span class="pedido-form-opc">(opcional)</span>
+            </label>
+            <textarea class="kiosco-input" id="comentario" name="comentario" rows="2"
                       placeholder="Ej: paso a las 18"></textarea>
         </div>
-        <button type="submit" class="btn-kiosco btn-ancho">
+        <button type="submit" class="btn-kiosco btn-ancho pedido-form-boton">
             <i class="bi bi-whatsapp" aria-hidden="true"></i> Confirmar pedido
         </button>
     </form>

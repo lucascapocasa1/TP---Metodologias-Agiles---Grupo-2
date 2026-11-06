@@ -108,6 +108,20 @@ class CatalogoPublicoTests(BasePedidos):
         respuesta = self.client.get(reverse("pedidos:catalogo"))
         self.assertNotIn(respuesta.status_code, (301, 302, 403))
 
+    def test_barra_de_invitado_no_ofrece_catalogo(self):
+        """La navbar de invitado ya no enlaza el catálogo: solo URL directa."""
+        respuesta = self.client.get(reverse("usuarios:login"))
+        self.assertContains(respuesta, "Ingresar")
+        self.assertNotContains(respuesta, "Catálogo")
+        self.assertNotContains(respuesta, reverse("pedidos:catalogo"))
+
+    def test_barra_de_invitado_no_aparece_logueado(self):
+        """Con sesión activa se conserva la navbar del personal."""
+        self.login_admin()
+        respuesta = self.client.get(reverse("pedidos:catalogo"))
+        self.assertNotContains(respuesta, "Ingresar")
+        self.assertContains(respuesta, "Salir")
+
 
 class ArmarPedidoTests(BasePedidos):
     def test_agregar_producto_al_pedido(self):

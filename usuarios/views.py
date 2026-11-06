@@ -1,10 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required
+from django.http import Http404
 from django.shortcuts import redirect, render
 
 from .decorators import es_administrador, es_cajero
 from .forms import LoginKioscoForm, RegistroUsuarioForm
+from .middleware import activar_candado_admin, puede_entrar_al_admin
 
 
 class LoginKioscoView(LoginView):
@@ -61,3 +63,36 @@ def post_login(request):
 @login_required
 def sin_rol(request):
     return render(request, "usuarios/sin_rol.html")
+
+
+def confirmar_acceso_admin(request):
+    """
+    Segundo candado del panel de Django (/admin/): pide la contraseña
+    de nuevo aunque el usuario ya esté logueado en la app (HU pedida
+    por el dueño). La pantalla también está oculta: quien no debería
+    entrar acá recibe 404.
+
+    Si la contraseña es correcta, guarda el candado en la sesión y
+    redirige a la ruta /admin/... que venía en el parámetro next.
+    """
+    if not puede_entrar_al_admin(request.user):
+        raise Http404
+
+    # next solo puede apuntar al panel de Django (evita open redirect).
+    next_url = request.POST.get("next") or request.GET.get("next") or "/admin/"
+    if not next_url.startswith("/admin/"):
+        next_url = "/admin/"
+
+    error = False
+    if request.method == "POST":
+        password = request.POST.get("password", "")
+        if request.user.check_password(password):
+            activar_candado_admin(request.session)
+            return redirect(next_url)
+        error = True
+
+    return render(
+        request,
+        "usuarios/confirmar_admin.html",
+        {"next": next_url, "error": error, "usuario": request.user},
+    )

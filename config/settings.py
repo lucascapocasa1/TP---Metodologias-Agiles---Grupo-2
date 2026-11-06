@@ -82,6 +82,9 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    # Frena /admin/ sin cuenta (va al login de la app) y sin rol
+    # Administrador (403). Ver usuarios/middleware.py.
+    'usuarios.middleware.ControlAdminDjangoMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -179,6 +182,13 @@ else:
 LOGIN_URL = 'usuarios:login'
 LOGIN_REDIRECT_URL = 'usuarios:post_login'  # decide a dónde va cada rol
 LOGOUT_REDIRECT_URL = 'usuarios:login'
+
+# Segundo candado del panel de Django (/admin/): después de confirmar la
+# contraseña, cuánto dura habilitado el panel antes de pedirla de nuevo
+# (en segundos). Se puede cambiar por .env sin tocar código.
+ADMIN_CONFIRMACION_TTL_SEGUNDOS = env.int(
+    'ADMIN_CONFIRMACION_TTL_SEGUNDOS', default=1800
+)
 
 
 # Configuración de Resend

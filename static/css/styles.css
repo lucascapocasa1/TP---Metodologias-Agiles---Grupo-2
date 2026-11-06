@@ -242,6 +242,7 @@ strong {
   display: inline-flex;
   align-items: center;
   gap: 0.4em;
+  text-decoration: none;
 }
 
 .btn-tema {
@@ -697,6 +698,14 @@ strong {
   padding: 0.75rem 1.4em;
   font-size: 1rem;
   margin-top: 0.6rem;
+}
+
+.login-invitado {
+  margin-top: 1.4rem;
+  padding-top: 1.2rem;
+  border-top: 1px dashed var(--contorno);
+  display: flex;
+  justify-content: center;
 }
 
 /* ============================================================
@@ -3761,7 +3770,57 @@ a.stat-card-link:hover {
 }
 
 .pedido-form .form-row {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+}
+
+/* Encabezado de la sección de datos: filete punteado + ícono cian */
+.pedido-form-titulo {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: 2px 0 14px;
+  padding-bottom: 9px;
+  border-bottom: 1px dashed var(--contorno);
+  font-family: var(--font-display);
+  font-size: 0.92rem;
+  letter-spacing: 0.4px;
+  color: var(--texto);
+}
+
+.pedido-form-titulo i {
+  color: var(--sol);
+  font-size: 1rem;
+}
+
+.pedido-form .kiosco-label {
+  font-size: 0.85rem;
+  margin-bottom: 0.35rem;
+}
+
+/* Obligatorio: marca en color de alerta del tema */
+.pedido-form-oblig {
+  color: var(--caramelo);
+  font-weight: 700;
+}
+
+/* Opcional: letra suave, sin competir con lo obligatorio */
+.pedido-form-opc {
+  color: var(--texto-suave);
+  font-weight: 500;
+  font-size: 0.78rem;
+}
+
+/* Campos hundidos en la tarjeta para que se lean del fondo */
+.pedido-form .kiosco-input {
+  background: var(--papel);
+}
+
+.pedido-form .kiosco-input:focus {
+  transform: translate(-1px, -1px);
+}
+
+.pedido-form-boton {
+  margin-top: 4px;
 }
 
 .pedido-vaciar {
