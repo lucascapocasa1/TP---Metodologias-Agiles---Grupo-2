@@ -26,7 +26,7 @@
     {% if user.is_authenticated %}
     <nav class="kiosco-navbar">
         <div class="kiosco-navbar-inner">
-            <a class="brand" href="{% url 'usuarios:post_login' %}">
+            <a class="brand" href="{% url 'home' %}">
                 {% include "includes/norvex_marca.svg" with clase="brand-icon norvex-marca" %}
                 <span class="brand-text">Norvex</span>
             </a>
@@ -56,7 +56,7 @@
     {% else %}
     <nav class="kiosco-navbar">
         <div class="kiosco-navbar-inner">
-            <a class="brand" href="{% url 'usuarios:login' %}">
+            <a class="brand" href="{% url 'home' %}">
                 {% include "includes/norvex_marca.svg" with clase="brand-icon norvex-marca" %}
                 <span class="brand-text">Norvex</span>
             </a>
