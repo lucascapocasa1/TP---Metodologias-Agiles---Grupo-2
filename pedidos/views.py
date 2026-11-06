@@ -140,7 +140,9 @@ def lista_pedidos(request):
     estado = request.GET.get("estado", "")
     busqueda = request.GET.get("buscar", "").strip()
 
-    pedidos = Pedido.objects.prefetch_related("detalles")
+    pedidos = Pedido.objects.filter(
+        negocio=request.negocio
+    ).prefetch_related("detalles")
     if estado in dict(Pedido.ESTADOS):
         pedidos = pedidos.filter(estado=estado)
     if busqueda:
@@ -149,7 +151,9 @@ def lista_pedidos(request):
             | Q(telefono__icontains=busqueda)
         )
 
-    pendientes = Pedido.objects.filter(estado="pendiente").count()
+    pendientes = Pedido.objects.filter(
+        estado="pendiente", negocio=request.negocio
+    ).count()
     contexto = {
         "pedidos": pedidos,
         "estado_actual": estado,
@@ -165,7 +169,9 @@ def lista_pedidos(request):
 @rol_requerido("Administrador")
 def detalle_pedido(request, pedido_id):
     pedido = get_object_or_404(
-        Pedido.objects.prefetch_related("detalles"), pk=pedido_id
+        Pedido.objects.prefetch_related("detalles"),
+        pk=pedido_id,
+        negocio=request.negocio,
     )
     return render(
         request,
@@ -213,7 +219,7 @@ def entregar_pedido(request, pedido_id):
     if request.method != "POST":
         raise PermissionDenied("Esta acción se hace con POST.")
 
-    pedido = get_object_or_404(Pedido, pk=pedido_id)
+    pedido = get_object_or_404(Pedido, pk=pedido_id, negocio=request.negocio)
 
     cliente = None
     cliente_id = (request.POST.get("cliente_id") or "").strip()
@@ -270,7 +276,7 @@ def cambiar_estado_pedido(request, pedido_id, estado):
     if request.method != "POST":
         raise PermissionDenied("Esta acción se hace con POST.")
 
-    pedido = get_object_or_404(Pedido, pk=pedido_id)
+    pedido = get_object_or_404(Pedido, pk=pedido_id, negocio=request.negocio)
     estados_validos = dict(Pedido.ESTADOS)
     if estado not in estados_validos:
         messages.error(request, "Estado de pedido no válido.")

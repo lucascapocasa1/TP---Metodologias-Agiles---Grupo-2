@@ -86,6 +86,8 @@ MIDDLEWARE = [
     # Frena /admin/ sin cuenta (va al login de la app) y sin rol
     # Administrador (403). Ver usuarios/middleware.py.
     'usuarios.middleware.ControlAdminDjangoMiddleware',
+    # Resuelve a qué negocio pertenece cada request (multiempresa).
+    'usuarios.middleware.NegocioMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]

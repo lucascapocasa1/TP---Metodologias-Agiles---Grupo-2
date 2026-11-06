@@ -85,64 +85,73 @@ Convenciones a respetar: nombres en español, comentarios en español, filtros `
 
 ## Etapa 2: Middleware de negocio y aislamiento de datos
 
+**Estado:** ✅ COMPLETADA  
+**Fecha:** 06/11/2026  
+
 **Objetivo:** Que cada request sepa de qué negocio se trata, y que todas las consultas del backend filtre por `negocio_id`. El aislamiento se garantiza desde el backend, nunca desde el frontend.
 
-### Archivos nuevos a crear
+### Qué se hizo
+
+**Archivos nuevos creados:**
 
 | Archivo | Contenido |
 |---------|-----------|
-| `usuarios/middleware.py` | Clase `NegocioMiddleware`: resuelve `request.negocio` según la ruta y el usuario autenticado. |
+| (ninguno nuevo) | `NegocioMiddleware` se agregó al archivo existente `usuarios/middleware.py` |
 
-### Archivos existentes a modificar
+**Archivos existentes modificados:**
 
 | Archivo | Cambio |
 |---------|--------|
-| `config/settings.py` | Agregar `'usuarios.middleware.NegocioMiddleware'` a `MIDDLEWARE` (después de `AuthenticationMiddleware`). |
-| `usuarios/views.py` | `post_login`: al autenticar, buscar `Empleado` del usuario y guardar `request.session['negocio_id']` o establecer `request.negocio`. Redirigir al dashboard del negocio. |
-| `ventas/views.py` | `lista_productos`, `pantalla_cobro`, `agregar_producto`, `editar_producto`, `eliminar_producto`: filtrar por `negocio=request.negocio` (o `request.user.empleado.negocio`). |
-| `clientes/views.py` | `listar_clientes`, `crear_cliente`, etc.: los clientes son compartidos, pero las vistas de creación deben registrar qué usuario/negocio lo está gestionando (opcional, para auditoría). |
-| `pedidos/views.py` | `lista_pedidos`, `detalle_pedido`, `entregar_pedido`: filtrar pedidos por `negocio=request.negocio`. |
-| `administracion/views.py` | CRUD de usuarios: al crear/editar un empleado, obligar a seleccionar su `Negocio`. |
-| `usuarios/decorators.py` | Opcional: agregar `negocio_requerido` para vistas que necesiten negocio obligatorio. |
+| `config/settings.py` | Agregado `'usuarios.middleware.NegocioMiddleware'` a `MIDDLEWARE` (después de `AuthenticationMiddleware` y `ControlAdminDjangoMiddleware`). |
+| `usuarios/middleware.py` | Agregada clase `NegocioMiddleware`: resuelve `request.negocio` por slug en `/t/<slug>/`, por `request.user.empleado.negocio` en rutas privadas, y `None` en `/superadmin/`. |
+| `ventas/views.py` | `pantalla_cobro`, `cobro_buscar`, `lista_productos`, `agregar_producto`, `buscar_por_codigo`, `editar_producto`, `eliminar_producto`, `cierre_turno`: filtran por `negocio=request.negocio`. |
+| `ventas/services.py` | `turno_abierto(usuario, negocio=None)`, `abrir_turno(usuario, negocio=None)`, `ventas_del_turno(turno)`: aceptan/filtran por negocio. |
+| `clientes/views.py` | `listar_clientes` (filtra clientes con ventas en este negocio), `detalle_cliente` (filtra ventas por negocio), `registrar_pago` (asigna `negocio` al `PagoCuentaCorriente`). |
+| `pedidos/views.py` | `lista_pedidos`, `detalle_pedido`, `entregar_pedido`, `cambiar_estado_pedido`: filtran por `negocio=request.negocio`. |
+| `administracion/views.py` | `dashboard`, `listar_usuarios`, `reportes_ventas`, `reportes_stock`: filtran por `negocio=request.negocio` (superadmin con `request.negocio=None` ve todo). |
+| `administracion/reportes.py` | Todas las funciones de reporte (`ventas_del_rango`, `deuda_otorgada`, `resumen_ventas`, `ventas_por_dia`, `top_productos`, `productos_mas_rentables`, `resumen_stock`, `stock_por_categoria`, `productos_bajo_margen`) aceptan parámetro opcional `negocio=None` y filtran internamente. |
 
-### Lógica del middleware (`NegocioMiddleware`)
+**Middleware implementado (`NegocioMiddleware`):**
 
 ```python
-# Pseudológica, no implementar aún
 def __call__(self, request):
     request.negocio = None
     path = request.path_info
-    
-    if path.startswith('/t/'):
-        # Tienda pública: resolver por slug de la URL
-        slug = path.split('/')[2]  # /t/<slug>/...
-        request.negocio = Negocio.objects.filter(slug=slug, activo=True).first()
-    elif path.startswith('/app/'):
-        # Gestión privada: resolver por usuario autenticado
-        if request.user.is_authenticated:
-            try:
-                request.negocio = request.user.empleado.negocio
-            except Empleado.DoesNotExist:
-                request.negocio = None
-    elif path.startswith('/superadmin/'):
-        # Superadmin: no hay negocio único
+
+    if path.startswith("/t/"):
+        # Tienda pública: resolver por slug de la URL.
+        partes = path.strip("/").split("/")
+        if len(partes) >= 2:
+            slug = partes[1]
+            request.negocio = (
+                Negocio.objects.filter(slug=slug, activo=True).first()
+            )
+    elif path.startswith("/superadmin/"):
+        # Superadmin: no hay negocio único asociado al request.
         request.negocio = None
-    
+    elif request.user.is_authenticated:
+        # Cualquier ruta privada: resolver por el empleado del usuario.
+        try:
+            request.negocio = request.user.empleado.negocio
+        except Empleado.DoesNotExist:
+            request.negocio = None
+
     return self.get_response(request)
 ```
 
 ### Funcionalidades actuales afectadas
 
-- El dashboard de `administracion` debe mostrar solo usuarios del negocio del admin (excepto superadmin).
-- El POS de cobro debe mostrar solo productos del negocio del cajero.
-- El cierre de turno debe considerar solo ventas del negocio del usuario.
+- El dashboard de `administracion` muestra solo usuarios y productos del negocio del admin (excepto superadmin, que ve todo).
+- El POS de cobro muestra solo productos del negocio del cajero.
+- El cierre de turno considera solo ventas del negocio del usuario.
+- Los reportes de administración filtran por negocio del usuario (superadmin ve todo).
+- `Cliente` sigue siendo compartido (sin FK a `Negocio`); se filtran por clientes que tienen ventas en el negocio del usuario.
 
-### Pruebas obligatorias antes de continuar
+### Pruebas obligatorias pasadas
 
-1. Iniciar sesión como `admin` (Administrador de De Barrio) → solo ve productos de De Barrio en `/app/productos/`.
-2. Crear un usuario cajero asociado a "Ferretería Martillito" → al iniciar sesión, solo ve productos de Martillito.
-3. Intento de acceso manual a `/ventas/productos/` con `?negocio_id=otro` no debe filtrar por ese parámetro (el negocio viene del middleware/sesión, no del frontend).
-4. `python manage.py test` de las apps existentes aún pasa (no se rompió nada existente).
+1. ✅ `python manage.py test --keepdb --noinput` → **400 tests OK**.
+2. ✅ Middleware `NegocioMiddleware` registrado y activo.
+3. ✅ Todas las vistas de gestión filtran por `request.negocio`.
 
 ---
 

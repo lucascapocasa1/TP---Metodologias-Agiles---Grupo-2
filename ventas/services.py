@@ -361,22 +361,27 @@ def registrar_venta_desde_items(
 # ========== CIERRE DE TURNO (Sprint 4 - HU-10) ==========
 
 
-def turno_abierto(usuario):
-    """El turno del usuario que todavía no se cerró, si existe."""
-    return Turno.objects.filter(
-        usuario=usuario, fecha_cierre__isnull=True
-    ).first()
+def turno_abierto(usuario, negocio=None):
+    """
+    El turno del usuario que todavía no se cerró, si existe.
+    Si se pasa `negocio`, filtra también por ese negocio.
+    """
+    filtros = {"usuario": usuario, "fecha_cierre__isnull": True}
+    if negocio is not None:
+        filtros["negocio"] = negocio
+    return Turno.objects.filter(**filtros).first()
 
 
-def abrir_turno(usuario):
+def abrir_turno(usuario, negocio=None):
     """
     Abre un turno para el usuario. Si ya tiene uno abierto devuelve ese:
     no puede haber dos turnos activos de la misma persona.
+    Si se pasa `negocio`, se asigna al turno creado.
     """
-    existente = turno_abierto(usuario)
+    existente = turno_abierto(usuario, negocio=negocio)
     if existente:
         return existente
-    return Turno.objects.create(usuario=usuario)
+    return Turno.objects.create(usuario=usuario, negocio=negocio)
 
 
 def ventas_del_turno(turno):
@@ -387,6 +392,7 @@ def ventas_del_turno(turno):
     ventas = Venta.objects.filter(
         finalizada=True,
         usuario=turno.usuario,
+        negocio=turno.negocio,
         fecha__gte=turno.fecha_apertura,
     )
     if turno.fecha_cierre:

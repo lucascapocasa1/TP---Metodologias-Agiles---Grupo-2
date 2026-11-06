@@ -57,7 +57,9 @@ def pantalla_cobro(request):
 
     venta_id = request.GET.get("venta")
     if venta_id:
-        venta = get_object_or_404(Venta, pk=venta_id, finalizada=True)
+        venta = get_object_or_404(
+            Venta, pk=venta_id, finalizada=True, negocio=request.negocio
+        )
         if venta.usuario_id != request.user.pk and not es_administrador(
             request.user
         ):
@@ -98,7 +100,7 @@ def cobro_buscar(request):
 
     if len(consulta) >= 3:
         coincidencias = (
-            Producto.objects.filter(activo=True)
+            Producto.objects.filter(activo=True, negocio=request.negocio)
             .filter(Q(nombre__icontains=consulta) | Q(codigo_barras__icontains=consulta))
             .select_related("categoria")
             .order_by("nombre")[:8]
@@ -201,10 +203,10 @@ def cierre_turno(request):
     """
     if request.method == "POST":
         accion = request.POST.get("accion", "")
-        turno = services.turno_abierto(request.user)
+        turno = services.turno_abierto(request.user, negocio=request.negocio)
 
         if accion == "abrir" and turno is None:
-            services.abrir_turno(request.user)
+            services.abrir_turno(request.user, negocio=request.negocio)
             messages.success(request, "Turno abierto. ¡Buen trabajo!")
             return redirect("ventas:cierre_turno")
 
@@ -234,10 +236,12 @@ def cierre_turno(request):
         return redirect("ventas:cierre_turno")
 
     # GET: ?turno=<id> para un turno puntual, si no el turno abierto propio.
-    turno = services.turno_abierto(request.user)
+    turno = services.turno_abierto(request.user, negocio=request.negocio)
     turno_id = request.GET.get("turno")
     if turno_id:
-        turno = get_object_or_404(Turno, pk=turno_id)
+        turno = get_object_or_404(
+            Turno, pk=turno_id, negocio=request.negocio
+        )
         if turno.usuario_id != request.user.pk and not es_administrador(
             request.user
         ):
@@ -289,7 +293,9 @@ def lista_productos(request):
     direccion = request.GET.get("direccion", "asc")
     prefijo = "-" if direccion == "desc" else ""
 
-    productos = Producto.objects.select_related("categoria").order_by(
+    productos = Producto.objects.filter(
+        negocio=request.negocio
+    ).select_related("categoria").order_by(
         prefijo + CAMPOS_ORDEN[orden]
     )
 
@@ -333,7 +339,10 @@ def agregar_producto(request):
     return render(
         request,
         "ventas/agregar_producto.html",
-        {"form": form, "categorias": Categoria.objects.all()},
+        {
+            "form": form,
+            "categorias": Categoria.objects.filter(negocio=request.negocio),
+        },
     )
 
 
@@ -354,7 +363,7 @@ def buscar_por_codigo(request):
     if excluir.isdigit():
         excluidos = {"pk": int(excluir)}
     producto = (
-        Producto.objects.filter(codigo_barras=codigo)
+        Producto.objects.filter(codigo_barras=codigo, negocio=request.negocio)
         .exclude(**excluidos)
         .select_related("categoria")
         .first()
@@ -378,7 +387,9 @@ def buscar_por_codigo(request):
 # ========== EDICIÓN DE PRODUCTOS (HU-04: modificaciones) ==========
 @rol_requerido("Administrador")
 def editar_producto(request, producto_id):
-    producto = get_object_or_404(Producto, pk=producto_id)
+    producto = get_object_or_404(
+        Producto, pk=producto_id, negocio=request.negocio
+    )
 
     if request.method == "POST":
         form = _producto_form_desde_post(request, instance=producto, producto=producto)
@@ -401,7 +412,9 @@ def editar_producto(request, producto_id):
 # ========== BAJA DE PRODUCTOS (HU-04: bajas, lógicas para no romper ventas) ==========
 @rol_requerido("Administrador")
 def eliminar_producto(request, producto_id):
-    producto = get_object_or_404(Producto, pk=producto_id)
+    producto = get_object_or_404(
+        Producto, pk=producto_id, negocio=request.negocio
+    )
 
     if request.method == "POST":
         producto.activo = False

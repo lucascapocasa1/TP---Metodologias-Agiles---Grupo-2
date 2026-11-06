@@ -79,3 +79,54 @@ class ControlAdminDjangoMiddleware:
             return redirect("admin:index")
 
         return None
+
+
+# ========== MIDDLEWARE DE NEGOCIO (multiempresa) ==========
+
+from negocios.models import Negocio
+from usuarios.models import Empleado
+
+
+class NegocioMiddleware:
+    """
+    Resuelve a qué negocio pertenece cada request y lo deja disponible en
+    `request.negocio`.
+
+    Reglas de resolución:
+      - /t/<slug>/... (tienda pública): busca el Negocio por slug de la URL.
+      - /app/... (gestión privada): usa el Empleado del usuario autenticado.
+      - /superadmin/...: no hay negocio único (superadmin ve todo).
+      - Cualquier otra ruta: request.negocio = None.
+
+    El aislamiento de datos se garantiza desde el backend: cada vista debe
+    filtrar sus consultas por `request.negocio`. Nunca confiar en un
+    negocio_id enviado por el frontend.
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        request.negocio = None
+        path = request.path_info
+
+        if path.startswith("/t/"):
+            # Tienda pública: resolver por slug de la URL.
+            partes = path.strip("/").split("/")
+            if len(partes) >= 2:
+                slug = partes[1]
+                request.negocio = (
+                    Negocio.objects.filter(slug=slug, activo=True).first()
+                )
+        elif path.startswith("/superadmin/"):
+            # Superadmin: no hay negocio único asociado al request.
+            request.negocio = None
+        elif request.user.is_authenticated:
+            # Cualquier ruta privada (gestion, ventas, clientes, etc.):
+            # resolver por el empleado del usuario.
+            try:
+                request.negocio = request.user.empleado.negocio
+            except Empleado.DoesNotExist:
+                request.negocio = None
+
+        return self.get_response(request)

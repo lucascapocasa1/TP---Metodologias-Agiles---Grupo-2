@@ -81,14 +81,18 @@ def resolver_rango(desde=None, hasta=None):
     return f_desde, f_hasta, desde_dt, hasta_dt
 
 
-def ventas_del_rango(desde_dt, hasta_dt, solo_finalizadas=False, incluir_fiado=True):
+def ventas_del_rango(desde_dt, hasta_dt, solo_finalizadas=False, incluir_fiado=True, negocio=None):
     """Queryset de ventas del período, ya filtrado.
 
     HU-14: las ventas a cuenta corriente no son plata que entró, así que
     los reportes de ingresos las excluyen (`incluir_fiado=False`). Se
     informan aparte como "deuda otorgada".
+
+    Si se pasa `negocio`, filtra solo las ventas de ese negocio.
     """
     ventas = Venta.objects.filter(fecha__gte=desde_dt, fecha__lte=hasta_dt)
+    if negocio is not None:
+        ventas = ventas.filter(negocio=negocio)
     if solo_finalizadas:
         ventas = ventas.filter(finalizada=True)
     if not incluir_fiado:
@@ -96,10 +100,10 @@ def ventas_del_rango(desde_dt, hasta_dt, solo_finalizadas=False, incluir_fiado=T
     return ventas
 
 
-def deuda_otorgada(desde_dt, hasta_dt, solo_finalizadas=False):
+def deuda_otorgada(desde_dt, hasta_dt, solo_finalizadas=False, negocio=None):
     """Total fiado a cuenta corriente en el período (HU-14)."""
     return ventas_del_rango(
-        desde_dt, hasta_dt, solo_finalizadas, incluir_fiado=True
+        desde_dt, hasta_dt, solo_finalizadas, incluir_fiado=True, negocio=negocio
     ).filter(metodo_pago="cuenta_corriente").aggregate(
         total=Coalesce(Sum("total"), Decimal("0.00"))
     )["total"]
@@ -108,7 +112,7 @@ def deuda_otorgada(desde_dt, hasta_dt, solo_finalizadas=False):
 # ========== KPIs de cabecera ==========
 
 
-def resumen_ventas(desde_dt, hasta_dt, solo_finalizadas=False):
+def resumen_ventas(desde_dt, hasta_dt, solo_finalizadas=False, negocio=None):
     """
     Totales del período: cuántas ventas, cuánto entra, cuánto sale el
     producto y cuál es la ganancia y el ticket promedio.
@@ -119,9 +123,11 @@ def resumen_ventas(desde_dt, hasta_dt, solo_finalizadas=False):
 
     HU-14: los ingresos y los costos excluyen las ventas a cuenta corriente
     (no es plata que entró a la caja). La deuda fiada se informa aparte.
+
+    Si se pasa `negocio`, filtra solo las ventas de ese negocio.
     """
     ventas = ventas_del_rango(
-        desde_dt, hasta_dt, solo_finalizadas, incluir_fiado=False
+        desde_dt, hasta_dt, solo_finalizadas, incluir_fiado=False, negocio=negocio
     )
 
     agregados = ventas.aggregate(
@@ -164,7 +170,7 @@ def resumen_ventas(desde_dt, hasta_dt, solo_finalizadas=False):
 # ========== Series y rankings ==========
 
 
-def ventas_por_dia(desde_dt, hasta_dt, solo_finalizadas=False):
+def ventas_por_dia(desde_dt, hasta_dt, solo_finalizadas=False, negocio=None):
     """
     Serie diaria (una fila por día) para dibujar el gráfico.
 
@@ -178,9 +184,11 @@ def ventas_por_dia(desde_dt, hasta_dt, solo_finalizadas=False):
 
     HU-14: excluye lo fiado (no es plata que entró); la deuda otorgada del
     período se muestra aparte con `deuda_otorgada()`.
+
+    Si se pasa `negocio`, filtra solo las ventas de ese negocio.
     """
     ventas = ventas_del_rango(
-        desde_dt, hasta_dt, solo_finalizadas, incluir_fiado=False
+        desde_dt, hasta_dt, solo_finalizadas, incluir_fiado=False, negocio=negocio
     )
 
     ingresos = (
@@ -250,10 +258,13 @@ def ventas_por_dia(desde_dt, hasta_dt, solo_finalizadas=False):
     return relleno
 
 
-def top_productos(desde_dt, hasta_dt, limite=10, solo_finalizadas=False):
-    """Productos más vendidos por unidades, con su margen (excluye fiado)."""
+def top_productos(desde_dt, hasta_dt, limite=10, solo_finalizadas=False, negocio=None):
+    """Productos más vendidos por unidades, con su margen (excluye fiado).
+
+    Si se pasa `negocio`, filtra solo las ventas de ese negocio.
+    """
     ventas = ventas_del_rango(
-        desde_dt, hasta_dt, solo_finalizadas, incluir_fiado=False
+        desde_dt, hasta_dt, solo_finalizadas, incluir_fiado=False, negocio=negocio
     )
 
     return list(
@@ -271,10 +282,13 @@ def top_productos(desde_dt, hasta_dt, limite=10, solo_finalizadas=False):
     )
 
 
-def productos_mas_rentables(desde_dt, hasta_dt, limite=5, solo_finalizadas=False):
-    """Productos ordenados por ganancia total, no por unidades vendidas."""
+def productos_mas_rentables(desde_dt, hasta_dt, limite=5, solo_finalizadas=False, negocio=None):
+    """Productos ordenados por ganancia total, no por unidades vendidas.
+
+    Si se pasa `negocio`, filtra solo las ventas de ese negocio.
+    """
     ventas = ventas_del_rango(
-        desde_dt, hasta_dt, solo_finalizadas, incluir_fiado=False
+        desde_dt, hasta_dt, solo_finalizadas, incluir_fiado=False, negocio=negocio
     )
 
     filas = list(
@@ -300,7 +314,7 @@ def productos_mas_rentables(desde_dt, hasta_dt, limite=5, solo_finalizadas=False
 # ========== Stock ==========
 
 
-def resumen_stock(solo_activos=True):
+def resumen_stock(solo_activos=True, negocio=None):
     """
     Foto del inventario: cuántos productos hay, cuántas unidades, cuánto
     vale el stock a costo y cuánto a precio de venta, y qué está por
@@ -309,8 +323,12 @@ def resumen_stock(solo_activos=True):
     Los productos sin costo cargado cuentan como 0 en la valorización a
     costo: es preferible mostrar un número claramente incompleto que
     inventar un valor.
+
+    Si se pasa `negocio`, filtra solo los productos de ese negocio.
     """
     productos = Producto.objects.all()
+    if negocio is not None:
+        productos = productos.filter(negocio=negocio)
     if solo_activos:
         productos = productos.filter(activo=True)
 
@@ -344,11 +362,16 @@ def resumen_stock(solo_activos=True):
     }
 
 
-def stock_por_categoria():
-    """Valorización del stock agrupada por categoría."""
+def stock_por_categoria(negocio=None):
+    """Valorización del stock agrupada por categoría.
+
+    Si se pasa `negocio`, filtra solo los productos de ese negocio.
+    """
+    productos = Producto.objects.filter(activo=True)
+    if negocio is not None:
+        productos = productos.filter(negocio=negocio)
     return list(
-        Producto.objects.filter(activo=True)
-        .values("categoria__nombre")
+        productos.values("categoria__nombre")
         .annotate(
             productos=Count("id"),
             unidades=Coalesce(Sum("stock"), 0),
@@ -364,15 +387,19 @@ def stock_por_categoria():
 # ========== Margen del catálogo ==========
 
 
-def productos_bajo_margen(umbral=Decimal("20.00"), limite=10):
+def productos_bajo_margen(umbral=Decimal("20.00"), limite=10, negocio=None):
     """
     Productos cuyo margen sobre el costo está por debajo del umbral.
 
     Solo tiene sentido sobre productos con costo cargado: sin costo el
     margen es 0 y todos los productos nuevos entrarían en la lista como
     "malos" cuando en realidad es que todavía no se cargó su precio de compra.
+
+    Si se pasa `negocio`, filtra solo los productos de ese negocio.
     """
     candidatos = Producto.objects.filter(activo=True, costo__gt=0)
+    if negocio is not None:
+        candidatos = candidatos.filter(negocio=negocio)
 
     filas = []
     for producto in candidatos:

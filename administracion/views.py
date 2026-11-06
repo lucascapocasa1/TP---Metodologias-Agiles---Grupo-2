@@ -35,17 +35,27 @@ def reportes_ventas(request):
     )
     solo_finalizadas = request.GET.get("finalizadas") == "1"
 
-    resumen = reportes.resumen_ventas(desde_dt, hasta_dt, solo_finalizadas)
-    serie = reportes.ventas_por_dia(desde_dt, hasta_dt, solo_finalizadas)
-    top = reportes.top_productos(desde_dt, hasta_dt, solo_finalizadas=solo_finalizadas)
+    resumen = reportes.resumen_ventas(
+        desde_dt, hasta_dt, solo_finalizadas, negocio=request.negocio
+    )
+    serie = reportes.ventas_por_dia(
+        desde_dt, hasta_dt, solo_finalizadas, negocio=request.negocio
+    )
+    top = reportes.top_productos(
+        desde_dt, hasta_dt, solo_finalizadas=solo_finalizadas, negocio=request.negocio
+    )
     rentables = reportes.productos_mas_rentables(
-        desde_dt, hasta_dt, solo_finalizadas=solo_finalizadas
+        desde_dt, hasta_dt, solo_finalizadas=solo_finalizadas, negocio=request.negocio
     )
     # HU-14: lo fiado va aparte de los ingresos (no es plata que entró).
-    fiado = reportes.deuda_otorgada(desde_dt, hasta_dt, solo_finalizadas)
+    fiado = reportes.deuda_otorgada(
+        desde_dt, hasta_dt, solo_finalizadas, negocio=request.negocio
+    )
 
     ventas = (
-        reportes.ventas_del_rango(desde_dt, hasta_dt, solo_finalizadas)
+        reportes.ventas_del_rango(
+            desde_dt, hasta_dt, solo_finalizadas, negocio=request.negocio
+        )
         .annotate(
             unidades=Coalesce(
                 Sum("detalles__cantidad"),
@@ -94,13 +104,15 @@ def reportes_ventas(request):
 def reportes_stock(request):
     """Reporte de inventario: valorización, faltantes y márgenes del catálogo."""
     solo_activos = request.GET.get("activos") != "0"
-    stock = reportes.resumen_stock(solo_activos=solo_activos)
+    stock = reportes.resumen_stock(
+        solo_activos=solo_activos, negocio=request.negocio
+    )
 
     context = {
         "solo_activos": solo_activos,
         "stock": stock,
-        "por_categoria": reportes.stock_por_categoria(),
-        "bajo_margen": reportes.productos_bajo_margen(),
+        "por_categoria": reportes.stock_por_categoria(negocio=request.negocio),
+        "bajo_margen": reportes.productos_bajo_margen(negocio=request.negocio),
         "umbral_stock_bajo": reportes.UMBRAL_STOCK_BAJO,
     }
     return render(request, "administracion/reportes_stock.html", context)
@@ -109,17 +121,32 @@ def reportes_stock(request):
 @rol_requerido("Administrador")
 def dashboard(request):
     """Panel principal de administración con estadísticas."""
-    total_usuarios = User.objects.count()
-    usuarios_activos = User.objects.filter(is_active=True).count()
-    usuarios_inactivos = User.objects.filter(is_active=False).count()
-    admins = User.objects.filter(groups__name="Administrador").distinct().count()
-    cajeros = User.objects.filter(groups__name="Cajero").distinct().count()
-    sin_rol = User.objects.filter(groups__isnull=True, is_active=True).count()
+    negocio = request.negocio
+
+    usuarios_qs = User.objects.all()
+    if negocio is not None:
+        usuarios_qs = usuarios_qs.filter(empleado__negocio=negocio)
+
+    total_usuarios = usuarios_qs.count()
+    usuarios_activos = usuarios_qs.filter(is_active=True).count()
+    usuarios_inactivos = usuarios_qs.filter(is_active=False).count()
+    admins = (
+        usuarios_qs.filter(groups__name="Administrador").distinct().count()
+    )
+    cajeros = (
+        usuarios_qs.filter(groups__name="Cajero").distinct().count()
+    )
+    sin_rol = usuarios_qs.filter(
+        groups__isnull=True, is_active=True
+    ).count()
 
     # Stock bajo (HU-06): mismo umbral que el reporte, y la ficha del
     # dashboard es un link a ese reporte para ver de qué productos se trata.
-    productos_stock_bajo = Producto.objects.filter(
-        activo=True, stock__lte=reportes.UMBRAL_STOCK_BAJO
+    productos_qs = Producto.objects.filter(activo=True)
+    if negocio is not None:
+        productos_qs = productos_qs.filter(negocio=negocio)
+    productos_stock_bajo = productos_qs.filter(
+        stock__lte=reportes.UMBRAL_STOCK_BAJO
     ).count()
 
     context = {
@@ -142,7 +169,11 @@ def listar_usuarios(request):
     filtro_estado = request.GET.get("estado", "")
     filtro_rol = request.GET.get("rol", "")
 
-    usuarios = User.objects.all().order_by("-date_joined")
+    negocio = request.negocio
+    usuarios = User.objects.all()
+    if negocio is not None:
+        usuarios = usuarios.filter(empleado__negocio=negocio)
+    usuarios = usuarios.order_by("-date_joined")
 
     if busqueda:
         usuarios = usuarios.filter(

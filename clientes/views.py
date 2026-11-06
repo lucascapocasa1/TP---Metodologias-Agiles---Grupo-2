@@ -35,7 +35,7 @@ def listar_clientes(request):
     busqueda = request.GET.get("buscar", "").strip()
     filtro_estado = request.GET.get("estado", "")
 
-    clientes = Cliente.objects.all()
+    clientes = Cliente.objects.filter(ventas__negocio=request.negocio).distinct()
 
     if busqueda:
         clientes = clientes.filter(
@@ -148,7 +148,7 @@ def detalle_cliente(request, cliente_id):
     cliente = get_object_or_404(Cliente, pk=cliente_id)
 
     ventas = (
-        cliente.ventas.filter(finalizada=True)
+        cliente.ventas.filter(finalizada=True, negocio=request.negocio)
         .select_related("usuario")
         .order_by("-fecha")
     )
@@ -193,6 +193,8 @@ def registrar_pago(request, cliente_id):
                 usuario=request.user,
                 observacion=form.cleaned_data.get("observacion", ""),
             )
+            pago.negocio = request.negocio
+            pago.save(update_fields=["negocio"])
         except services.ErrorCuentaCorriente as exc:
             messages.error(request, str(exc))
             return redirect("clientes:detalle_cliente", cliente_id=cliente.pk)
