@@ -1,7 +1,7 @@
-# Evolución de Norvex: Arquitectura Multiempresa (Diseño Pre-Implementación)
+# Evolución de Norvex: Arquitectura Multiempresa (Implementado)
 
 **Proyecto:** Norvex (antes "Sistema Kiosco") — Django 6.1.1 + PostgreSQL  
-**Estado:** Diseño aprobado, pendiente de implementación  
+**Estado:** Implementado y verificado  
 **Objetivo:** Convertir el punto de venta actual en una plataforma SaaS multiempresa sin reemplazar funcionalidades existentes.
 
 ---

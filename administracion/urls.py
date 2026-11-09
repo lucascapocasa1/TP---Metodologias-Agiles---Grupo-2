@@ -15,6 +15,16 @@ urlpatterns = [
     path("usuarios/<int:user_id>/toggle/", views.toggle_usuario, name="toggle_usuario"),
     path("reportes/ventas/", views.reportes_ventas, name="reportes_ventas"),
     path("reportes/stock/", views.reportes_stock, name="reportes_stock"),
+    path(
+        "reportes/stock/exportar-excel/",
+        views.exportar_stock_excel,
+        name="exportar_stock_excel",
+    ),
+    path(
+        "reportes/productos-sin-movimiento/",
+        views.productos_sin_movimiento,
+        name="productos_sin_movimiento",
+    ),
     # Panel de superadmin (solo is_superuser=True)
     path("superadmin/", views_superadmin.lista_negocios, name="lista_negocios"),
     path(

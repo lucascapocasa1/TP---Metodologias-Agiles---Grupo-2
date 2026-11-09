@@ -11,6 +11,9 @@ from django.db.models import (
     Value,
 )
 from django.db.models.functions import Coalesce
+from datetime import datetime
+
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
 from auditoria.utils import registrar_accion
@@ -18,6 +21,7 @@ from usuarios.decorators import rol_requerido
 from ventas.models import DetalleVenta, Producto
 
 from . import reportes
+from .exports import exportar_stock_a_excel
 from .forms import AsignarRolForm, UsuarioForm
 
 
@@ -101,6 +105,56 @@ def reportes_ventas(request):
 
 
 @rol_requerido("Administrador")
+def dashboard(request):
+    """Panel principal de administración con estadísticas."""
+    negocio = request.negocio
+
+    usuarios_qs = User.objects.all()
+    if negocio is not None:
+        usuarios_qs = usuarios_qs.filter(empleado__negocio=negocio)
+
+    total_usuarios = usuarios_qs.count()
+    usuarios_activos = usuarios_qs.filter(is_active=True).count()
+    usuarios_inactivos = usuarios_qs.filter(is_active=False).count()
+    admins = (
+        usuarios_qs.filter(groups__name="Administrador").distinct().count()
+    )
+    cajeros = (
+        usuarios_qs.filter(groups__name="Cajero").distinct().count()
+    )
+    sin_rol = usuarios_qs.filter(
+        groups__isnull=True, is_active=True
+    ).count()
+
+    # Stock bajo (HU-06): mismo umbral que el reporte, y la ficha del
+    # dashboard es un link a ese reporte para ver de qué productos se trata.
+    productos_qs = Producto.objects.filter(activo=True)
+    if negocio is not None:
+        productos_qs = productos_qs.filter(negocio=negocio)
+    productos_stock_bajo = productos_qs.filter(
+        stock__lte=reportes.UMBRAL_STOCK_BAJO
+    ).count()
+
+    # Productos sin movimiento: sin ventas ni pedidos entregados en los
+    # últimos 30 días.
+    productos_sin_mov = reportes.productos_sin_movimiento(negocio=negocio, dias=30)
+
+    context = {
+        "total_usuarios": total_usuarios,
+        "usuarios_activos": usuarios_activos,
+        "usuarios_inactivos": usuarios_inactivos,
+        "admins": admins,
+        "cajeros": cajeros,
+        "sin_rol": sin_rol,
+        "productos_stock_bajo": productos_stock_bajo,
+        "umbral_stock_bajo": reportes.UMBRAL_STOCK_BAJO,
+        "productos_sin_movimiento": len(productos_sin_mov),
+        "dias_dias": 30,
+    }
+    return render(request, "administracion/dashboard.html", context)
+
+
+@rol_requerido("Administrador")
 def reportes_stock(request):
     """Reporte de inventario: valorización, faltantes y márgenes del catálogo."""
     solo_activos = request.GET.get("activos") != "0"
@@ -119,7 +173,99 @@ def reportes_stock(request):
 
 
 @rol_requerido("Administrador")
-def dashboard(request):
+def productos_sin_movimiento(request):
+    """
+    Productos sin ventas ni pedidos entregados en los últimos días
+    (default 30). Permite editar el precio directamente o dar de baja.
+    """
+    negocio = request.negocio
+    dias = int(request.GET.get("dias", 30))
+
+    # Descuento rápido desde enlaces: ?accion=desc&prod=<id>&pct=<porcentaje>
+    accion_get = request.GET.get("accion", "")
+    prod_id_get = request.GET.get("prod", "")
+    pct_get = request.GET.get("pct", "")
+
+    if accion_get == "desc" and prod_id_get and pct_get:
+        try:
+            producto = Producto.objects.get(pk=prod_id_get, negocio=negocio)
+            porcentaje = Decimal(pct_get)
+            if porcentaje < 0 or porcentaje > 100:
+                raise ValueError("Porcentaje fuera de rango.")
+            nuevo_precio = producto.precio * (1 - porcentaje / 100)
+            producto.precio = nuevo_precio
+            producto.save(update_fields=["precio"])
+            registrar_accion(
+                request.user,
+                "Precio modificado (descuento rápido sin movimiento)",
+                f"Producto '{producto.nombre}': -{porcentaje}% → ${nuevo_precio}.",
+                request,
+            )
+            messages.success(
+                request,
+                f"Precio de '{producto.nombre}' reducido un {porcentaje}% a ${nuevo_precio|montos}.",
+            )
+        except (Producto.DoesNotExist, ValueError, TypeError):
+            messages.error(request, "No se pudo aplicar el descuento.")
+        return redirect("administracion:productos_sin_movimiento")
+
+    productos = reportes.productos_sin_movimiento(negocio=negocio, dias=dias)
+
+    if request.method == "POST":
+        accion = request.POST.get("accion", "")
+        producto_id = request.POST.get("producto_id", "")
+
+        try:
+            producto = Producto.objects.get(pk=producto_id, negocio=negocio)
+        except Producto.DoesNotExist:
+            messages.error(request, "El producto ya no existe.")
+            return redirect("administracion:productos_sin_movimiento")
+
+        if accion == "baja":
+            producto.activo = False
+            producto.save(update_fields=["activo"])
+            registrar_accion(
+                request.user,
+                "Producto dado de baja (sin movimiento)",
+                f"Producto '{producto.nombre}' dado de baja por falta de movimiento.",
+                request,
+            )
+            messages.success(
+                request, f"Producto '{producto.nombre}' dado de baja."
+            )
+            return redirect("administracion:productos_sin_movimiento")
+
+        elif accion == "descuento":
+            try:
+                nuevo_precio = Decimal(request.POST.get("nuevo_precio", "0"))
+                if nuevo_precio < 0:
+                    raise ValueError("El precio no puede ser negativo.")
+            except (ValueError, TypeError):
+                messages.error(request, "Ingresá un precio válido.")
+                return redirect("administracion:productos_sin_movimiento")
+
+            precio_anterior = producto.precio
+            producto.precio = nuevo_precio
+            producto.save(update_fields=["precio"])
+
+            registrar_accion(
+                request.user,
+                "Precio modificado (sin movimiento)",
+                f"Producto '{producto.nombre}': ${precio_anterior} → ${nuevo_precio}.",
+                request,
+            )
+            messages.success(
+                request,
+                f"Precio de '{producto.nombre}' actualizado a ${nuevo_precio|montos}.",
+            )
+            return redirect("administracion:productos_sin_movimiento")
+
+    contexto = {
+        "productos": productos,
+        "dias": dias,
+        "total_sin_movimiento": len(productos),
+    }
+    return render(request, "administracion/productos_sin_movimiento.html", contexto)
     """Panel principal de administración con estadísticas."""
     negocio = request.negocio
 
@@ -339,3 +485,32 @@ def toggle_usuario(request, user_id):
     )
     messages.success(request, f"Usuario '{user.username}' {estado} exitosamente.")
     return redirect("administracion:listar_usuarios")
+
+
+@rol_requerido("Administrador")
+def exportar_stock_excel(request):
+    """Exporta el stock del negocio del usuario a un archivo Excel."""
+    negocio = request.negocio
+    if negocio is None:
+        messages.error(request, "No se pudo determinar el negocio.")
+        return redirect("administracion:reportes_stock")
+
+    wb = exportar_stock_a_excel(negocio)
+
+    nombre_archivo = (
+        f"stock_{negocio.slug}_{datetime.now().strftime('%d-%m-%Y')}.xlsx"
+    )
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = f'attachment; filename="{nombre_archivo}"'
+    wb.save(response)
+
+    registrar_accion(
+        request.user,
+        "Exportó stock a Excel",
+        f"Exportó el stock de '{negocio.nombre}' a Excel.",
+        request,
+    )
+    return response

@@ -116,13 +116,74 @@
     {% if puede_cerrar %}
     <form method="post"
           action="{% url 'ventas:cierre_turno' %}"
-          class="turno-cerrar-form"
-          onsubmit="return confirm('¿Cerrar el turno ahora? Los totales quedarán congelados.');">
+          class="turno-cerrar-form arqueo-form"
+          onsubmit="return confirm('¿Cerrar el turno ahora con el arqueo ingresado? Los totales quedarán congelados.');">
         {% csrf_token %}
-        <input type="hidden" name="accion" value="cerrar">
-        <button type="submit" class="btn btn-kiosco">
-            <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i> Cerrar turno y contar caja
-        </button>
+        <input type="hidden" name="accion" value="cerrar_con_arqueo">
+
+        <div class="admin-card mt-3">
+            <h2><i class="bi bi-hand-index-thumb"></i> Conteo físico de caja</h2>
+            <p class="admin-subtitle">
+                Ingresá lo que contás físicamente en la caja. El sistema
+                comparará con lo registrado y calculará la diferencia.
+            </p>
+            <div class="stats-grid arqueo-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-cash"></i>
+                    </div>
+                    <div class="stat-content">
+                        <label class="kiosco-label">Efectivo en caja (sistema)</label>
+                        <p>${{ totales.total_efectivo|montos }}</p>
+                        <input type="number" name="efectivo_fisico" step="0.01" min="0"
+                               class="kiosco-input" placeholder="0,00" required
+                               value="{{ request.POST.efectivo_fisico|default:'' }}">
+                        <p class="admin-subtitle" style="margin-top: 0.25rem;">
+                            Efectivo contado físicamente
+                        </p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-credit-card"></i>
+                    </div>
+                    <div class="stat-content">
+                        <label class="kiosco-label">Tarjeta en caja (sistema)</label>
+                        <p>${{ totales.total_tarjeta|montos }}</p>
+                        <input type="number" name="tarjeta_fisico" step="0.01" min="0"
+                               class="kiosco-input" placeholder="0,00" required
+                               value="{{ request.POST.tarjeta_fisico|default:'' }}">
+                        <p class="admin-subtitle" style="margin-top: 0.25rem;">
+                            Total en tarjeta según posnet
+                        </p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="bi bi-qr-code"></i>
+                    </div>
+                    <div class="stat-content">
+                        <label class="kiosco-label">Mercado Pago en caja (sistema)</label>
+                        <p>${{ totales.total_mercado_pago|montos }}</p>
+                        <input type="number" name="mercado_pago_fisico" step="0.01" min="0"
+                               class="kiosco-input" placeholder="0,00" required
+                               value="{{ request.POST.mercado_pago_fisico|default:'' }}">
+                        <p class="admin-subtitle" style="margin-top: 0.25rem;">
+                            Total cobrado con QR
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="form-row mt-3">
+                <label class="kiosco-label" for="observacion">Observaciones (opcional)</label>
+                <textarea class="kiosco-input" name="observacion" rows="2"
+                          placeholder="Ej. billete roto, error de posnet, sobrante de cambio...">{{ request.POST.observacion|default:'' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-kiosco btn-ancho mt-2">
+                <i class="bi bi-box-arrow-in-right" aria-hidden="true"></i>
+                Cerrar turno y guardar arqueo
+            </button>
+        </div>
     </form>
     {% endif %}
 

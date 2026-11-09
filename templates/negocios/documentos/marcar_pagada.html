@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+{% load formatos %}
+{% block titulo %}Registrar pago — {{ documento.numero_factura|default:documento.nombre_proveedor }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-cash-coin"></i> Registrar pago</h1>
+            <p class="admin-subtitle">
+                Registra un pago para
+                <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>
+                de <strong>{{ negocio.nombre }}</strong>.
+            </p>
+        </div>
+        <div class="admin-header-right">
+            <a href="{% url 'negocios:lista_documentos' %}" class="btn btn-kiosco-outline btn-ancho">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a documentos
+            </a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="stats-grid">
+            <div class="stat-card stat-total">
+                <div class="stat-icon"><i class="bi bi-receipt"></i></div>
+                <div class="stat-content">
+                    <h3>${{ documento.monto|montos }}</h3>
+                    <p>Monto total</p>
+                </div>
+            </div>
+            <div class="stat-card stat-active">
+                <div class="stat-icon"><i class="bi bi-cash"></i></div>
+                <div class="stat-content">
+                    <h3>${{ documento.monto_pagado|montos }}</h3>
+                    <p>Ya pagado</p>
+                </div>
+            </div>
+            <div class="stat-card stat-warning">
+                <div class="stat-icon"><i class="bi bi-dash-circle"></i></div>
+                <div class="stat-content">
+                    <h3>${{ documento.monto_pendiente|montos }}</h3>
+                    <p>Pendiente</p>
+                </div>
+            </div>
+        </div>
+
+        <form method="post" class="admin-form">
+            {% csrf_token %}
+            <div class="form-row">
+                <label class="kiosco-label" for="monto_pagado">Monto a pagar ahora <span class="obligatorio" aria-hidden="true">*</span></label>
+                <input type="number" name="monto_pagado" id="monto_pagado" step="0.01" min="0" class="kiosco-input" placeholder="0,00" required>
+                <div class="texto-suave">Cuánto pagás ahora. Puede ser un pago parcial.</div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-kiosco btn-ancho">
+                    <i class="bi bi-cash-coin" aria-hidden="true"></i> Registrar pago
+                </button>
+                <a href="{% url 'negocios:lista_documentos' %}" class="btn btn-link-suave">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

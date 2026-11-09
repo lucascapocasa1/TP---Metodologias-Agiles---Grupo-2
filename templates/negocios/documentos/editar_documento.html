@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load formatos %}
+{% block titulo %}Editar documento — {{ documento.numero_factura|default:documento.nombre_proveedor }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-pencil"></i> Editar documento</h1>
+            <p class="admin-subtitle">
+                Modifica los datos de <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>
+                para <strong>{{ negocio.nombre }}</strong>.
+            </p>
+        </div>
+        <div class="admin-header-right">
+            <a href="{% url 'negocios:lista_documentos' %}" class="btn btn-kiosco-outline btn-ancho">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a documentos
+            </a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <form method="post" class="admin-form">
+            {% csrf_token %}
+            {% if form.non_field_errors %}
+            <div class="kiosco-alert kiosco-alert-danger">
+                {{ form.non_field_errors }}
+            </div>
+            {% endif %}
+
+            <div class="form-grid">
+                <div class="form-col form-col-2">
+                    <div class="form-row">
+                        <label class="kiosco-label" for="proveedor">Proveedor</label>
+                        <select class="kiosco-input" name="proveedor" id="proveedor">
+                            <option value="">Seleccionar proveedor</option>
+                            {% for prov in proveedores %}
+                            <option value="{{ prov.pk }}" {% if documento.proveedor_id == prov.pk %}selected{% endif %}>
+                                {{ prov.nombre }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="texto-suave">Opcional: deja vacío si es gasto general.</div>
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="nombre_proveedor">Nombre del proveedor</label>
+                        <input type="text" name="nombre_proveedor" id="nombre_proveedor" class="kiosco-input" value="{{ documento.nombre_proveedor }}">
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="categoria">Categoría <span class="obligatorio" aria-hidden="true">*</span></label>
+                        <select class="kiosco-input" name="categoria" id="categoria">
+                            {% for valor, etiqueta in categorias %}
+                            <option value="{{ valor }}" {% if documento.categoria == valor %}selected{% endif %}>
+                                {{ etiqueta }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="numero_factura">Número de factura</label>
+                        <input type="text" name="numero_factura" id="numero_factura" class="kiosco-input" value="{{ documento.numero_factura }}">
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="monto">Monto <span class="obligatorio" aria-hidden="true">*</span></label>
+                        <input type="number" name="monto" id="monto" step="0.01" min="0" class="kiosco-input" value="{{ documento.monto|montos }}" required>
+                    </div>
+                </div>
+
+                <div class="form-col form-col-2">
+                    <div class="form-row">
+                        <label class="kiosco-label" for="fecha_emision">Fecha de emisión <span class="obligatorio" aria-hidden="true">*</span></label>
+                        <input type="date" name="fecha_emision" id="fecha_emision" class="kiosco-input" value="{{ documento.fecha_emision }}" required>
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="fecha_vencimiento">Fecha de vencimiento <span class="obligatorio" aria-hidden="true">*</span></label>
+                        <input type="date" name="fecha_vencimiento" id="fecha_vencimiento" class="kiosco-input" value="{{ documento.fecha_vencimiento }}" required>
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="observaciones">Observaciones</label>
+                        <textarea class="kiosco-input" name="observaciones" id="observaciones" rows="3">{{ documento.observaciones }}</textarea>
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-kiosco btn-ancho">
+                    <i class="bi bi-save" aria-hidden="true"></i> Guardar cambios
+                </button>
+                <a href="{% url 'negocios:lista_documentos' %}" class="btn btn-link-suave">Cancelar</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -2,9 +2,9 @@
 
 <img src="static/img/norvex-logo.svg" alt="Logo de Norvex" width="260">
 
-Trabajo práctico de Metodologías Ágiles. **Norvex** (antes "Sistema Kiosco") es una plataforma web de gestión y cobro para comercios: caja, stock, clientes, pedidos de WhatsApp, cuenta corriente "FIAR" y cobro con QR de Mercado Pago.
+Trabajo práctico de Metodologías Ágiles. **Norvex** (antes "Sistema Kiosco") es una plataforma web de gestión y cobro para comercios: caja, stock, clientes, pedidos de WhatsApp, cuenta corriente "FIAR" y cobro con QR de Mercado Pago. Ahora es una plataforma **multiempresa (multitenant)**: varios comercios pueden usar la misma instalación, cada uno con sus propios productos, clientes, ventas y tienda online, sin que los datos se mezclen.
 
-**Estado:** Sprint 1-4 completos · Consignas de la cátedra completas (HU-13 y HU-14) · Extras: cobro QR (HU-15/16), botón "Conectar con Mercado Pago", recuperación de contraseña con Resend y publicación en Render · **379 tests** en verde.
+**Estado:** Sprint 1-4 completos · Consignas de la cátedra completas (HU-13 y HU-14) · Extras: cobro QR (HU-15/16), botón "Conectar con Mercado Pago", recuperación de contraseña con Resend, publicación en Render, arquitectura multiempresa, catálogo público por negocio, panel de superadmin, exportación de stock a Excel, arqueo de caja con conteo físico, productos sin movimiento y módulo de facturas/documentos · **410 tests** en verde.
 
 Publicado en: `https://norvex.onrender.com/`
 
@@ -16,12 +16,15 @@ Publicado en: `https://norvex.onrender.com/`
 |---|---|
 | [docs/PRD.md](docs/PRD.md) | Requerimientos de producto (RF-01…RF-115), historias de usuario y criterios de aceptación. |
 | [docs/ARD.md](docs/ARD.md) | Arquitectura técnica, modelo de datos, endpoints, autorización y ADRs. |
+| [AGENTS.md](AGENTS.md) | Instrucciones para el agente de IA: estructura, modelos, arquitectura multiempresa, URLs, usuarios de prueba y convenciones. |
+| [cambios-antes-de-entrega-final.md](cambios-antes-de-entrega-final.md) | Contrato de diseño de la evolución multiempresa. |
+| [plan-implementacion-etapas.md](plan-implementacion-etapas.md) | Plan de implementación por etapas de las nuevas funcionalidades. |
 
 ---
 
 ## Estado del proyecto
 
-| Sprint | Entrega | Contenido | Estado |
+| Sprint / Etapa | Entrega | Contenido | Estado |
 |---|---|---|---|
 | 1 | 24-09 | Login, roles y 403 server-side (HU-01…03) | ✅ Completo |
 | 2 | 01-10 | Catálogo de productos + gestión de usuarios (HU-04…06) | ✅ Completo |
@@ -29,6 +32,11 @@ Publicado en: `https://norvex.onrender.com/`
 | 4 | 05-11 | Reportes de ventas y stock, fidelidad de clientes y cierre de turno (HU-10…12) | ✅ Completo |
 | Consignas | — | Catálogo público + pedido por WhatsApp con cobro de la entrega (HU-13) y cuenta corriente "FIAR" (HU-14) | ✅ Completo |
 | Extras | — | Cobro con QR y pantalla para el cliente (HU-15/16), botón "Conectar con Mercado Pago", recuperación de contraseña con Resend, publicación en Render | ✅ Completo |
+| Multiempresa | — | Modelo Negocio, Empleado, aislamiento de datos, tienda pública `/t/<slug>/`, panel superadmin | ✅ Completo |
+| Exportación Excel | — | Exportar stock a Excel desde el reporte de stock | ✅ Completo |
+| Arqueo de caja | — | Conteo físico al cerrar turno, diferencias sobrante/faltante | ✅ Completo |
+| Productos sin movimiento | — | KPI en dashboard, listado con descuento manual y baja de producto | ✅ Completo |
+| Facturas / Documentos | — | Facturas por negocio, PDF adjunto, alerta 7 días, KPI deudas a proveedores | ✅ Completo |
 
 ---
 
@@ -43,6 +51,12 @@ Publicado en: `https://norvex.onrender.com/`
 - **HU-15/16 — Cobro con QR de Mercado Pago:** venta pendiente hasta aprobar el pago, stock reservado, puntos al aprobar, pantalla para el celular del cliente y webhook. Sin token: modo de prueba con pago simulado.
 - **Conectar con Mercado Pago (OAuth):** el admin conecta la cuenta del negocio y la plata le llega directo a esa cuenta.
 - **Recuperación de contraseña:** "¿Olvidaste tu contraseña?" por correo con Resend. Sin `RESEND_API_KEY` el correo se imprime en consola.
+- **Arquitectura multiempresa:** modelo `Negocio`, `Empleado` (un empleado = un solo negocio), aislamiento de datos por `negocio_id` desde el backend, tienda pública por `/t/<slug>/`, panel de superadmin para crear negocios y empleados.
+- **Tienda pública por negocio:** catálogo sin login por negocio, carrito de pedido, confirmación con retiro en local o envío a domicilio (+$1000), reserva de stock con expiración de 48 horas.
+- **Exportación de stock a Excel:** desde el reporte de stock, descarga de Excel con todos los productos del negocio (nombre, categoría, stock, precio, costo, margen).
+- **Arqueo de caja:** cierre de turno con conteo físico de efectivo, tarjeta y Mercado Pago; cálculo de diferencia sobrante/faltante.
+- **Productos sin movimiento:** KPI en dashboard con productos sin ventas en los últimos 30 días, listado con edición de precio (descuento rápido o manual) y baja de producto.
+- **Facturas / Documentos del negocio:** creación, edición y gestión de facturas (luz, gas, seguridad e higiene, proveedores, otro) con monto, fecha de vencimiento, estado (pendiente/pagada/anulada) y archivo PDF adjunto opcional. KPI de "Deudas a proveedores", alerta automática a 7 días del vencimiento, pago parcial soportado.
 
 ---
 
@@ -51,12 +65,13 @@ Publicado en: `https://norvex.onrender.com/`
 ### Backend
 - **Python 3.10+** con **Django 6.1.1** (Django puede servir por WSGI/ASGI: `config/wsgi.py` / `config/asgi.py`).
 - **PostgreSQL** como base principal mediante `psycopg2-binary` (lectura de `DATABASE_URL` con `django-environ`; sin `DATABASE_URL` cae a SQLite para desarrollo).
-- Arquitectura por apps propias: `usuarios`, `ventas`, `clientes`, `pedidos`, `administracion`, `auditoria`. Lógica de negocio en `services.py` de cada app.
+- Arquitectura por apps propias: `usuarios`, `ventas`, `clientes`, `pedidos`, `administracion`, `auditoria`, `negocios`. Lógica de negocio en `services.py` de cada app.
 - Autenticación con **Django Authentication** + roles por **Django Groups** y decorador `rol_requerido`.
 - Auditoría con **Django signals** (`user_logged_in` / `user_logged_out`).
 - Configuración por variables de entorno con `.env` (ver **Configuración**); locale `es-ar`, zona horaria `America/Argentina/Buenos_Aires`.
 - **Resend API** para correos (recuperación de contraseña, ver `usuarios/email_backend.py`); sin API key usa backend de consola.
 - **Mercado Pago Checkout Pro + OAuth**: cliente con `urllib` de la librería estándar (sin dependencias extra), webhook y consulta de pagos cada 3 s.
+- **Openpyxl** para exportación de stock a Excel.
 - Producción: **WhiteNoise** para estáticos y **gunicorn** como servidor WSGI, publicado en **Render** con PostgreSQL.
 
 ### Frontend
@@ -96,10 +111,10 @@ pip install -r requirements.txt
 copy .env.example .env   # y completar DATABASE_URL
 python manage.py migrate
 python manage.py setup_inicial
-python manage.py runserver 8001
+python manage.py runserver 8000
 ```
 
-Abrir `http://127.0.0.1:8001/`. El puerto de este proyecto es `8001`, no `8000`.
+Abrir `http://127.0.0.1:8000/`.
 
 ### Datos de demo
 
@@ -110,13 +125,19 @@ python manage.py cargar_demo_clientes --limpiar
 
 - `cargar_demo`: ~57 productos en 7 categorías y ventas desde el 20/09/2026 (semilla fija, determinístico).
 - `cargar_demo_clientes`: clientes con compras reales, puntos, deuda FIAR y pedidos de WhatsApp. Va **después** de `cargar_demo`.
+- `cargar_demo_todos --limpiar`: pobla los 3 negocios (Kiosco De Barrio, Ferretería Martillito, Dietética Natural) con productos, usuarios, ventas, pedidos, turnos y clientes.
 
 ### Usuarios de prueba
 
-| Usuario | Contraseña | Rol |
-|---|---|---|
-| `admin` | `kiosco2024` | Administrador |
-| `cajero1` | `kiosco2024` | Cajero |
+| Usuario | Contraseña | Rol | Negocio |
+|---|---|---|---|
+| `admin` | `kiosco2024` | Superadmin | todos |
+| `admin_barrio` | `kiosco2024` | Administrador | Kiosco De Barrio |
+| `cajero_barrio_1` | `kiosco2024` | Cajero | Kiosco De Barrio |
+| `admin_martillito` | `kiosco2024` | Administrador | Ferretería Martillito |
+| `cajero_martillito_1` | `kiosco2024` | Cajero | Ferretería Martillito |
+| `admin_natural` | `kiosco2024` | Administrador | Dietética Natural |
+| `cajero_natural_1` | `kiosco2024` | Cajero | Dietética Natural |
 
 ### Correr los tests
 
@@ -124,7 +145,7 @@ python manage.py cargar_demo_clientes --limpiar
 python manage.py test --keepdb
 ```
 
-379 tests en verde.
+410 tests en verde.
 
 ---
 
@@ -226,10 +247,18 @@ kiosco_sprint1/
 - Cobro QR de Mercado Pago + pantalla del cliente (HU-15/16)
 - Botón "Conectar con Mercado Pago" (OAuth) y publicación en Render
 - Recuperación de contraseña por correo con Resend
+- Arquitectura multiempresa: modelo `Negocio`, `Empleado`, aislamiento de datos por `negocio_id`, tienda pública `/t/<slug>/`, panel superadmin
+- Exportación de stock a Excel desde el reporte de stock
+- Arqueo de caja con conteo físico y cálculo de sobrante/faltante
+- Productos sin movimiento con KPI, descuento manual y baja de producto
+- Facturas/documentos del negocio con PDF adjunto, expiración 7 días y KPI de deudas a proveedores
 
 ### Pendiente
 
 | Item | Notas |
 |---|---|
-| Comercio configurable (nombre y colores del local) | Hoy la identidad es fija en neón; se parametrizaría por settings/templates. |
-| Multi-negocio (varios comercios en una instalación) | Hoy es una instalación por negocio; requeriría un modelo `Negocio`. |
+| Fechas de vencimiento por lote (FIFO) | Para controlar stock por lote de compra y evitar vender productos vencidos. |
+| Multi-sucursal por negocio | Un comercio con varios locales, cada uno con su propio stock y caja. |
+| Facturación electrónica (AFIP/ARCA) | Generar factura electrónica con CAE y código QR. |
+| Notificaciones automáticas | Email o WhatsApp al cliente cuando el pedido está listo. |
+| Dashboard comparativo entre negocios | Para el superadmin, comparar ventas entre comercios. |

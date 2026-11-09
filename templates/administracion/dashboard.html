@@ -81,6 +81,17 @@
                 <p>Stock bajo (≤ {{ umbral_stock_bajo }})</p>
             </div>
         </a>
+
+        <!-- Productos sin movimiento: click = ver y editar precios -->
+        <a href="{% url 'administracion:productos_sin_movimiento' %}" class="stat-card stat-warning stat-card-link">
+            <div class="stat-icon">
+                <i class="bi bi-hourglass-bottom"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ productos_sin_movimiento }}</h3>
+                <p>Sin movimiento ({{ dias_dias }} días)</p>
+            </div>
+        </a>
     </div>
 
     <!-- Accesos rápidos -->

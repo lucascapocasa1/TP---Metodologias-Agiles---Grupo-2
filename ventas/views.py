@@ -1,3 +1,5 @@
+from decimal import Decimal
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
@@ -210,7 +212,57 @@ def cierre_turno(request):
             messages.success(request, "Turno abierto. ¡Buen trabajo!")
             return redirect("ventas:cierre_turno")
 
+        if accion == "cerrar_con_arqueo" and turno is not None:
+            try:
+                efectivo_fisico = Decimal(request.POST.get("efectivo_fisico", "0") or "0")
+                tarjeta_fisico = Decimal(request.POST.get("tarjeta_fisico", "0") or "0")
+                mercado_pago_fisico = Decimal(request.POST.get("mercado_pago_fisico", "0") or "0")
+                observacion = request.POST.get("observacion", "")
+
+                arqueo = services.registrar_arqueo(
+                    turno,
+                    efectivo_fisico=efectivo_fisico,
+                    tarjeta_fisico=tarjeta_fisico,
+                    mercado_pago_fisico=mercado_pago_fisico,
+                    usuario=request.user,
+                    observacion=observacion,
+                )
+            except ErrorCobro as exc:
+                messages.error(request, str(exc))
+                return redirect("ventas:cierre_turno")
+            except (ValueError, TypeError):
+                messages.error(request, "Ingresá montos válidos para el conteo físico.")
+                return redirect("ventas:cierre_turno")
+
+            registrar_accion(
+                request.user,
+                "Cierre de turno con arqueo",
+                f"Efectivo ${services.formatear_monto(arqueo.efectivo_sistema)} "
+                f"(físico ${services.formatear_monto(arqueo.efectivo_fisico)}) · "
+                f"Tarjeta ${services.formatear_monto(arqueo.tarjeta_sistema)} "
+                f"(físico ${services.formatear_monto(arqueo.tarjeta_fisico)}) · "
+                f"Mercado Pago ${services.formatear_monto(arqueo.mercado_pago_sistema)} "
+                f"(físico ${services.formatear_monto(arqueo.mercado_pago_fisico)}) · "
+                f"Diferencia total ${services.formatear_monto(arqueo.diferencia_total)}",
+                request,
+            )
+
+            if arqueo.diferencia_total == 0:
+                messages.success(
+                    request,
+                    "Turno cerrado y arqueo cuadrado. ¡Todo coincide!",
+                )
+            else:
+                signo = "sobrante" if arqueo.diferencia_total > 0 else "faltante"
+                messages.warning(
+                    request,
+                    f"Turno cerrado. Hay un {signo} de "
+                    f"${services.formatear_monto(abs(arqueo.diferencia_total))}.",
+                )
+            return redirect(f"{reverse('ventas:cierre_turno')}?turno={turno.pk}")
+
         if accion == "cerrar" and turno is not None:
+            # Cierre rápido sin arqueo (compatibilidad)
             try:
                 turno = services.cerrar_turno(turno)
             except ErrorCobro as exc:

@@ -20,6 +20,7 @@ from django.db.models import Count, F, Sum
 from django.db.models.functions import Coalesce, TruncDate
 from django.utils import timezone
 
+from pedidos.models import ItemPedido, Pedido
 from ventas.models import DetalleVenta, Producto, Venta
 
 # Stock igual o por debajo de esto se considera "bajo" para el reporte.
@@ -408,3 +409,48 @@ def productos_bajo_margen(umbral=Decimal("20.00"), limite=10, negocio=None):
 
     filas.sort(key=lambda p: p.margen_porcentual)
     return filas[:limite]
+
+
+# ========== Productos sin movimiento ==========
+
+
+def productos_sin_movimiento(negocio=None, dias=30):
+    """
+    Productos activos que NO tuvieron ventas ni pedidos entregados
+    en los últimos `dias` días.
+
+    Se consideran tanto ventas presenciales (Venta finalizada)
+    como pedidos online entregados (Pedido estado='entregado').
+
+    Si se pasa `negocio`, filtra solo los productos de ese negocio.
+
+    Devuelve una lista de objetos Producto ordenados por nombre.
+    """
+    fecha_limite = timezone.now() - timedelta(days=dias)
+
+    # IDs de productos que SÍ tuvieron movimiento en el período
+    productos_con_movimiento = set()
+
+    # Ventas finalizadas en el período
+    ventas_recientes = Venta.objects.filter(
+        negocio=negocio,
+        finalizada=True,
+        fecha__gte=fecha_limite,
+    ).values_list("detalles__producto_id", flat=True).distinct()
+    productos_con_movimiento.update(ventas_recientes)
+
+    # Pedidos entregados en el período
+    pedidos_entregados = Pedido.objects.filter(
+        negocio=negocio,
+        estado="entregado",
+        fecha__gte=fecha_limite,
+    ).values_list("detalles__producto_id", flat=True).distinct()
+    productos_con_movimiento.update(pedidos_entregados)
+
+    # Productos activos del negocio que NO tuvieron movimiento
+    sin_movimiento = Producto.objects.filter(
+        negocio=negocio,
+        activo=True,
+    ).exclude(id__in=productos_con_movimiento)
+
+    return list(sin_movimiento.order_by("nombre"))

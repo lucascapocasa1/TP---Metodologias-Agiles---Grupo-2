@@ -15,7 +15,7 @@ from django.utils import timezone
 
 from clientes import services as fidelidad
 
-from .models import DetalleVenta, Producto, Turno, Venta
+from .models import ArqueoTurno, DetalleVenta, Producto, Turno, Venta
 
 CLAVE_CARRITO = "carrito"
 METODOS_PAGO_VALIDOS = {"efectivo", "tarjeta", "cuenta_corriente"}
@@ -475,6 +475,64 @@ def cerrar_turno(turno):
             ]
         )
     return turno
+
+
+def registrar_arqueo(turno, efectivo_fisico, tarjeta_fisico, mercado_pago_fisico, usuario, observacion=""):
+    """
+    Registra el arqueo de caja de un turno abierto.
+
+    Guarda lo que el sistema esperaba (según ventas registradas) y lo que
+    el cajero contó físicamente, calculando las diferencias. Luego cierra
+    el turno para congelar los totales.
+
+    Todo en una sola transacción: o se registra el arqueo y se cierra el
+    turno, o no pasa nada.
+
+    Lanza ErrorCobro si el turno ya estaba cerrado.
+    """
+    from django.db import transaction
+
+    with transaction.atomic():
+        turno = Turno.objects.select_for_update().get(pk=turno.pk)
+        if not turno.activo:
+            raise ErrorCobro("Ese turno ya está cerrado.")
+
+        totales = totales_del_turno(turno)
+
+        arqueo = ArqueoTurno.objects.create(
+            turno=turno,
+            usuario=usuario if (usuario and usuario.is_authenticated) else None,
+            efectivo_sistema=totales["total_efectivo"],
+            tarjeta_sistema=totales["total_tarjeta"],
+            mercado_pago_sistema=totales["total_mercado_pago"],
+            efectivo_fisico=efectivo_fisico,
+            tarjeta_fisico=tarjeta_fisico,
+            mercado_pago_fisico=mercado_pago_fisico,
+            diferencia_efectivo=efectivo_fisico - totales["total_efectivo"],
+            diferencia_tarjeta=tarjeta_fisico - totales["total_tarjeta"],
+            diferencia_mercado_pago=mercado_pago_fisico - totales["total_mercado_pago"],
+            observacion=observacion.strip(),
+        )
+
+        # Cerrar el turno congelando los totales
+        turno.fecha_cierre = timezone.now()
+        turno.total_efectivo = totales["total_efectivo"]
+        turno.total_tarjeta = totales["total_tarjeta"]
+        turno.total_mercado_pago = totales["total_mercado_pago"]
+        turno.deuda_otorgada = totales["deuda_otorgada"]
+        turno.cantidad_operaciones = totales["cantidad_operaciones"]
+        turno.save(
+            update_fields=[
+                "fecha_cierre",
+                "total_efectivo",
+                "total_tarjeta",
+                "total_mercado_pago",
+                "deuda_otorgada",
+                "cantidad_operaciones",
+            ]
+        )
+
+    return arqueo
 
 
 # ========== STOCK DISPONIBLE (reservas de stock) ==========

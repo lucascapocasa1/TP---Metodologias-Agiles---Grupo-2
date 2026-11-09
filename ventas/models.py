@@ -242,6 +242,91 @@ class Turno(models.Model):
         return f"Turno de {nombre} - {self.fecha_apertura:%d/%m/%Y %H:%M} ({estado})"
 
 
+class ArqueoTurno(models.Model):
+    """HU-XX: arqueo de caja al cerrar un turno.
+
+    Registra lo que el sistema espera (según las ventas registradas)
+    y lo que el cajero contó físicamente, para calcular diferencias
+    (sobrante o faltante) en efectivo, tarjeta y Mercado Pago.
+    """
+
+    turno = models.ForeignKey(
+        Turno,
+        on_delete=models.CASCADE,
+        related_name="arqueos",
+        verbose_name="turno",
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="arqueos_realizados",
+        verbose_name="Quien hizo el arqueo",
+    )
+    fecha_arqueo = models.DateTimeField(
+        auto_now_add=True, verbose_name="Fecha del arqueo"
+    )
+
+    # Lo que el sistema calculó según las ventas registradas
+    efectivo_sistema = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
+    tarjeta_sistema = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
+    mercado_pago_sistema = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
+
+    # Lo que el cajero contó físicamente
+    efectivo_fisico = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
+    tarjeta_fisico = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
+    mercado_pago_fisico = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
+
+    # Diferencias calculadas (físico - sistema)
+    diferencia_efectivo = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
+    diferencia_tarjeta = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
+    diferencia_mercado_pago = models.DecimalField(
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
+    )
+
+    observaciones = models.TextField(
+        blank=True, verbose_name="Observaciones",
+        help_text="Notas del arqueo (ej. billete roto, error de posnet, etc.)",
+    )
+
+    class Meta:
+        ordering = ["-fecha_arqueo"]
+        verbose_name = "arqueo de caja"
+        verbose_name_plural = "arqueos de caja"
+
+    @property
+    def diferencia_total(self):
+        """Suma de todas las diferencias."""
+        return (
+            self.diferencia_efectivo
+            + self.diferencia_tarjeta
+            + self.diferencia_mercado_pago
+        )
+
+    def __str__(self):
+        return (
+            f"Arqueo del turno #{self.turno_id} - "
+            f"{self.fecha_arqueo:%d/%m/%Y %H:%M}"
+        )
+
+
 class PagoMercadoPago(models.Model):
     """
     Cobro con QR de Mercado Pago de una venta.

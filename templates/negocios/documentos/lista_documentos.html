@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% load formatos %}
+{% block titulo %}Documentos — {{ negocio.nombre }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-file-earmark-text"></i> Documentos — {{ negocio.nombre }}</h1>
+            <p class="admin-subtitle">
+                Facturas y comprobantes de tu negocio.
+                <strong>{{ total_pendiente }}</strong> pendiente(s),
+                <strong>{{ total_pagada }}</div>
+                pagada(s).
+                <strong>Deuda total: ${{ total_deuda|montos }}</strong>.
+            </p>
+        </div>
+        <div class="admin-header-right">
+            <a href="{% url 'negocios:crear_documento' %}" class="btn btn-kiosco btn-ancho">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo documento
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="admin-filters">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label class="kiosco-label" for="estado">Estado:</label>
+                <select class="kiosco-input" name="estado" id="estado">
+                    <option value="">Todos</option>
+                    {% for valor, etiqueta in estados %}
+                    <option value="{{ valor }}" {% if estado_actual == valor %}selected{% endif %}>
+                        {{ etiqueta }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="filter-group">
+                <label class="kiosco-label" for="categoria">Categoría:</label>
+                <select class="kiosco-input" name="categoria" id="categoria">
+                    <option value="">Todas</option>
+                    {% for valor, etiqueta in categorias %}
+                    <option value="{{ valor }}" {% if categoria_actual == valor %}selected{% endif %}>
+                        {{ etiqueta }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <button type="submit" class="btn btn-admin-filter">
+                <i class="bi bi-funnel"></i> Filtrar
+            </button>
+            <a href="{% url 'negocios:lista_documentos' %}" class="btn btn-admin-clear">
+                Limpiar
+            </a>
+        </form>
+    </div>
+
+    {% if documentos %}
+    <div class="admin-card">
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Factura / Nombre</th>
+                        <th>Categoría</th>
+                        <th>Proveedor</th>
+                        <th>Monto</th>
+                        <th>Pagado</th>
+                        <th>Pendiente</th>
+                        <th>Vencimiento</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for documento in documentos %}
+                    <tr>
+                        <td>
+                            <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>
+                            {% if documento.archivo_pdf %}
+                            <a href="{{ documento.archivo_pdf.url }}" target="_blank" class="texto-suave" title="Ver PDF">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                        <td>{{ documento.get_categoria_display }}</td>
+                        <td>
+                            {% if documento.proveedor %}
+                            {{ documento.proveedor.nombre }}
+                            {% elif documento.nombre_proveedor %}
+                            {{ documento.nombre_proveedor }}
+                            {% else %}
+                            <span class="texto-suave">—</span>
+                            {% endif %}
+                        </td>
+                        <td>${{ documento.monto|montos }}</td>
+                        <td>${{ documento.monto_pagado|montos }}</td>
+                        <td>
+                            {% if documento.monto_pendiente > 0 %}
+                            <span class="badge-deuda">${{ documento.monto_pendiente|montos }}</span>
+                            {% else %}
+                            <span class="texto-suave">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if documento.esta_vencida %}
+                            <span class="badge-estado badge-estado-vencida" title="Vencida">
+                                <i class="bi bi-clock"></i> Vencida
+                            </span>
+                            {% elif documento.esta_por_vencer %}
+                            <span class="badge-estado badge-estado-por-vencer" title="Por vencer">
+                                <i class="bi bi-clock"></i> Por vencer
+                            </span>
+                            {% else %}
+                            <span class="texto-suave">{{ documento.fecha_vencimiento|date:"d/m/Y" }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if documento.estado == "pendiente" %}
+                            <span class="badge-estado badge-estado-pendiente">
+                                Pendiente
+                            </span>
+                            {% elif documento.estado == "pagada" %}
+                            <span class="badge-estado badge-estado-pagada">
+                                Pagada
+                            </span>
+                            {% else %}
+                            <span class="badge-estado badge-estado-anulada">
+                                Anulada
+                            </span>
+                            {% endif %}
+                        </td>
+                        <td class="actions-col">
+                            <div class="action-buttons">
+                                {% if documento.estado == "pendiente" %}
+                                <a href="{% url 'negocios:marcar_pagada' documento.id %}" class="btn-action btn-edit" title="Registrar pago">
+                                    <i class="bi bi-cash-coin"></i>
+                                </a>
+                                {% endif %}
+                                {% if documento.archivo_pdf %}
+                                <a href="{{ documento.archivo_pdf.url }}" target="_blank" class="btn-action" title="Ver PDF">
+                                    <i class="bi bi-file-earmark-pdf"></i>
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'negocios:editar_documento' documento.id %}" class="btn-action btn-edit">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                {% if documento.archivo_pdf %}
+                                <a href="{% url 'negocios:subir_pdf' documento.id %}" class="btn-action" title="Cambiar PDF">
+                                    <i class="bi bi-upload"></i>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="admin-empty">
+        <div class="empty-icon"><i class="bi bi-file-earmark"></i></div>
+        <h3>No hay documentos</h3>
+        <p>No hay facturas registradas para {{ negocio.nombre }}.</p>
+        <a href="{% url 'negocios:crear_documento' %}" class="btn btn-kiosco mt-3">
+            <i class="bi bi-plus-lg"></i> Crear documento
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

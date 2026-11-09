@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% load formatos %}
+{% block titulo %}Productos sin movimiento{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-hourglass-bottom"></i> Productos sin movimiento</h1>
+            <p class="admin-subtitle">
+                Productos sin ventas ni pedidos entregados en los últimos
+                <strong>{{ dias }} días</strong>. Podés ajustar su precio o
+                dar de baja los que ya no se mueven.
+            </p>
+        </div>
+        <div class="admin-header-right">
+            <a href="{% url 'administracion:dashboard' %}" class="btn btn-kiosco-outline">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al panel
+            </a>
+        </div>
+    </div>
+
+    {% if productos %}
+    <div class="admin-filters">
+        <form method="get" class="filter-form">
+            <div class="filter-group">
+                <label class="kiosco-label" for="dias">Días sin movimiento:</label>
+                <input type="number" name="dias" id="dias" min="1" max="365"
+                       class="kiosco-input" value="{{ dias }}"
+                       style="width: 80px;">
+            </div>
+            <button type="submit" class="btn btn-admin-filter">
+                <i class="bi bi-funnel"></i> Cambiar
+            </button>
+        </form>
+    </div>
+
+    <div class="admin-card">
+        <h2><i class="bi bi-box-seam"></i> {{ total_sin_movimiento }} producto(s) sin movimiento</h2>
+        <div class="admin-table-container">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Stock</th>
+                        <th>Precio actual</th>
+                        <th>Precio nuevo</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for producto in productos %}
+                    <tr>
+                        <td>{{ producto.nombre }}</td>
+                        <td>{{ producto.categoria.nombre }}</td>
+                        <td>{{ producto.stock }}</td>
+                        <td>${{ producto.precio|montos }}</td>
+                        <td>
+                            <form method="post" class="form-row" style="display: flex; gap: 4px; align-items: center;">
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="descuento">
+                                <input type="hidden" name="producto_id" value="{{ producto.pk }}">
+                                <input type="number" name="nuevo_precio" step="0.01" min="0"
+                                       class="kiosco-input" placeholder="0,00"
+                                       style="width: 110px;">
+                                <button type="submit" class="btn btn-kiosco btn-chico" style="padding: 6px 12px;">
+                                    Aplicar
+                                </button>
+                            </form>
+                            <div class="texto-suave" style="font-size: 0.8rem;">
+                                Rápido:
+                                <a href="{% url 'administracion:productos_sin_movimiento' %}?accion=desc&prod={{ producto.pk }}&pct=5" class="texto-suave" style="text-decoration: none;">-5%</a>,
+                                <a href="{% url 'administracion:productos_sin_movimiento' %}?accion=desc&prod={{ producto.pk }}&pct=10" class="texto-suave" style="text-decoration: none;">-10%</a>,
+                                <a href="{% url 'administracion:productos_sin_movimiento' %}?accion=desc&prod={{ producto.pk }}&pct=15" class="texto-suave" style="text-decoration: none;">-15%</a>
+                            </div>
+                        </td>
+                        <td>
+                            <form method="post" class="form-row" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="accion" value="baja">
+                                <input type="hidden" name="producto_id" value="{{ producto.pk }}">
+                                <button type="submit" class="btn btn-kiosco-outline btn-chico"
+                                        onclick="return confirm('¿Dar de baja este producto? Se mantendrá el historial de ventas.');">
+                                    <i class="bi bi-trash"></i> Baja
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="admin-empty">
+        <div class="empty-icon"><i class="bi bi-check-circle"></i></div>
+        <h3>Todos los productos tienen movimiento</h3>
+        <p>No hay productos sin ventas ni pedidos entregados en los últimos
+           <strong>{{ dias }} días</strong>.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

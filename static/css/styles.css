@@ -4449,3 +4449,64 @@ a.stat-card-link:hover {
   }
 }
 
+/* ============================================================
+   Arqueo de caja (cierre de turno)
+   ============================================================ */
+.arqueo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.arqueo-grid .stat-content p {
+  margin-bottom: 0.5rem;
+}
+
+.arqueo-grid input[type="number"] {
+  width: 100%;
+  margin-top: 0.5rem;
+}
+
+.form-row {
+  margin-bottom: 1.25rem;
+}
+
+.form-row .kiosco-input {
+  width: 100%;
+}
+
+[data-tema="neon"] .arqueo-grid .stat-card {
+  background: var(--superficie);
+  border-color: var(--contorno);
+  box-shadow: 0 0 12px rgba(0, 200, 224, 0.15);
+}
+
+[data-tema="neon"] .arqueo-grid .stat-card:hover {
+  border-color: var(--sol);
+  box-shadow: 0 0 20px rgba(0, 200, 224, 0.3);
+}
+
+.diferencia-positiva {
+  color: #34C759;
+  font-weight: 700;
+}
+
+.diferencia-negativa {
+  color: #FF3B30;
+  font-weight: 700;
+}
+
+.diferencia-cero {
+  color: #9FB6C2;
+  font-weight: 700;
+}
+
+[data-tema="neon"] .diferencia-positiva {
+  color: #3FD98C;
+}
+
+[data-tema="neon"] .diferencia-negativa {
+  color: #FF6B6B;
+}
+
