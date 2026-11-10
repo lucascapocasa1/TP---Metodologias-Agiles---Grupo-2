@@ -2,6 +2,7 @@ from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import Count, DecimalField, Q, Sum, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, redirect, render
@@ -147,13 +148,24 @@ def detalle_cliente(request, cliente_id):
     """Ficha de fidelidad: puntos, compras, cuenta corriente e historial."""
     cliente = get_object_or_404(Cliente, pk=cliente_id)
 
-    ventas = (
+    ventas_qs = (
         cliente.ventas.filter(finalizada=True, negocio=request.negocio)
         .select_related("usuario")
         .order_by("-fecha")
     )
+
+    # Paginación de compras (10 por página)
+    paginator = Paginator(ventas_qs, 10)
+    pagina = request.GET.get("page")
+    try:
+        ventas = paginator.page(pagina)
+    except PageNotAnInteger:
+        ventas = paginator.page(1)
+    except EmptyPage:
+        ventas = paginator.page(paginator.num_pages)
+
     total_gastado = (
-        ventas.aggregate(
+        ventas_qs.aggregate(
             gasto=Coalesce(
                 Sum("total"),
                 Value(Decimal("0.00")),
@@ -166,12 +178,13 @@ def detalle_cliente(request, cliente_id):
 
     contexto = {
         "cliente": cliente,
-        "total_compras": ventas.count(),
+        "total_compras": ventas_qs.count(),
         "total_gastado": total_gastado,
-        "ventas": ventas[:100],
+        "ventas": ventas,
         "puntos_regla": services.PUNTOS_POR_PESO,
         "pagos": cliente.pagos.all()[:100],
         "form_pago": PagoCuentaCorrienteForm(cliente=cliente),
+        "is_paginated": ventas.has_other_pages(),
     }
     return render(request, "clientes/detalle_cliente.html", contexto)
 

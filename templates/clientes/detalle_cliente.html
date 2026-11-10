@@ -56,7 +56,7 @@
     </div>
 
     <!-- Cuenta corriente (HU-14) -->
-    <div class="admin-card cuenta-corriente-card">
+    <div class="admin-card">
         <div class="card-header">
             <h2><i class="bi bi-journal-text"></i> Cuenta corriente (FIAR)</h2>
         </div>
@@ -112,7 +112,7 @@
                 {% else %}
                 <div class="kiosco-alert kiosco-alert-success" role="status">
                     <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
-                    <span>Sin deuda pendiente. 🎉</span>
+                    <span>Sin deuda pendiente. ¡Gracias!</span>
                 </div>
                 {% endif %}
             {% else %}
@@ -122,7 +122,7 @@
                     Este cliente no tiene cuenta corriente habilitada.
                     Editá su ficha para asignarle un límite de crédito.
                 </span>
-            </div>
+                </div>
             {% endif %}
 
             {% if pagos %}
@@ -154,33 +154,7 @@
 
     <div class="admin-card">
         <div class="card-header">
-            <h2><i class="bi bi-telephone"></i> Datos de contacto</h2>
-        </div>
-        <div class="card-body">
-            <div class="user-info-box">
-                <div class="info-row">
-                    <span class="info-label">Email:</span>
-                    <span class="info-value">{{ cliente.email|default:"No especificado" }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Teléfono:</span>
-                    <span class="info-value">{{ cliente.telefono|default:"No especificado" }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Registrado:</span>
-                    <span class="info-value">{{ cliente.fecha_registro|date:"d/m/Y H:i" }}</span>
-                </div>
-                <div class="info-row">
-                    <span class="info-label">Regla de puntos:</span>
-                    <span class="info-value">1 punto cada ${{ puntos_regla|montos }} comprados</span>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="admin-card">
-        <div class="card-header">
-            <h2><i class="bi bi-receipt"></i> Historial de compras</h2>
+            <h2><i class="bi bi-telephone"></i> Historial de compras</h2>
         </div>
         <div class="card-body">
             {% if ventas %}
@@ -194,6 +168,7 @@
                             <th>Cajero</th>
                             <th>Puntos</th>
                             <th>Total</th>
+                            <th>Detalle</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -209,11 +184,34 @@
                                 {% else %}—{% endif %}
                             </td>
                             <td><strong>${{ v.total|montos }}</strong></td>
+                            <td>
+                                <a href="{% url 'ventas:detalle_venta' v.pk %}"
+                                   class="btn-action btn-edit" title="Ver detalle">
+                                    <i class="bi bi-file-earmark-text"></i>
+                                </a>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
                 </table>
             </div>
+            {% if is_paginated %}
+            <div class="kiosco-pagination mt-3">
+                {% if ventas.has_previous %}
+                <a href="?page={{ ventas.previous_page_number }}" class="kiosco-pagination page-link">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </a>
+                {% endif %}
+                <span class="kiosco-pagination page-link">
+                    Página {{ ventas.number }} de {{ ventas.paginator.num_pages }}
+                </span>
+                {% if ventas.has_next %}
+                <a href="?page={{ ventas.next_page_number }}&cliente_id={{ cliente.pk }}" class="kiosco-pagination page-link">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
             {% else %}
             <div class="admin-empty">
                 <div class="empty-icon"><i class="bi bi-bag-x"></i></div>

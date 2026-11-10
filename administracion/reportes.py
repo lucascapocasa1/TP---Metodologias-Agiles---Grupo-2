@@ -309,6 +309,12 @@ def productos_mas_rentables(desde_dt, hasta_dt, limite=5, solo_finalizadas=False
         fila["ganancia"] = fila["ingresos"] - fila["costo"]
 
     filas.sort(key=lambda f: f["ganancia"], reverse=True)
+    # Calcular margen porcentual para cada producto
+    for fila in filas:
+        if fila["costo"] > 0:
+            fila["margen_porcentual"] = round((fila["ganancia"] / fila["costo"]) * 100, 2)
+        else:
+            fila["margen_porcentual"] = 0
     return filas[:limite]
 
 
@@ -350,12 +356,23 @@ def resumen_stock(solo_activos=True, negocio=None):
         productos.filter(stock__lte=UMBRAL_STOCK_BAJO).order_by("stock", "nombre")
     )
 
+    # Calcular margen de ganancia del stock
+    margen_pct = 0
+    if agregados["valor_costo"] > 0:
+        margen_pct = round(
+            (agregados["valor_venta"] - agregados["valor_costo"])
+            / agregados["valor_costo"]
+            * 100,
+            2,
+        )
+
     return {
         "cantidad_productos": agregados["cantidad_productos"],
         "unidades": agregados["unidades"],
         "valor_costo": agregados["valor_costo"],
         "valor_venta": agregados["valor_venta"],
         "ganancia_potencial": agregados["valor_venta"] - agregados["valor_costo"],
+        "margen_porcentual": margen_pct,
         "stock_bajo": stock_bajo,
         "cantidad_stock_bajo": len(stock_bajo),
         "sin_stock": productos.filter(stock=0).count(),

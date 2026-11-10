@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% load formatos %}
+{% block titulo %}Venta #{{ venta.pk }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-receipt"></i> Venta N° {{ venta.pk }}</h1>
+            <p class="admin-subtitle">
+                <span>Fecha: {{ venta.fecha|date:"d/m/Y H:i" }}</span>
+                <span class="venta-estado">
+                    {% if venta.finalizada %}
+                    <span class="status-badge status-active">Finalizada</span>
+                    {% else %}
+                    <span class="status-badge status-inactive">En curso</span>
+                    {% endif %}
+                </span>
+            </p>
+        </div>
+        <a href="{% url 'clientes:detalle_cliente' venta.cliente.pk %}" class="btn btn-kiosco-outline">
+            <i class="bi bi-person-heart"></i> Ver cliente
+        </a>
+        <a href="{% url 'administracion:dashboard' %}" class="btn btn-kiosco-outline">
+            <i class="bi bi-arrow-left"></i> Volver al panel
+        </a>
+    </div>
+
+    <div class="admin-card">
+        <div class="card-header">
+            <h2><i class="bi bi-bag-check"></i> Detalle de la venta</h2>
+        </div>
+        <div class="card-body">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-cash"></i></div>
+                    <div class="stat-content">
+                        <h3>${{ venta.total|montos }}</h3>
+                        <p>Total de la venta</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-people"></i></div>
+                    <div class="stat-content">
+                        <h3>{{ cliente.nombre_completo }}</h3>
+                        <p>Cliente: {{ cliente.dni }}</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
+                    <div class="stat-content">
+                        <h3>{{ venta.get_metodo_pago_display }}</h3>
+                        <p>Método de pago</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon"><i class="bi bi-calendar-check"></i></div>
+                    <div class="stat-content">
+                        <h3>{{ venta.fecha|date:"d/m/Y H:i" }}</h3>
+                        <p>Fecha de la venta</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="admin-table-container mt-4">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Categoría</th>
+                        <th>Cantidad</th>
+                        <th>Precio unitario</th>
+                        <th>Subtotal</th>
+                        <th>Costo</th>
+                        <th>Ganancia</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for detalle in detalles %}
+                    <tr>
+                        <td>{{ detalle.producto.nombre }}</td>
+                        <td>{{ detalle.producto.categoria.nombre }}</td>
+                        <td>{{ detalle.cantidad }}</td>
+                        <td>${{ detalle.precio_unitario|montos }}</td>
+                        <td><strong>${{ detalle.subtotal|montos }}</strong></td>
+                        <td>${{ detalle.costo_unitario|montos }}</td>
+                        <td>${{ detalle.ganancia|montos }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-right"><strong>Total:</strong></td>
+                        <td><strong>${{ venta.total|montos }}</strong></td>
+                        <td></td>
+                        <td></td>
+                        <td></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -189,6 +189,7 @@
                             <tr>
                                 <th>Producto</th>
                                 <th>Ganancia</th>
+                                <th>Margen</th>
                                 <th>Costo</th>
                             </tr>
                         </thead>
@@ -197,6 +198,12 @@
                             <tr>
                                 <td>{{ fila.producto__nombre }}</td>
                                 <td>${{ fila.ganancia|montos }}</td>
+                                <td>
+                                    <span class="margen-badge
+                                        {% if fila.margen_porcentual >= 40 %}margen-alto{% elif fila.margen_porcentual >= 20 %}margen-medio{% else %}margen-bajo{% endif %}">
+                                        {{ fila.margen_porcentual|floatformat:0 }}%
+                                    </span>
+                                </td>
                                 <td>${{ fila.costo|montos }}</td>
                             </tr>
                             {% endfor %}
@@ -256,7 +263,23 @@
                 </tbody>
             </table>
         </div>
-        {% if hay_mas_ventas %}
+        {% if is_paginated %}
+        <div class="kiosco-pagination mt-3">
+            {% if ventas.has_previous %}
+            <a href="?page={{ ventas.previous_page_number }}&desde={{ desde }}&hasta={{ hasta }}&solo_finalizadas={{ solo_finalizadas }}" class="kiosco-pagination page-link">
+                <i class="bi bi-chevron-left"></i> Anterior
+            </a>
+            {% endif %}
+            <span class="kiosco-pagination page-link">
+                Página {{ ventas.number }} de {{ ventas.paginator.num_pages }}
+            </span>
+            {% if ventas.has_next %}
+            <a href="?page={{ ventas.next_page_number }}&desde={{ desde }}&hasta={{ hasta }}&solo_finalizadas={{ solo_finalizadas }}" class="kiosco-pagination page-link">
+                Siguiente <i class="bi bi-chevron-right"></i>
+            </a>
+            {% endif %}
+        </div>
+        {% else %}
         <p class="reporte-nota">Se muestran las 100 ventas más recientes del período.</p>
         {% endif %}
         {% else %}

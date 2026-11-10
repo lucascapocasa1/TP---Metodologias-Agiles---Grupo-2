@@ -73,6 +73,13 @@
                 <p>Productos sin stock</p>
             </div>
         </div>
+        <div class="stat-card stat-total">
+            <div class="stat-icon"><i class="bi bi-graph-up-arrow"></i></div>
+            <div class="stat-content">
+                <h3>{{ stock.margen_porcentual }}%</h3>
+                <p>Margen de ganancia</p>
+            </div>
+        </div>
     </div>
 
     {% if stock.sin_costo %}
@@ -120,7 +127,7 @@
     <!-- Stock bajo (ancla del KPI del dashboard: #stock-bajo) -->
     <div class="admin-card" id="stock-bajo">
         <h2><i class="bi bi-exclamation-triangle"></i> Stock bajo o agotado</h2>
-        {% if stock.stock_bajo %}
+        {% if stock_bajo %}
         <div class="admin-table-container">
             <table class="admin-table">
                 <thead>
@@ -134,7 +141,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for p in stock.stock_bajo %}
+                    {% for p in stock_bajo %}
                     <tr class="{% if p.stock == 0 %}row-inactive{% endif %}">
                         <td>{{ p.nombre }}</td>
                         <td>{{ p.categoria.nombre }}</td>
@@ -147,11 +154,37 @@
                         </td>
                         <td>${{ p.costo|montos }}</td>
                         <td>${{ p.precio|montos }}</td>
-                        <td>{{ p.margen_porcentual|floatformat:1 }}%</td>
+                        <td>
+                            {% if p.costo > 0 %}
+                            <span class="margen-badge
+                                {% if p.margen_porcentual >= 40 %}margen-alto{% elif p.margen_porcentual >= 20 %}margen-medio{% else %}margen-bajo{% endif %}">
+                                {{ p.margen_porcentual|floatformat:0 }}%
+                            </span>
+                            {% else %}
+                            <span class="texto-suave">N/D</span>
+                            {% endif %}
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            {% if is_paginated_stock %}
+            <div class="kiosco-pagination mt-3">
+                {% if stock_bajo.has_previous %}
+                <a href="?page_stock_bajo={{ stock_bajo.previous_page_number }}" class="kiosco-pagination page-link">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </a>
+                {% endif %}
+                <span class="kiosco-pagination page-link">
+                    Página {{ stock_bajo.number }} de {{ stock_bajo.paginator.num_pages }}
+                </span>
+                {% if stock_bajo.has_next %}
+                <a href="?page_stock_bajo={{ stock_bajo.next_page_number }}" class="kiosco-pagination page-link">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
         {% else %}
         <div class="admin-empty">
@@ -184,15 +217,37 @@
                 <tbody>
                     {% for p in bajo_margen %}
                     <tr>
-                        <td>{{ p.nombre }}</td>
-                        <td>${{ p.costo|montos }}</td>
-                        <td>${{ p.precio|montos }}</td>
+                        <td>{{ p.producto.nombre }}</td>
+                        <td>${{ p.producto.costo|montos }}</td>
+                        <td>${{ p.producto.precio|montos }}</td>
                         <td>${{ p.margen_unitario|montos }}</td>
-                        <td>{{ p.margen_porcentual|floatformat:1 }}%</td>
+                        <td>
+                            <span class="margen-badge
+                                {% if p.margen_porcentual >= 40 %}margen-alto{% elif p.margen_porcentual >= 20 %}margen-medio{% else %}margen-bajo{% endif %}">
+                                {{ p.margen_porcentual|floatformat:0 }}%
+                            </span>
+                        </td>
                     </tr>
                     {% endfor %}
                 </tbody>
             </table>
+            {% if is_paginated_bm %}
+            <div class="kiosco-pagination mt-3">
+                {% if bajo_margen.has_previous %}
+                <a href="?page_bm={{ bajo_margen.previous_page_number }}" class="kiosco-pagination page-link">
+                    <i class="bi bi-chevron-left"></i> Anterior
+                </a>
+                {% endif %}
+                <span class="kiosco-pagination page-link">
+                    Página {{ bajo_margen.number }} de {{ bajo_margen.paginator.num_pages }}
+                </span>
+                {% if bajo_margen.has_next %}
+                <a href="?page_bm={{ bajo_margen.next_page_number }}" class="kiosco-pagination page-link">
+                    Siguiente <i class="bi bi-chevron-right"></i>
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
         </div>
         {% else %}
         <p class="text-muted mb-0">

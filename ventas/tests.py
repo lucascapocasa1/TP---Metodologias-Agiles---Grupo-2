@@ -6,6 +6,8 @@ from django.test import TestCase
 from django.urls import reverse
 
 from auditoria.models import RegistroAuditoria
+from negocios.models import Negocio
+from usuarios.models import Empleado
 
 from .models import Categoria, DetalleVenta, Producto, Turno, Venta
 
@@ -926,15 +928,27 @@ class CierreTurnoTests(TestCase):
         self.grupo_cajero = Group.objects.create(name="Cajero")
         self.grupo_admin = Group.objects.create(name="Administrador")
 
+        self.negocio = Negocio.objects.create(
+            nombre="Test Negocio",
+            slug="test-negocio",
+            activo=True,
+        )
+
         self.cajero = User.objects.create_user(
             username="cajero_turno", password="claveSegura123"
         )
         self.cajero.groups.add(self.grupo_cajero)
+        Empleado.objects.create(
+            usuario=self.cajero, negocio=self.negocio, activo=True
+        )
 
         self.admin = User.objects.create_user(
             username="admin_turno", password="claveSegura123", is_staff=True
         )
         self.admin.groups.add(self.grupo_admin)
+        Empleado.objects.create(
+            usuario=self.admin, negocio=self.negocio, activo=True
+        )
 
         self.categoria = Categoria.objects.create(nombre="Bebidas")
         self.producto = Producto.objects.create(
@@ -968,6 +982,7 @@ class CierreTurnoTests(TestCase):
             total=Decimal(str(total)),
             metodo_pago=metodo,
             usuario=usuario if usuario is not None else self.cajero,
+            negocio=self.negocio,
             finalizada=finalizada,
         )
 

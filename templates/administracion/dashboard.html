@@ -1,213 +1,354 @@
 {% extends "base.html" %}
+{% load formatos %}
 {% block titulo %}Panel de Administración{% endblock %}
 {% block contenido %}
+<style>
+    /* Sidebar de navegación */
+    .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        bottom: 0;
+        width: 260px;
+        background: var(--ink-solid);
+        color: var(--crema);
+        padding-top: 1.5rem;
+        z-index: 100;
+        overflow-y: auto;
+    }
+    [data-tema="neon"] .sidebar {
+        background: var(--ink-solid);
+        color: var(--crema);
+    }
+    .sidebar-header {
+        padding: 1rem 1.5rem;
+        font-family: var(--font-display);
+        font-size: 1.4rem;
+        color: var(--sol);
+        font-weight: bold;
+        border-bottom: 1px solid var(--contorno);
+        margin-bottom: 1rem;
+        text-align: center;
+    }
+    .sidebar-nav {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        left: 2rem;
+    }
+    .sidebar-nav li {
+        margin: 0;
+    }
+    .sidebar-nav .nav-group-title {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        color: var(--texto-suave);
+        padding: 0.75rem 1.5rem 0.35rem 1rem;
+        text-align: center;
+    }
+    .sidebar-nav a {
+        display: block;
+        padding: 0.75rem 2rem 0.75rem 2rem;
+        color: var(--texto-suave);
+        text-decoration: none;
+        font-size: 0.95rem;
+        transition: background 0.2s, color 0.2s;
+        text-align: center;
+    }
+    .sidebar-nav a:hover {
+        background: rgba(255, 255, 255, 0.05);
+        color: var(--texto);
+    }
+    .sidebar-nav a.active {
+        background: var(--sol);
+        color: var(--ink-solid);
+    }
+    .sidebar-nav a i {
+        margin-right: 0.75rem;
+    }
+
+    /* Área principal */
+    .main-content {
+        margin-left: 260px;
+        padding: 2rem;
+        min-height: 100vh;
+    }
+    .main-header {
+        margin-bottom: 2rem;
+    }
+    .main-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--texto);
+        margin-bottom: 0.5rem;
+    }
+    .main-header p {
+        color: var(--texto-suave);
+        font-size: 1rem;
+    }
+
+    /* Responsive: en móviles el sidebar se oculta */
+    @media (max-width: 768px) {
+        .sidebar {
+            position: fixed;
+            left: -260px;
+            transition: left 0.3s ease;
+            z-index: 1000;
+        }
+        .sidebar.open {
+            left: 0;
+        }
+        .main-content {
+            margin-left: 0;
+            padding: 1rem;
+        }
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+        }
+        .sidebar-overlay.open {
+            display: block;
+        }
+        .mobile-menu-btn {
+            display: inline-block;
+            background: var(--sol);
+            color: var(--ink-solid);
+            border: none;
+            padding: 0.5rem 1rem;
+            font-weight: 700;
+            border-radius: var(--radio-chico);
+            cursor: pointer;
+        }
+    }
+</style>
+
 <div class="admin-panel">
-    <div class="admin-header">
-        <div class="admin-header-left">
-            <h1><i class="bi bi-speedometer2"></i> Panel de Administración</h1>
-            <p class="admin-subtitle">Centro de control de Norvex</p>
+    <!-- Sidebar lateral de navegación -->
+    <nav class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <i class="bi bi-speedometer2"></i>
+            Administrador de {{ negocio_actual.nombre }}
         </div>
-    </div>
+        <ul class="sidebar-nav">
+            <!-- Inicio -->
+            <li>
+                <a href="{% url 'administracion:dashboard' %}">
+                    <i class="bi bi-house-door"></i> Inicio
+                </a>
+            </li>
 
-    <!-- Tarjetas de estadísticas -->
-    <div class="stats-grid">
-        <div class="stat-card stat-total">
-            <div class="stat-icon">
-                <i class="bi bi-people"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ total_usuarios }}</h3>
-                <p>Total Usuarios</p>
-            </div>
+            <!-- Usuarios -->
+            <li>
+                <span class="sidebar-nav-group-title">Usuarios</span>
+            </li>
+            <li>
+                <a href="{% url 'administracion:listar_usuarios' %}">
+                    <i class="bi bi-people"></i> Gestionar usuarios
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'administracion:crear_usuario' %}">
+                    <i class="bi bi-person-plus"></i> Crear usuario
+                </a>
+            </li>
+
+            <!-- Clientes -->
+            <li>
+                <span class="sidebar-nav-group-title">Clientes</span>
+            </li>
+            <li>
+                <a href="{% url 'clientes:listar_clientes' %}">
+                    <i class="bi bi-people-fill"></i> Información de clientes
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'pedidos:lista_pedidos' %}">
+                    <i class="bi bi-bag-check"></i> Pedidos online
+                </a>
+            </li>
+
+            <!-- Reportes -->
+            <li>
+                <span class="sidebar-nav-group-title">Reportes</span>
+            </li>
+            <li>
+                <a href="{% url 'administracion:reportes_ventas' %}">
+                    <i class="bi bi-graph-up-arrow"></i> Reporte de ventas
+                </a>
+            </li>
+            <li>
+                <a href="{% url 'administracion:reportes_stock' %}#stock-bajo">
+                    <i class="bi bi-box-seam"></i> Reporte de stock
+                </a>
+            </li>
+
+            <!-- Cobrar -->
+            <li>
+                <span class="sidebar-nav-group-title">Cobro</span>
+            </li>
+            <li>
+                <a href="{% url 'ventas:pantalla_cobro' %}">
+                    <i class="bi bi-cash"></i> Cobrar
+                </a>
+            </li>
+
+            <!-- Facturas/documentos -->
+            <li>
+                <span class="sidebar-nav-group-title">Documentos</span>
+            </li>
+            <li>
+                <a href="{% url 'negocios:lista_documentos' %}">
+                    <i class="bi bi-file-earmark-text"></i> Facturas / Documentos
+                </a>
+            </li>
+
+            <!-- Cierre de turno -->
+            <li>
+                <span class="sidebar-nav-group-title">Caja</span>
+            </li>
+            <li>
+                <a href="{% url 'ventas:cierre_turno' %}">
+                    <i class="bi bi-clock-history"></i> Cierre de turno
+                </a>
+            </li>
+        </ul>
+    </nav>
+
+    <!-- Área principal -->
+    <main class="main-content">
+        <div class="main-header">
+            <h1>Centro de Control - {{ negocio_actual.nombre }}</h1>
         </div>
 
-        <div class="stat-card stat-active">
-            <div class="stat-icon">
-                <i class="bi bi-person-check"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ usuarios_activos }}</h3>
-                <p>Usuarios Activos</p>
-            </div>
-        </div>
-
-        <div class="stat-card stat-inactive">
-            <div class="stat-icon">
-                <i class="bi bi-person-x"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ usuarios_inactivos }}</h3>
-                <p>Usuarios Inactivos</p>
-            </div>
-        </div>
-
-        <div class="stat-card stat-admin">
-            <div class="stat-icon">
-                <i class="bi bi-shield-fill"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ admins }}</h3>
-                <p>Administradores</p>
-            </div>
-        </div>
-
-        <div class="stat-card stat-cashier">
-            <div class="stat-icon">
-                <i class="bi bi-receipt"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ cajeros }}</h3>
-                <p>Cajeros</p>
-            </div>
-        </div>
-
-        <div class="stat-card stat-warning">
-            <div class="stat-icon">
-                <i class="bi bi-exclamation-triangle"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ sin_rol }}</h3>
-                <p>Sin Rol Asignado</p>
-            </div>
-        </div>
-
-        <!-- Stock bajo (HU-06): click = ver qué productos están por agotarse -->
-        <a href="{% url 'administracion:reportes_stock' %}#stock-bajo" class="stat-card stat-alert stat-card-link">
-            <div class="stat-icon">
-                <i class="bi bi-box-seam"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ productos_stock_bajo }}</h3>
-                <p>Stock bajo (≤ {{ umbral_stock_bajo }})</p>
-            </div>
-        </a>
-
-        <!-- Productos sin movimiento: click = ver y editar precios -->
-        <a href="{% url 'administracion:productos_sin_movimiento' %}" class="stat-card stat-warning stat-card-link">
-            <div class="stat-icon">
-                <i class="bi bi-hourglass-bottom"></i>
-            </div>
-            <div class="stat-content">
-                <h3>{{ productos_sin_movimiento }}</h3>
-                <p>Sin movimiento ({{ dias_dias }} días)</p>
-            </div>
-        </a>
-    </div>
-
-    <!-- Accesos rápidos -->
-    <div class="quick-actions">
-        <h2><i class="bi bi-lightning"></i> Accesos Rápidos</h2>
-        <div class="actions-grid">
-            <a href="{% url 'administracion:listar_usuarios' %}" class="action-card">
-                <div class="action-icon">
+        <!-- Tarjetas de estadísticas -->
+        <div class="stats-grid">
+            <div class="stat-card stat-total">
+                <div class="stat-icon">
                     <i class="bi bi-people"></i>
                 </div>
-                <h3>Gestionar Usuarios</h3>
-                <p>Crear, editar, eliminar y asignar roles</p>
-            </a>
-
-            <a href="{% url 'ventas:lista_productos' %}" class="action-card">
-                <div class="action-icon">
-                    <i class="bi bi-box-seam"></i>
+                <div class="stat-content">
+                    <h3>{{ total_usuarios }}</h3>
+                    <p>Total Usuarios</p>
                 </div>
-                <h3>Productos</h3>
-                <p>Alta, edición y baja de productos y precios</p>
-            </a>
+            </div>
 
-            <a href="{% url 'clientes:listar_clientes' %}" class="action-card">
-                <div class="action-icon">
-                    <i class="bi bi-person-heart"></i>
+            <div class="stat-card stat-active">
+                <div class="stat-icon">
+                    <i class="bi bi-person-check"></i>
                 </div>
-                <h3>Clientes</h3>
-                <p>Fidelidad: registros, compras, puntos y cuenta corriente (HU-14)</p>
-            </a>
-
-            <a href="{% url 'administracion:reportes_ventas' %}" class="action-card">
-                <div class="action-icon">
-                    <i class="bi bi-graph-up-arrow"></i>
+                <div class="stat-content">
+                    <h3>{{ usuarios_activos }}</h3>
+                    <p>Usuarios Activos</p>
                 </div>
-                <h3>Reporte de Ventas</h3>
-                <p>Ingresos, costos, márgenes y detalle por día</p>
-            </a>
+            </div>
 
-            <a href="{% url 'administracion:reportes_stock' %}" class="action-card">
-                <div class="action-icon">
-                    <i class="bi bi-box-seam"></i>
+            <div class="stat-card stat-inactive">
+                <div class="stat-icon">
+                    <i class="bi bi-person-x"></i>
                 </div>
-                <h3>Reporte de Stock</h3>
-                <p>Inventario valuado, faltantes y márgenes bajos</p>
-            </a>
-
-            <a href="{% url 'administracion:crear_usuario' %}" class="action-card">
-                <div class="action-icon">
-                    <i class="bi bi-person-plus"></i>
+                <div class="stat-content">
+                    <h3>{{ usuarios_inactivos }}</h3>
+                    <p>Usuarios Inactivos</p>
                 </div>
-                <h3>Nuevo Usuario</h3>
-                <p>Crear una nueva cuenta de usuario</p>
-            </a>
+            </div>
 
-            <a href="{% url 'ventas:pantalla_cobro' %}" class="action-card">
-                <div class="action-icon">
+            <div class="stat-card stat-admin">
+                <div class="stat-icon">
+                    <i class="bi bi-shield-fill"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ admins }}</h3>
+                    <p>Administradores</p>
+                </div>
+            </div>
+
+            <div class="stat-card stat-cashier">
+                <div class="stat-icon">
                     <i class="bi bi-receipt"></i>
                 </div>
-                <h3>Pantalla de Cobro</h3>
-                <p>Acceder al punto de venta</p>
+                <div class="stat-content">
+                    <h3>{{ cajeros }}</h3>
+                    <p>Cajeros</p>
+                </div>
+            </div>
+
+            <div class="stat-card stat-warning">
+                <div class="stat-icon">
+                    <i class="bi bi-exclamation-triangle"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ sin_rol }}</h3>
+                    <p>Sin Rol Asignado</p>
+                </div>
+            </div>
+
+            <!-- Stock bajo (HU-06): click = ver qué productos están por agotarse -->
+            <a href="{% url 'administracion:reportes_stock' %}#stock-bajo" class="stat-card stat-alert stat-card-link">
+                <div class="stat-icon">
+                    <i class="bi bi-box-seam"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>{{ productos_stock_bajo }}</h3>
+                    <p>Stock bajo (≤ {{ umbral_stock_bajo }})</p>
+                </div>
             </a>
 
-            <a href="{% url 'ventas:cierre_turno' %}" class="action-card">
-                <div class="action-icon">
-                    <i class="bi bi-clock-history"></i>
+            <!-- Productos sin movimiento: click = ver y editar precios -->
+            <a href="{% url 'administracion:productos_sin_movimiento' %}" class="stat-card stat-warning stat-card-link">
+                <div class="stat-icon">
+                    <i class="bi bi-hourglass-bottom"></i>
                 </div>
-                <h3>Cierre de Turno</h3>
-                <p>Totales de caja por efectivo y tarjeta (HU-10)</p>
+                <div class="stat-content">
+                    <h3>{{ productos_sin_movimiento }}</h3>
+                    <p>Sin movimiento ({{ dias_dias }} días)</p>
+                </div>
             </a>
 
-            <a href="{% url 'pedidos:lista_pedidos' %}" class="action-card">
-                <div class="action-icon">
-                    <i class="bi bi-bag-check"></i>
+            <!-- Deudas a proveedores -->
+            <a href="{% url 'negocios:lista_documentos' %}" class="stat-card stat-danger stat-card-link">
+                <div class="stat-icon">
+                    <i class="bi bi-credit-card"></i>
                 </div>
-                <h3>Pedidos Online</h3>
-                <p>Pedidos del catálogo público para retirar (HU-13)</p>
-            </a>
-
-            <a href="{% url 'ventas:mercadopago_config' %}" class="action-card">
-                <div class="action-icon">
-                    <i class="bi bi-qr-code"></i>
+                <div class="stat-content">
+                    <h3>${{ deuda_proveedores|montos }}</h3>
+                    <p>Deuda a proveedores</p>
                 </div>
-                <h3>Mercado Pago</h3>
-                <p>Conectá tu cuenta para cobrar con QR (HU-15)</p>
             </a>
-            {# El panel de Django (/admin/) no se enlaza a propósito: solo #}
-            {# se entra escribiendo la URL, y exige login de la app + rol Administrador. #}
         </div>
-    </div>
 
-    <!-- Información del sistema -->
-    <div class="system-info">
-        <h2><i class="bi bi-info-circle"></i> Información del Sistema</h2>
-        <div class="info-grid">
-            <div class="info-item">
-                <span class="info-label">Versión:</span>
-                <span class="info-value">2.0.0 - Sprint 2</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Django:</span>
-                <span class="info-value">6.1.1</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Base de Datos:</span>
-                <span class="info-value">PostgreSQL (db_kiosco)</span>
-            </div>
-            <div class="info-item">
-                <span class="info-label">Roles:</span>
-                <span class="info-value">Administrador, Cajero</span>
+        <!-- Información del sistema -->
+        <div class="system-info">
+            <h2><i class="bi bi-info-circle"></i> Información del Sistema</h2>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Versión:</span>
+                    <span class="info-value">2.0.0 - Sprint 2</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Django:</span>
+                    <span class="info-value">6.1.1</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Base de Datos:</span>
+                    <span class="info-value">PostgreSQL (db_kiosco)</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Roles:</span>
+                    <span class="info-value">Administrador, Cajero</span>
+                </div>
             </div>
         </div>
-    </div>
+    </main>
 </div>
 <script>
-// A: los números de las fichas suben como caja registradora,
-// sincronizados con el stagger de sale-rollo (0, 70, 140… ms).
 (function() {
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var nums = document.querySelectorAll('.stat-card .stat-content h3');

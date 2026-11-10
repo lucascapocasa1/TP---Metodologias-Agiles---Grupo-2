@@ -41,5 +41,10 @@ urlpatterns = [
         views.eliminar_producto,
         name="eliminar_producto",
     ),
+    path(
+        "ventas/<int:venta_id>/detalle/",
+        views.detalle_venta,
+        name="detalle_venta",
+    ),
 ]
 

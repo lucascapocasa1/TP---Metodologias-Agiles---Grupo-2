@@ -1,11 +1,11 @@
 {% load formatos %}
-{% if productos %}
+{% if productos_con_margen %}
 <table class="admin-table">
     <thead>
         <tr>
             <th>
                 <a class="th-sort{% if orden == 'producto' %} th-sort-activo{% endif %}"
-                   hx-get="{% url 'ventas:lista_productos' %}?buscar={{ busqueda|urlencode }}&orden=producto&direccion={% if orden == 'producto' and direccion == 'asc' %}desc{% else %}asc{% endif %}"
+                   hx-get="{% url 'ventas:lista_productos' %}?buscar={{ busqueda|urlencode }}&orden=producto&direccion={% if orden == 'producto' and direccion == 'desc' %}desc{% else %}asc{% endif %}"
                    hx-target="#contenedor-tabla" hx-swap="innerHTML">
                     Producto <i class="bi {% if orden == 'producto' and direccion == 'desc' %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
                 </a>
@@ -45,12 +45,14 @@
                     Stock <i class="bi {% if orden == 'stock' and direccion == 'desc' %}bi-arrow-down{% else %}bi-arrow-up{% endif %}"></i>
                 </a>
             </th>
+            <th>Margen</th>
             <th>Estado</th>
             <th class="actions-col">Acciones</th>
         </tr>
     </thead>
     <tbody>
-        {% for p in productos %}
+        {% for item in productos_con_margen %}
+        {% with p=item.producto %}
         <tr class="{% if not p.activo %}row-inactive{% endif %}">
             <td>
                 <div class="user-cell">
@@ -69,6 +71,12 @@
                 {% else %}
                     {{ p.stock }}
                 {% endif %}
+            </td>
+            <td>
+                <span class="margen-badge
+                    {% if item.margen_porcentual >= 40 %}margen-alto{% elif item.margen_porcentual >= 20 %}margen-medio{% else %}margen-bajo{% endif %}">
+                    {{ item.margen_porcentual|floatformat:0 }}%
+                </span>
             </td>
             <td>
                 {% if p.activo %}
@@ -94,6 +102,7 @@
                 </div>
             </td>
         </tr>
+        {% endwith %}
         {% endfor %}
     </tbody>
 </table>

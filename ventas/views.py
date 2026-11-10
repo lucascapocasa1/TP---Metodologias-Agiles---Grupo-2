@@ -4,7 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
@@ -287,6 +287,49 @@ def cierre_turno(request):
         messages.error(request, "La acción no coincide con el estado del turno.")
         return redirect("ventas:cierre_turno")
 
+    # GET: mostrar turno específico o el turno abierto del usuario
+    if not request.negocio and not request.user.is_superuser:
+        raise PermissionDenied("No tenés un negocio asignado.")
+    
+    turno_id = request.GET.get("turno")
+    
+    if turno_id:
+        try:
+            turno = Turno.objects.get(pk=turno_id)
+        except Turno.DoesNotExist:
+            raise Http404("Turno inexistente")
+    else:
+        turno = services.turno_abierto(request.user, negocio=request.negocio)
+
+    # Siempre asegurar que totales esté en el contexto (aunque sea None)
+    totales = services.totales_del_turno(turno) if turno else None
+    puede_cerrar = bool(
+        turno
+        and turno.activo
+        and (
+            turno.usuario_id == request.user.pk
+            or es_administrador(request.user)
+        )
+    )
+    contexto = {
+        "turno": turno,
+        "totales": totales,
+        "puede_cerrar": puede_cerrar,
+    }
+    return render(request, "ventas/cierre_turno.html", contexto)
+
+
+@rol_requerido("Administrador")
+def detalle_venta(request, venta_id):
+    """Detalle de una venta específica: muestra todos los ítems y totales."""
+    venta = get_object_or_404(Venta, pk=venta_id, negocio=request.negocio)
+    
+    context = {
+        "venta": venta,
+        "detalles": venta.detalles.select_related("producto").all(),
+    }
+    return render(request, "ventas/detalle_venta.html", context)
+
     # GET: ?turno=<id> para un turno puntual, si no el turno abierto propio.
     turno = services.turno_abierto(request.user, negocio=request.negocio)
     turno_id = request.GET.get("turno")
@@ -358,7 +401,19 @@ def lista_productos(request):
             | Q(codigo_barras__icontains=busqueda)
         )
 
+    # Calcular margen de cada producto
+    productos_con_margen = []
+    for p in productos:
+        margen_unitario = p.precio - p.costo
+        margen_porcentual = (margen_unitario / p.costo * 100) if p.costo else 0
+        productos_con_margen.append({
+            "producto": p,
+            "margen_unitario": margen_unitario,
+            "margen_porcentual": round(margen_porcentual, 2),
+        })
+
     contexto = {
+        "productos_con_margen": productos_con_margen,
         "productos": productos,
         "busqueda": busqueda,
         "orden": orden,

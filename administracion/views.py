@@ -2,6 +2,11 @@ from django.contrib import messages
 from django.contrib.auth.models import Group, User
 from decimal import Decimal
 
+from django.contrib import messages
+from django.contrib.auth.models import Group, User
+from decimal import Decimal
+
+from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import (
     DecimalField,
     F,
@@ -16,9 +21,13 @@ from datetime import datetime
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
+from django.http import HttpResponse
+from django.shortcuts import get_object_or_404, redirect, render
+
 from auditoria.utils import registrar_accion
 from usuarios.decorators import rol_requerido
 from ventas.models import DetalleVenta, Producto
+from negocios.models import Negocio, Documento
 
 from . import reportes
 from .exports import exportar_stock_a_excel
@@ -56,7 +65,7 @@ def reportes_ventas(request):
         desde_dt, hasta_dt, solo_finalizadas, negocio=request.negocio
     )
 
-    ventas = (
+    ventas_qs = (
         reportes.ventas_del_rango(
             desde_dt, hasta_dt, solo_finalizadas, negocio=request.negocio
         )
@@ -82,6 +91,16 @@ def reportes_ventas(request):
         .order_by("-fecha")
     )
 
+    # Paginación de ventas
+    paginator = Paginator(ventas_qs, 10)  # 10 ventas por página
+    pagina = request.GET.get("page")
+    try:
+        ventas = paginator.page(pagina)
+    except PageNotAnInteger:
+        ventas = paginator.page(1)
+    except EmptyPage:
+        ventas = paginator.page(paginator.num_pages)
+
     # Las barras son CSS puro, así que el template necesita el techo de cada
     # serie para escalarlas con widthratio.
     max_ingresos = max((fila["ingresos"] for fila in serie), default=0)
@@ -98,8 +117,9 @@ def reportes_ventas(request):
         "top": top,
         "rentables": rentables,
         "deuda_otorgada": fiado,
-        "ventas": ventas[:100],
-        "hay_mas_ventas": ventas.count() > 100,
+        "ventas": ventas,
+        "paginator": paginator,
+        "is_paginated": ventas.has_other_pages(),
     }
     return render(request, "administracion/reportes_ventas.html", context)
 
@@ -108,6 +128,14 @@ def reportes_ventas(request):
 def dashboard(request):
     """Panel principal de administración con estadísticas."""
     negocio = request.negocio
+
+    # Si es superadmin y no hay negocio seleccionado, permitir seleccionar uno
+    negocio_seleccionado_id = request.GET.get("negocio_id")
+    if request.user.is_superuser and negocio is None and negocio_seleccionado_id:
+        try:
+            negocio = Negocio.objects.get(pk=negocio_seleccionado_id)
+        except Negocio.DoesNotExist:
+            negocio = None
 
     usuarios_qs = User.objects.all()
     if negocio is not None:
@@ -139,6 +167,21 @@ def dashboard(request):
     # últimos 30 días.
     productos_sin_mov = reportes.productos_sin_movimiento(negocio=negocio, dias=30)
 
+    # Deudas a proveedores: monto pendiente de documentos no pagados
+    deuda_proveedores = Decimal("0.00")
+    if negocio is not None:
+        deuda_proveedores = Documento.objects.filter(
+            negocio=negocio,
+            estado__in=["pendiente"],
+        ).aggregate(
+            total=Coalesce(Sum(F("monto") - F("monto_pagado")), Decimal("0.00"))
+        )["total"]
+
+    # Lista de negocios para el selector del superadmin
+    todos_los_negocios = None
+    if request.user.is_superuser:
+        todos_los_negocios = Negocio.objects.filter(activo=True).order_by("nombre")
+
     context = {
         "total_usuarios": total_usuarios,
         "usuarios_activos": usuarios_activos,
@@ -150,6 +193,9 @@ def dashboard(request):
         "umbral_stock_bajo": reportes.UMBRAL_STOCK_BAJO,
         "productos_sin_movimiento": len(productos_sin_mov),
         "dias_dias": 30,
+        "deuda_proveedores": deuda_proveedores,
+        "negocio_actual": negocio,
+        "todos_los_negocios": todos_los_negocios,
     }
     return render(request, "administracion/dashboard.html", context)
 
@@ -162,12 +208,39 @@ def reportes_stock(request):
         solo_activos=solo_activos, negocio=request.negocio
     )
 
+    # Paginación para stock bajo
+    stock_bajo_qs = Producto.objects.filter(
+        negocio=request.negocio, activo=True, stock__lte=reportes.UMBRAL_STOCK_BAJO
+    ).order_by("stock", "nombre")
+    paginator_stock_bajo = Paginator(stock_bajo_qs, 10)
+    pagina_stock_bajo = request.GET.get("page_stock_bajo", 1)
+    try:
+        stock_bajo_paginado = paginator_stock_bajo.page(pagina_stock_bajo)
+    except PageNotAnInteger:
+        stock_bajo_paginado = paginator_stock_bajo.page(1)
+    except EmptyPage:
+        stock_bajo_paginado = paginator_stock_bajo.page(paginator_stock_bajo.num_pages)
+
+    # Paginación para bajo margen
+    bajo_margen_qs = reportes.productos_bajo_margen(negocio=request.negocio)
+    paginator_bm = Paginator(bajo_margen_qs, 10)
+    pagina_bm = request.GET.get("page_bm", 1)
+    try:
+        bajo_margen_paginado = paginator_bm.page(pagina_bm)
+    except PageNotAnInteger:
+        bajo_margen_paginado = paginator_bm.page(1)
+    except EmptyPage:
+        bajo_margen_paginado = paginator_bm.page(paginator_bm.num_pages)
+
     context = {
         "solo_activos": solo_activos,
         "stock": stock,
         "por_categoria": reportes.stock_por_categoria(negocio=request.negocio),
-        "bajo_margen": reportes.productos_bajo_margen(negocio=request.negocio),
+        "bajo_margen": bajo_margen_paginado,
         "umbral_stock_bajo": reportes.UMBRAL_STOCK_BAJO,
+        "stock_bajo": stock_bajo_paginado,
+        "is_paginated_stock": stock_bajo_paginado.has_other_pages(),
+        "is_paginated_bm": bajo_margen_paginado.has_other_pages(),
     }
     return render(request, "administracion/reportes_stock.html", context)
 

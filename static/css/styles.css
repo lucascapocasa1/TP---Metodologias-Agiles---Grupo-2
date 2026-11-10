@@ -4510,3 +4510,48 @@ a.stat-card-link:hover {
   color: #FF6B6B;
 }
 
+/* Badges de margen de ganancia */
+.margen-badge {
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.margen-alto {
+  background: rgba(63, 217, 140, 0.15);
+  color: #3FD98C;
+  border: 1px solid rgba(63, 217, 140, 0.3);
+}
+
+.margen-medio {
+  background: rgba(255, 176, 32, 0.15);
+  color: #FFB020;
+  border: 1px solid rgba(255, 176, 32, 0.3);
+}
+
+.margen-bajo {
+  background: rgba(255, 107, 107, 0.15);
+  color: #FF6B6B;
+  border: 1px solid rgba(255, 107, 107, 0.3);
+}
+
+[data-tema="neon"] .margen-alto {
+  background: rgba(63, 217, 140, 0.2);
+  color: #3FD98C;
+  border-color: rgba(63, 217, 140, 0.4);
+}
+
+[data-tema="neon"] .margen-medio {
+  background: rgba(255, 176, 32, 0.2);
+  color: #FFB020;
+  border-color: rgba(255, 176, 32, 0.4);
+}
+
+[data-tema="neon"] .margen-bajo {
+  background: rgba(255, 107, 107, 0.2);
+  color: #FF6B6B;
+  border-color: rgba(255, 107, 107, 0.4);
+}
+

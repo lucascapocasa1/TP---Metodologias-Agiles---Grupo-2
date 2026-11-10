@@ -53,7 +53,8 @@
 
                         {% if producto.stock > 0 %}
                         <span class="badge-disponible">
-                            <i class="bi bi-check-circle-fill" aria-hidden="true"></i> Disponible
+                            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+                            Disponible: {{ producto.stock }}
                         </span>
                         <form hx-post="{% url 'pedidos:pedido_agregar_publico' slug=negocio.slug %}"
                               hx-target="#pedido-panel"
@@ -63,7 +64,8 @@
                             <input type="hidden" name="producto_id" value="{{ producto.pk }}">
                             <label class="sr-only" for="cant-{{ producto.pk }}">Cantidad</label>
                             <input type="number" id="cant-{{ producto.pk }}" name="cantidad"
-                                   min="1" value="1" class="input-cantidad">
+                                   min="1" value="1" class="input-cantidad"
+                                   max="{{ producto.stock }}">
                             <button type="submit" class="btn-kiosco btn-chico">
                                 <i class="bi bi-plus-lg" aria-hidden="true"></i> Agregar
                             </button>

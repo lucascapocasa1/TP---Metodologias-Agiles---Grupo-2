@@ -24,11 +24,15 @@ COSTO_ENVIO_DOMICILIO = 1000  # $1000 fijo por envío a domicilio
 
 def _contexto_catalogo_negocio(request, negocio, error=None, exito=None):
     """Contexto para la vitrina pública de un negocio."""
-    productos = (
-        Producto.objects.filter(activo=True, negocio=negocio)
-        .select_related("categoria")
-        .order_by("categoria__nombre", "nombre")
-    )
+    productos = Producto.objects.filter(activo=True, negocio=negocio).select_related("categoria")
+
+    # Filtrar por categoría si se especificó
+    categoria_id = request.GET.get("categoria", "").strip()
+    if categoria_id:
+        productos = productos.filter(categoria_id=categoria_id)
+
+    productos = productos.order_by("categoria__nombre", "nombre")
+
     categorias = (
         Categoria.objects.filter(productos__activo=True, productos__negocio=negocio)
         .distinct()
@@ -37,7 +41,7 @@ def _contexto_catalogo_negocio(request, negocio, error=None, exito=None):
     return {
         "productos": productos,
         "categorias": categorias,
-        "categoria_actual": request.GET.get("categoria", ""),
+        "categoria_actual": categoria_id,
         "items": items,
         "total": services.total_del_pedido(items),
         "error": error,
