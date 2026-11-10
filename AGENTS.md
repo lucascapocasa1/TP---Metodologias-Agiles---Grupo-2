@@ -141,7 +141,7 @@ Pagos: modelo `PagoDocumento` (documento, negocio, fecha, monto, método, compro
 
 Proveedores: CRUD (`crear/editar/detalle`), ficha con cuenta corriente, saldo y vencido, historial de pagos con botón "Deshacer operación" por grupo, y acción "Convertir en proveedor" para los nombres escritos a mano (de a uno, con confirmación; sin migración automática). Acciones de documento: registrar pago, editar, anular (con motivo) y reactivar.
 
-Cada documento tiene monto, monto pagado, fecha de emisión, fecha de vencimiento, estado (pendiente/pagada/anulada), motivo de anulación y archivo PDF opcional. Hay KPIs "Deuda a proveedores" y "Deuda a servicios" en el dashboard que enlazan a cada módulo. Alerta automática para facturas que vencen en 7 días. Se puede marcar como pagada con pago parcial o total.
+Cada documento tiene monto, monto pagado, fecha de emisión, fecha de vencimiento, estado (pendiente/pagada/anulada), motivo de anulación y un adjunto opcional (PDF, JPG o PNG, máximo 5 MB) que se sube desde `/negocios/documentos/<id>/subir-adjunto/` y se puede ver desde el listado y el detalle del proveedor. Hay KPIs "Deuda a proveedores" y "Deuda a servicios" en el dashboard que enlazan a cada módulo. Alerta automática para facturas que vencen en 7 días. Se puede marcar como pagada con pago parcial o total.
 
 ## Templates
 

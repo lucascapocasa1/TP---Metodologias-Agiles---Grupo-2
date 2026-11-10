@@ -694,9 +694,11 @@ def editar_documento(request, documento_id):
 
 
 @login_required
-def subir_pdf(request, documento_id):
+def subir_adjunto(request, documento_id):
     """
-    Subir archivo PDF para un documento existente.
+    Subir un adjunto (PDF o imagen) para un documento existente.
+
+    Se aceptan PDF, JPG y PNG con un tamaño máximo de 5 MB.
     """
     documento = get_object_or_404(Documento, pk=documento_id)
     if documento.negocio_id != _negocio_del_usuario(request.user).id:
@@ -704,24 +706,61 @@ def subir_pdf(request, documento_id):
             "No tenés permiso para editar este documento."
         )
 
-    if request.method == "POST" and request.FILES.get("archivo_pdf"):
-        documento.archivo_pdf = request.FILES["archivo_pdf"]
+    EXTENSIONES_PERMITIDAS = (".pdf", ".jpg", ".jpeg", ".png")
+    TAMANIO_MAXIMO = 5 * 1024 * 1024  # 5 MB
+
+    if request.method == "POST" and request.FILES.get("archivo"):
+        archivo = request.FILES["archivo"]
+        nombre = archivo.name.lower()
+
+        if not nombre.endswith(EXTENSIONES_PERMITIDAS):
+            messages.error(
+                request,
+                "Solo se permiten archivos PDF, JPG y PNG.",
+            )
+            return render(
+                request,
+                "negocios/documentos/subir_adjunto.html",
+                {
+                    "negocio": documento.negocio,
+                    "documento": documento,
+                    "volver_url": _url_lista_documentos(documento.categoria),
+                },
+            )
+
+        if archivo.size > TAMANIO_MAXIMO:
+            messages.error(
+                request,
+                "El archivo no puede superar los 5 MB.",
+            )
+            return render(
+                request,
+                "negocios/documentos/subir_adjunto.html",
+                {
+                    "negocio": documento.negocio,
+                    "documento": documento,
+                    "volver_url": _url_lista_documentos(documento.categoria),
+                },
+            )
+
+        documento.archivo = archivo
         documento.save()
+        tipo = "imagen" if nombre.endswith((".jpg", ".jpeg", ".png")) else "PDF"
         registrar_accion(
             request.user,
-            "PDF subido",
-            f"PDF subido para documento '{documento.numero_factura or documento.nombre_proveedor}'.",
+            "Adjunto subido",
+            f"{tipo} subido para documento '{documento.numero_factura or documento.nombre_proveedor}'.",
             request,
         )
         messages.success(
             request,
-            "PDF subido correctamente.",
+            f"{tipo} subido correctamente.",
         )
         return redirect(_url_lista_documentos(documento.categoria))
 
     return render(
         request,
-        "negocios/documentos/subir_pdf.html",
+        "negocios/documentos/subir_adjunto.html",
         {
             "negocio": documento.negocio,
             "documento": documento,

@@ -215,12 +215,12 @@ class Documento(models.Model):
         verbose_name="Motivo de anulación",
         help_text="Motivo por el cual se anuló este documento.",
     )
-    archivo_pdf = models.FileField(
-        upload_to="documentos/facturas/",
+    archivo = models.FileField(
+        upload_to="documentos/adjuntos/",
         blank=True,
         null=True,
-        verbose_name="Archivo PDF",
-        help_text="PDF de la factura (opcional).",
+        verbose_name="Adjunto",
+        help_text="PDF o imagen de la factura como comprobante (opcional).",
     )
     observaciones = models.TextField(
         blank=True,
@@ -296,6 +296,30 @@ class Documento(models.Model):
         if self.esta_vencida:
             return abs(self.dias_restantes)
         return 0
+
+    @property
+    def es_archivo_imagen(self):
+        """True si el archivo adjunto es una imagen (jpg, jpeg, png)."""
+        if not self.archivo:
+            return False
+        nombre = self.archivo.name.lower()
+        return nombre.endswith((".jpg", ".jpeg", ".png"))
+
+    @property
+    def es_archivo_pdf(self):
+        """True si el archivo adjunto es un PDF."""
+        if not self.archivo:
+            return False
+        return self.archivo.name.lower().endswith(".pdf")
+
+    @property
+    def icono_archivo(self):
+        """Devuelve la clase de ícono de Bootstrap según el tipo de archivo."""
+        if self.es_archivo_imagen:
+            return "bi bi-file-earmark-image"
+        if self.es_archivo_pdf:
+            return "bi bi-file-earmark-pdf"
+        return "bi bi-file-earmark"
 
     def __str__(self):
         return f"{self.numero_factura or self.nombre_proveedor or 'Sin nombre'} - ${self.monto}"

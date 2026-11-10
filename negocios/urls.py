@@ -36,9 +36,9 @@ urlpatterns = [
         name="editar_documento",
     ),
     path(
-        "documentos/<int:documento_id>/subir-pdf/",
-        views.subir_pdf,
-        name="subir_pdf",
+        "documentos/<int:documento_id>/subir-adjunto/",
+        views.subir_adjunto,
+        name="subir_adjunto",
     ),
     path(
         "documentos/<int:documento_id>/marcar-pagada/",

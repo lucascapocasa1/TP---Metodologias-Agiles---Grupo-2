@@ -68,9 +68,9 @@
                     <tr>
                         <td>
                             <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>
-                            {% if documento.archivo_pdf %}
-                            <a href="{{ documento.archivo_pdf.url }}" target="_blank" class="texto-suave" title="Ver PDF">
-                                <i class="bi bi-file-earmark-pdf"></i>
+                            {% if documento.archivo %}
+                            <a href="{{ documento.archivo.url }}" target="_blank" class="texto-suave" title="Ver adjunto">
+                                <i class="{{ documento.icono_archivo }}"></i>
                             </a>
                             {% endif %}
                         </td>
@@ -115,6 +115,16 @@
                         <td class="text-end">
                             <a href="{% url 'negocios:marcar_pagada' documento.id %}"
                                class="btn btn-outline btn-sm">Pagar</a>
+                            {% if documento.archivo %}
+                            <a href="{{ documento.archivo.url }}" target="_blank"
+                               class="btn btn-outline btn-sm" title="Ver adjunto">
+                                <i class="{{ documento.icono_archivo }}"></i>
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'negocios:subir_adjunto' documento.id %}"
+                               class="btn btn-outline btn-sm" title="Subir adjunto">
+                                <i class="bi bi-cloud-upload"></i>
+                            </a>
                             <a href="{% url 'negocios:editar_documento' documento.id %}"
                                class="btn btn-outline btn-sm">Editar</a>
                         </td>

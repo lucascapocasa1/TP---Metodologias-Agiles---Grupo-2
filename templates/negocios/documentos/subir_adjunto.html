@@ -1,13 +1,13 @@
 {% extends "base_admin.html" %}
 {% load formatos %}
-{% block titulo %}Subir PDF — {{ documento.numero_factura|default:documento.nombre_proveedor }}{% endblock %}
+{% block titulo %}Subir adjunto — {{ documento.numero_factura|default:documento.nombre_proveedor }}{% endblock %}
 {% block contenido %}
 <div class="admin-panel">
     <div class="admin-header">
         <div class="admin-header-left">
-            <h1><i class="bi bi-file-earmark-pdf"></i> Subir PDF</h1>
+            <h1><i class="bi bi-cloud-upload"></i> Subir adjunto</h1>
             <p class="admin-subtitle">
-                Sube el comprobante PDF para
+                Sube el comprobante (PDF o imagen) para
                 <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>.
             </p>
         </div>
@@ -22,14 +22,14 @@
         <form method="post" enctype="multipart/form-data" class="admin-form">
             {% csrf_token %}
             <div class="form-row">
-                <label class="kiosco-label" for="archivo_pdf">Archivo PDF <span class="obligatorio" aria-hidden="true">*</span></label>
-                <input type="file" name="archivo_pdf" id="archivo_pdf" class="kiosco-input" accept=".pdf" required>
-                <div class="texto-suave">Sube el PDF de la factura como comprobante.</div>
+                <label class="kiosco-label" for="archivo">Archivo <span class="obligatorio" aria-hidden="true">*</span></label>
+                <input type="file" name="archivo" id="archivo" class="kiosco-input" accept=".pdf,.jpg,.jpeg,.png" required>
+                <div class="texto-suave">Se aceptan PDF, JPG y PNG (máximo 5 MB).</div>
             </div>
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-kiosco btn-ancho">
-                    <i class="bi bi-cloud-upload" aria-hidden="true"></i> Subir PDF
+                    <i class="bi bi-cloud-upload" aria-hidden="true"></i> Subir adjunto
                 </button>
                 <a href="{{ volver_url }}" class="btn btn-link-suave">Cancelar</a>
             </div>
