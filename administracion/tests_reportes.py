@@ -354,6 +354,17 @@ class VentasPorDiaTests(BaseReportes):
         self.assertEqual(dia_con_venta["costo"], Decimal("60.00"))
         self.assertEqual(dia_con_venta["ganancia"], Decimal("40.00"))
 
+    def test_incluye_unidades_por_dia(self):
+        """El tooltip del gráfico necesita cuántas unidades se vendieron."""
+        _crear_venta(self.admin, [(self.gaseosa, 2), (self.agua, 3)])
+        serie = reportes.ventas_por_dia(self.desde_dt, self.hasta_dt)
+
+        dia_con_venta = [f for f in serie if f["ventas"] > 0][0]
+        self.assertEqual(dia_con_venta["unidades"], 5)
+        # Los días sin ventas también traen el campo, en cero.
+        self.assertTrue(all("unidades" in fila for fila in serie))
+        self.assertEqual(sum(fila["unidades"] for fila in serie), 5)
+
 
 class TopProductosTests(BaseReportes):
     def setUp(self):
@@ -391,6 +402,36 @@ class TopProductosTests(BaseReportes):
 
         self.assertEqual(top[0]["producto__nombre"], "Agua 500ml")
         self.assertEqual(rentables[0]["producto__nombre"], "Gaseosa 500ml")
+
+    def test_rentables_trae_montos_por_unidad(self):
+        _crear_venta(self.admin, [(self.gaseosa, 4)])  # 4 x $100, costo $60
+
+        fila = reportes.productos_mas_rentables(
+            self.desde_dt, self.hasta_dt
+        )[0]
+
+        self.assertEqual(fila["ganancia"], Decimal("160.00"))
+        self.assertEqual(fila["ganancia_unitaria"], Decimal("40.00"))
+        self.assertEqual(fila["costo_unitario"], Decimal("60.00"))
+        self.assertEqual(fila["ingresos_unitarios"], Decimal("100.00"))
+
+    def test_orden_por_unidad_cambia_el_ranking(self):
+        """
+        El agua deja $100 en total (20 x $5) y la gaseosa $40 (1 x $40).
+        Por total gana el agua; por unidad gana la gaseosa.
+        """
+        _crear_venta(self.admin, [(self.agua, 20)])
+        _crear_venta(self.admin, [(self.gaseosa, 1)])
+
+        por_total = reportes.productos_mas_rentables(
+            self.desde_dt, self.hasta_dt
+        )
+        por_unidad = reportes.productos_mas_rentables(
+            self.desde_dt, self.hasta_dt, por_unidad=True
+        )
+
+        self.assertEqual(por_total[0]["producto__nombre"], "Agua 500ml")
+        self.assertEqual(por_unidad[0]["producto__nombre"], "Gaseosa 500ml")
 
 
 class ResumenStockTests(BaseReportes):
@@ -567,6 +608,23 @@ class ReportesVentasViewTests(BaseReportes):
         )
         self.assertEqual(respuesta.context["resumen"]["cantidad_ventas"], 0)
         self.assertTrue(respuesta.context["solo_finalizadas"])
+
+    def test_toggle_unidad_cambia_los_montos_de_rentables(self):
+        _crear_venta(self.admin, [(self.gaseosa, 2)])
+        self.client.login(username="admin_test", password="claveSegura123")
+
+        total = self.client.get(reverse("administracion:reportes_ventas"))
+        unidad = self.client.get(
+            reverse("administracion:reportes_ventas"), {"modo": "unidad"}
+        )
+
+        self.assertEqual(total.context["modo_rentables"], "total")
+        self.assertEqual(unidad.context["modo_rentables"], "unidad")
+        fila = unidad.context["rentables"][0]
+        self.assertEqual(fila["ganancia_unitaria"], Decimal("40.00"))
+        self.assertEqual(fila["costo_unitario"], Decimal("60.00"))
+        self.assertContains(unidad, "Ganancia c/u")
+        self.assertContains(total, "Ganancia</th>")
 
     def test_calcula_techo_de_las_barras(self):
         _crear_venta(self.admin, [(self.gaseosa, 5)])

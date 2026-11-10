@@ -189,8 +189,9 @@
                                 <i class="bi bi-clock"></i> Vencida
                             </span>
                             {% elif documento.esta_por_vencer %}
-                            <span class="badge-estado badge-estado-por-vencer" title="Por vencer">
-                                <i class="bi bi-clock"></i> Por vencer
+                            <span class="badge-estado badge-estado-por-vencer"
+                                  title="Vence en {{ documento.fecha_vencimiento|timeuntil }}">
+                                <i class="bi bi-clock"></i> {{ documento.fecha_vencimiento|date:"d/m/Y" }}
                             </span>
                             {% else %}
                             <span class="texto-suave">{{ documento.fecha_vencimiento|date:"d/m/Y" }}</span>

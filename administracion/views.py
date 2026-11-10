@@ -1,11 +1,8 @@
-from django.contrib import messages
-from django.contrib.auth.models import Group, User
+from datetime import datetime
 from decimal import Decimal
 
 from django.contrib import messages
 from django.contrib.auth.models import Group, User
-from decimal import Decimal
-
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.db.models import (
     DecimalField,
@@ -16,11 +13,6 @@ from django.db.models import (
     Value,
 )
 from django.db.models.functions import Coalesce
-from datetime import datetime
-
-from django.http import HttpResponse
-from django.shortcuts import get_object_or_404, redirect, render
-
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 
@@ -47,6 +39,9 @@ def reportes_ventas(request):
         request.GET.get("desde"), request.GET.get("hasta")
     )
     solo_finalizadas = request.GET.get("finalizadas") == "1"
+    # La tarjeta de rentables se puede mirar por total del período o por
+    # unidad vendida; el toggle solo cambia el orden y los montos mostrados.
+    modo_rentables = "unidad" if request.GET.get("modo") == "unidad" else "total"
 
     resumen = reportes.resumen_ventas(
         desde_dt, hasta_dt, solo_finalizadas, negocio=request.negocio
@@ -58,7 +53,11 @@ def reportes_ventas(request):
         desde_dt, hasta_dt, solo_finalizadas=solo_finalizadas, negocio=request.negocio
     )
     rentables = reportes.productos_mas_rentables(
-        desde_dt, hasta_dt, solo_finalizadas=solo_finalizadas, negocio=request.negocio
+        desde_dt,
+        hasta_dt,
+        solo_finalizadas=solo_finalizadas,
+        negocio=request.negocio,
+        por_unidad=modo_rentables == "unidad",
     )
     # HU-14: lo fiado va aparte de los ingresos (no es plata que entró).
     fiado = reportes.deuda_otorgada(
@@ -116,6 +115,7 @@ def reportes_ventas(request):
         "max_ganancia": max_ganancia,
         "top": top,
         "rentables": rentables,
+        "modo_rentables": modo_rentables,
         "deuda_otorgada": fiado,
         "ventas": ventas,
         "paginator": paginator,
@@ -142,13 +142,6 @@ def dashboard(request):
         usuarios_qs = usuarios_qs.filter(empleado__negocio=negocio)
 
     total_usuarios = usuarios_qs.count()
-    usuarios_activos = usuarios_qs.filter(is_active=True).count()
-    admins = (
-        usuarios_qs.filter(groups__name="Administrador").distinct().count()
-    )
-    cajeros = (
-        usuarios_qs.filter(groups__name="Cajero").distinct().count()
-    )
 
     # Stock bajo (HU-06): mismo umbral que el reporte, y la ficha del
     # dashboard es un link a ese reporte para ver de qué productos se trata.
@@ -187,11 +180,22 @@ def dashboard(request):
     if request.user.is_superuser:
         todos_los_negocios = Negocio.objects.filter(activo=True).order_by("nombre")
 
+    # Analítica del período: ventas, clientes FIAR, pedidos sin entregar,
+    # rotación, medios de pago y próximos vencimientos. El selector admite
+    # 7/30/90 días o un rango personalizado (desde/hasta).
+    periodo, f_desde, f_hasta, desde_dt, hasta_dt, dias = (
+        reportes.resolver_periodo_dashboard(
+            request.GET.get("periodo"),
+            request.GET.get("desde"),
+            request.GET.get("hasta"),
+        )
+    )
+    analitica = reportes.analitica_dashboard(
+        desde_dt, hasta_dt, negocio, dias
+    )
+
     context = {
         "total_usuarios": total_usuarios,
-        "usuarios_activos": usuarios_activos,
-        "admins": admins,
-        "cajeros": cajeros,
         "productos_stock_bajo": productos_stock_bajo,
         "umbral_stock_bajo": reportes.UMBRAL_STOCK_BAJO,
         "productos_sin_movimiento": len(productos_sin_mov),
@@ -200,6 +204,12 @@ def dashboard(request):
         "deuda_servicios": deuda_servicios,
         "negocio_actual": negocio,
         "todos_los_negocios": todos_los_negocios,
+        "periodo": periodo,
+        "periodo_opciones": reportes.PERIODOS_DASHBOARD,
+        "desde": f_desde,
+        "hasta": f_hasta,
+        "dias_periodo": dias,
+        **analitica,
     }
     return render(request, "administracion/dashboard.html", context)
 

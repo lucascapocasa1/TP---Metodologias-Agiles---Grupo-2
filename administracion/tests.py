@@ -66,8 +66,27 @@ class DashboardTests(TestCase):
         self.client.login(username="admin_test", password="claveSegura123")
         respuesta = self.client.get(reverse("administracion:dashboard"))
         self.assertEqual(respuesta.context["total_usuarios"], 3)
-        self.assertEqual(respuesta.context["admins"], 1)
-        self.assertEqual(respuesta.context["cajeros"], 1)
+        # Los KPIs de usuarios activos / admins / cajeros ya no van: esa
+        # info se ve en "Gestionar usuarios".
+        self.assertNotIn("usuarios_activos", respuesta.context)
+        self.assertNotIn("admins", respuesta.context)
+        self.assertNotIn("cajeros", respuesta.context)
+
+    def test_kpi_total_usuarios_linkea_a_gestionar_usuarios(self):
+        self.client.login(username="admin_test", password="claveSegura123")
+        respuesta = self.client.get(reverse("administracion:dashboard"))
+
+        self.assertContains(
+            respuesta,
+            f'href="{reverse("administracion:listar_usuarios")}"',
+            html=False,
+        )
+
+    def test_kpi_clientes_fiar_linkea_al_listado_filtrado(self):
+        self.client.login(username="admin_test", password="claveSegura123")
+        respuesta = self.client.get(reverse("administracion:dashboard"))
+
+        self.assertContains(respuesta, "?cuenta=corriente")
 
     def test_kpi_stock_bajo_cuenta_productos_y_linkea_al_reporte(self):
         """El KPI muestra cuántos productos tienen stock bajo y es un link

@@ -181,22 +181,52 @@
         <!-- Ranking por ganancia -->
         <div class="col-lg-6">
             <div class="admin-card h-100">
-                <h2><i class="bi bi-piggy-bank"></i> Productos más rentables</h2>
+                <div class="panel-head">
+                    <h2><i class="bi bi-piggy-bank"></i> Productos más rentables</h2>
+                    <div class="toggle-modo" role="group" aria-label="Ver montos por unidad o por total">
+                        <a href="{% querystring modo='unidad' %}"
+                           class="toggle-modo-btn{% if modo_rentables == 'unidad' %} activo{% endif %}"
+                           {% if modo_rentables == 'unidad' %}aria-current="true"{% endif %}
+                           title="Ganancia y costo por unidad vendida">Unidad</a>
+                        <a href="{% querystring modo='total' %}"
+                           class="toggle-modo-btn{% if modo_rentables == 'total' %} activo{% endif %}"
+                           {% if modo_rentables == 'total' %}aria-current="true"{% endif %}
+                           title="Ganancia y costo de todo el período">Total</a>
+                    </div>
+                </div>
                 {% if rentables %}
                 <div class="admin-table-container">
                     <table class="admin-table">
                         <thead>
                             <tr>
                                 <th>Producto</th>
+                                {% if modo_rentables == "unidad" %}
+                                <th>Uds.</th>
+                                <th>Ganancia c/u</th>
+                                <th>Margen</th>
+                                <th>Costo c/u</th>
+                                {% else %}
                                 <th>Ganancia</th>
                                 <th>Margen</th>
                                 <th>Costo</th>
+                                {% endif %}
                             </tr>
                         </thead>
                         <tbody>
                             {% for fila in rentables %}
                             <tr>
                                 <td>{{ fila.producto__nombre }}</td>
+                                {% if modo_rentables == "unidad" %}
+                                <td>{{ fila.unidades }}</td>
+                                <td>${{ fila.ganancia_unitaria|montos }}</td>
+                                <td>
+                                    <span class="margen-badge
+                                        {% if fila.margen_porcentual >= 40 %}margen-alto{% elif fila.margen_porcentual >= 20 %}margen-medio{% else %}margen-bajo{% endif %}">
+                                        {{ fila.margen_porcentual|floatformat:0 }}%
+                                    </span>
+                                </td>
+                                <td>${{ fila.costo_unitario|montos }}</td>
+                                {% else %}
                                 <td>${{ fila.ganancia|montos }}</td>
                                 <td>
                                     <span class="margen-badge
@@ -205,6 +235,7 @@
                                     </span>
                                 </td>
                                 <td>${{ fila.costo|montos }}</td>
+                                {% endif %}
                             </tr>
                             {% endfor %}
                         </tbody>

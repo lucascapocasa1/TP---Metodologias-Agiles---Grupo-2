@@ -90,8 +90,8 @@
 <div class="admin-empty">
     <div class="empty-icon"><i class="bi bi-person-heart"></i></div>
     <h3>No se encontraron clientes</h3>
-    <p>{% if busqueda or filtro_estado %}Probá con otros filtros de búsqueda{% else %}Cargá tu primer cliente para empezar la fidelidad{% endif %}</p>
-    {% if not busqueda and not filtro_estado %}
+    <p>{% if busqueda or filtro_estado or filtro_cuenta %}Probá con otros filtros de búsqueda{% else %}Cargá tu primer cliente para empezar la fidelidad{% endif %}</p>
+    {% if not busqueda and not filtro_estado and not filtro_cuenta %}
     <a href="{% url 'clientes:crear_cliente' %}" class="btn btn-admin-primary">
         <i class="bi bi-person-plus"></i> Crear primer cliente
     </a>

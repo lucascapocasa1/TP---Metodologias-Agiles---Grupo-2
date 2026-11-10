@@ -35,6 +35,7 @@ def listar_clientes(request):
     """Lista clientes con búsqueda, filtros y estadísticas de fidelidad."""
     busqueda = request.GET.get("buscar", "").strip()
     filtro_estado = request.GET.get("estado", "")
+    filtro_cuenta = request.GET.get("cuenta", "")
 
     clientes = Cliente.objects.filter(ventas__negocio=request.negocio).distinct()
 
@@ -51,10 +52,15 @@ def listar_clientes(request):
     elif filtro_estado == "inactivos":
         clientes = clientes.filter(activo=False)
 
+    # Cuenta corriente "FIAR": solo los clientes con un límite asignado.
+    if filtro_cuenta == "corriente":
+        clientes = clientes.filter(limite_credito__gt=0)
+
     contexto = {
         "clientes": _con_estadisticas(clientes).order_by("apellido", "nombre"),
         "busqueda": busqueda,
         "filtro_estado": filtro_estado,
+        "filtro_cuenta": filtro_cuenta,
         "puntos_regla": services.PUNTOS_POR_PESO,
     }
 

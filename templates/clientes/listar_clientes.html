@@ -27,6 +27,7 @@
                            hx-get="{% url 'clientes:listar_clientes' %}"
                            hx-trigger="keyup changed delay:300ms, search"
                            hx-target="#contenedor-tabla"
+                           hx-include="[name='estado'], [name='cuenta']"
                            hx-swap="innerHTML">
                 </div>
             </div>
@@ -36,6 +37,13 @@
                     <option value="">Todos los estados</option>
                     <option value="activos" {% if filtro_estado == 'activos' %}selected{% endif %}>Activos</option>
                     <option value="inactivos" {% if filtro_estado == 'inactivos' %}selected{% endif %}>Inactivos</option>
+                </select>
+            </div>
+            <div class="filter-group">
+                <select name="cuenta" class="admin-select"
+                        onchange="this.form.submit()">
+                    <option value="">Todas las cuentas</option>
+                    <option value="corriente" {% if filtro_cuenta == 'corriente' %}selected{% endif %}>Con cuenta corriente (FIAR)</option>
                 </select>
             </div>
         </form>

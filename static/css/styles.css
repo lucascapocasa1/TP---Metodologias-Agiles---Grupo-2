@@ -1344,6 +1344,7 @@ strong {
    Se activa con data-tema="neon" en <html>.
    ============================================================ */
 [data-tema="neon"] {
+  color-scheme: dark;
   --ink-solid: #05121A;
   --papel: #081822;
   --superficie: #0E2431;
@@ -2025,15 +2026,38 @@ strong {
   color: #E5484D;
 }
 
+/* KPIs que llevan a otra pantalla: chevron que asoma al pasar el mouse,
+   para que se note que la tarjeta se puede clickear. */
 a.stat-card-link {
+  position: relative;
   text-decoration: none;
   color: inherit;
   cursor: pointer;
 }
 
+a.stat-card-link::after {
+  content: "";
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  width: 7px;
+  height: 7px;
+  border-top: 2px solid var(--kiosco-yellow);
+  border-right: 2px solid var(--kiosco-yellow);
+  transform: rotate(45deg);
+  opacity: 0;
+  transition: opacity var(--transition), transform var(--transition);
+}
+
+a.stat-card-link:hover::after,
+a.stat-card-link:focus-visible::after {
+  opacity: 0.85;
+  transform: translateX(2px) rotate(45deg);
+}
+
 a.stat-card-link:hover {
-  border-color: rgba(239, 68, 68, 0.5);
-  box-shadow: 0 0 0 1px rgba(239, 68, 68, 0.25), var(--shadow-md);
+  border-color: rgba(0, 200, 224, 0.45);
+  box-shadow: 0 0 0 1px rgba(0, 200, 224, 0.22), var(--shadow-md);
 }
 
 .stat-content {
@@ -2265,6 +2289,481 @@ a.stat-card-link:hover {
   color: var(--text-muted);
 }
 
+/* --- Dashboard: analítica del período --- */
+.dashboard-periodo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.dashboard-periodo .kiosco-label {
+  margin: 0;
+}
+
+.dashboard-periodo .kiosco-input {
+  width: auto;
+  min-width: 9rem;
+}
+
+.dashboard-periodo .btn {
+  white-space: nowrap;
+}
+
+.dashboard-fechas {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.dashboard-fechas[hidden] {
+  display: none;
+}
+
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-grid > .admin-card {
+  margin-bottom: 0;
+  height: 100%;
+}
+
+.panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.5rem 0;
+  margin-bottom: 1.1rem;
+}
+
+.admin-panel .admin-card .panel-head h2 {
+  padding: 0;
+  margin: 0;
+}
+
+.panel-nota {
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.panel-link {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--kiosco-yellow);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.panel-link:hover {
+  text-decoration: underline;
+}
+
+.panel-link-bloque {
+  display: inline-block;
+  margin: 0.9rem 1.5rem 1.25rem;
+}
+
+/* Toggle de montos (por unidad / total) de la tarjeta de rentables. */
+.toggle-modo {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 999px;
+  border: 1px solid rgba(26, 26, 46, 0.12);
+  background: var(--bg);
+  gap: 2px;
+}
+
+.toggle-modo-btn {
+  padding: 0.25rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: background var(--transition), color var(--transition);
+}
+
+.toggle-modo-btn:hover {
+  color: var(--text-primary);
+  background: rgba(245, 166, 35, 0.12);
+}
+
+.toggle-modo-btn.activo {
+  background: var(--kiosco-yellow);
+  color: #10202B;
+}
+
+.toggle-modo-btn.activo:hover {
+  background: var(--kiosco-yellow);
+  color: #10202B;
+}
+
+[data-theme="dark"] .toggle-modo {
+  border-color: rgba(205, 214, 244, 0.18);
+}
+
+.mini-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 0.75rem;
+  margin: 0 1.5rem 1.25rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(26, 26, 46, 0.08);
+}
+
+.mini-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.mini-stat span {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.mini-stat strong {
+  font-size: 1.05rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.mini-stat-fiado strong {
+  color: var(--kiosco-yellow);
+}
+
+.lista-mini {
+  list-style: none;
+  margin: 0 1.5rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.lista-mini a {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-rows: auto auto;
+  gap: 0.1rem 0.75rem;
+  align-items: center;
+  padding: 0.55rem 0.7rem;
+  border-radius: var(--radius-sm);
+  color: inherit;
+  text-decoration: none;
+  transition: background 0.2s ease;
+}
+
+.lista-mini a:hover {
+  background: rgba(245, 166, 35, 0.1);
+}
+
+.lista-nombre {
+  grid-column: 1;
+  grid-row: 1;
+  font-weight: 600;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lista-meta {
+  grid-column: 1;
+  grid-row: 2;
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.lista-derecha {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.3rem;
+}
+
+.lista-monto {
+  font-weight: 700;
+  color: var(--kiosco-yellow);
+  white-space: nowrap;
+}
+
+.lista-mini .badge-dias {
+  justify-self: end;
+}
+
+.badge-dias {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.1rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(245, 166, 35, 0.15);
+  border: 1px solid rgba(245, 166, 35, 0.35);
+  color: var(--kiosco-yellow);
+  white-space: nowrap;
+}
+
+.panel-total {
+  margin: 0.9rem 1.5rem 1.25rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.texto-alerta {
+  color: #F59E0B;
+  font-weight: 600;
+}
+
+.panel-vacio {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1.25rem 0.5rem;
+  margin: 0 1.5rem 1.25rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.panel-vacio i {
+  font-size: 1.6rem;
+  color: var(--kiosco-yellow);
+  opacity: 0.8;
+}
+
+.panel-vacio p {
+  margin: 0;
+  font-size: 0.85rem;
+}
+
+.metodos-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin: 0 1.5rem;
+}
+
+.metodo-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text-primary);
+  margin-bottom: 0.3rem;
+}
+
+.metodo-cantidad {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  margin-left: 0.35rem;
+}
+
+.metodo-barra {
+  height: 10px;
+  border-radius: 999px;
+  background: rgba(26, 26, 46, 0.08);
+  overflow: hidden;
+}
+
+.metodo-relleno {
+  display: block;
+  height: 100%;
+  min-width: 2px;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.metodo-efectivo {
+  background: linear-gradient(90deg, #FFD34D, var(--kiosco-yellow));
+}
+
+.metodo-tarjeta {
+  background: linear-gradient(90deg, #8B5CF6, #6D28D9);
+}
+
+.metodo-mercado_pago {
+  background: linear-gradient(90deg, #35B7E8, #0077C8);
+}
+
+.variacion {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.05rem 0.35rem;
+  margin-left: 0.25rem;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.variacion-sube {
+  color: #22C55E;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.variacion-baja {
+  color: #EF4444;
+  background: rgba(239, 68, 68, 0.12);
+}
+
+.variacion-igual {
+  color: var(--text-muted);
+  background: rgba(120, 120, 120, 0.12);
+}
+
+.reporte-grafico-compacto {
+  height: 150px;
+}
+
+.reporte-grafico-compacto .reporte-dia {
+  min-width: 18px;
+}
+
+.reporte-grafico-compacto .reporte-dia-barras {
+  height: 110px;
+}
+
+.reporte-grafico-compacto .reporte-dia-ingresos {
+  width: 70%;
+}
+
+/* Tooltip propio del gráfico: reemplaza el cartel nativo del navegador.
+   Fondo oscuro con borde cian, aparece con un desplazamiento corto para
+   que se note el hover sin tapar la barra. */
+.reporte-grafico-compacto .reporte-dia {
+  position: relative;
+}
+
+.reporte-grafico-compacto .reporte-dia[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 0.35rem);
+  left: 50%;
+  z-index: 6;
+  padding: 0.35rem 0.6rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(53, 183, 232, 0.45);
+  background: rgba(6, 18, 25, 0.96);
+  color: #E9F8FF;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate(-50%, 6px);
+  transition: opacity 0.16s ease, transform 0.16s ease, visibility 0.16s;
+  pointer-events: none;
+}
+
+.reporte-grafico-compacto .reporte-dia[data-tooltip]:hover::after,
+.reporte-grafico-compacto .reporte-dia[data-tooltip]:focus-within::after {
+  opacity: 1;
+  visibility: visible;
+  transform: translate(-50%, 0);
+}
+
+/* En las puntas el cartel se corre para no salir de la tarjeta. */
+.reporte-grafico-compacto .reporte-dia:first-child[data-tooltip]::after {
+  left: 0;
+  transform: translate(0, 6px);
+}
+
+.reporte-grafico-compacto .reporte-dia:first-child[data-tooltip]:hover::after,
+.reporte-grafico-compacto .reporte-dia:first-child[data-tooltip]:focus-within::after {
+  transform: translate(0, 0);
+}
+
+.reporte-grafico-compacto .reporte-dia:last-child[data-tooltip]::after {
+  left: auto;
+  right: 0;
+  transform: translate(0, 6px);
+}
+
+.reporte-grafico-compacto .reporte-dia:last-child[data-tooltip]:hover::after,
+.reporte-grafico-compacto .reporte-dia:last-child[data-tooltip]:focus-within::after {
+  transform: translate(0, 0);
+}
+
+/* Con mouse el gráfico no scrollea, así el tooltip puede salir del área. */
+@media (min-width: 769px) {
+  .reporte-grafico-compacto {
+    overflow: visible;
+  }
+
+  .reporte-grafico-compacto .reporte-dia {
+    min-width: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reporte-grafico-compacto .reporte-dia[data-tooltip]::after {
+    transition: none;
+  }
+}
+
+[data-theme="dark"] .metodo-barra {
+  background: rgba(205, 214, 244, 0.12);
+}
+
+[data-theme="dark"] .mini-stats {
+  border-top-color: rgba(205, 214, 244, 0.1);
+}
+
+@media (max-width: 900px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-periodo {
+    width: 100%;
+  }
+
+  .dashboard-periodo .kiosco-input {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  /* En el celular las barras se angostan y las etiquetas se muestran
+     alternadas para que no se pisen. El contenedor scrollea en X, así que
+     recorta en Y: le damos altura extra para que el globo del hover
+     (que se dibuja arriba de la barra) entre completo. */
+  .reporte-grafico-compacto {
+    gap: 0.25rem;
+    height: 180px;
+  }
+
+  .reporte-grafico-compacto .reporte-dia {
+    min-width: 14px;
+  }
+
+  .reporte-grafico-compacto .reporte-dia-label {
+    font-size: 0.6rem;
+  }
+
+  .reporte-grafico-compacto .reporte-dia:nth-child(even) .reporte-dia-label {
+    visibility: hidden;
+  }
+}
+
 /* --- System Info --- */
 .system-info {
   background: var(--surface);
@@ -2357,9 +2856,12 @@ a.stat-card-link:hover {
   padding-left: 2.5rem;
 }
 
+/* El tema neón es oscuro también en modo claro: el fondo de los campos
+   sale de --surface, no de un #fff fijo (con #fff el texto claro no se
+   leía). El borde sigue el mismo criterio. */
 .admin-input {
-  background: #fff;
-  border: 1.5px solid rgba(26, 26, 46, 0.12);
+  background: var(--surface);
+  border: 1.5px solid rgba(205, 214, 244, 0.15);
   border-radius: var(--radius-sm);
   padding: 0.6rem 0.9rem;
   font-size: 0.9rem;
@@ -2369,6 +2871,10 @@ a.stat-card-link:hover {
   width: 100%;
 }
 
+.admin-input::placeholder {
+  color: var(--text-muted);
+}
+
 .admin-input:focus {
   outline: none;
   border-color: var(--kiosco-yellow);
@@ -2376,8 +2882,8 @@ a.stat-card-link:hover {
 }
 
 .admin-select {
-  background: #fff;
-  border: 1.5px solid rgba(26, 26, 46, 0.12);
+  background: var(--surface);
+  border: 1.5px solid rgba(205, 214, 244, 0.15);
   border-radius: var(--radius-sm);
   padding: 0.6rem 0.9rem;
   font-size: 0.9rem;
@@ -3313,6 +3819,9 @@ a.stat-card-link:hover {
 
   .admin-header-left {
     justify-content: flex-start;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.25rem;
   }
 
   .form-row-2 {
@@ -4488,6 +4997,29 @@ a.stat-card-link:hover {
 .badge-estado-cancelado {
   background: var(--alert-danger-bg);
   color: var(--alert-danger-fg);
+}
+
+/* Facturas: el vencimiento se avisa con la fecha en rojo, no con la
+   etiqueta "Por vencer" (que no decía cuándo vencía). */
+.badge-estado-por-vencer {
+  background: rgba(239, 68, 68, 0.14);
+  border: 1px solid rgba(239, 68, 68, 0.45);
+  color: #EF4444;
+}
+
+.badge-estado-vencida {
+  background: var(--alert-danger-bg);
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  color: var(--alert-danger-fg);
+}
+
+.badge-estado-por-vencer i,
+.badge-estado-vencida i {
+  margin-right: 0.15rem;
+}
+
+[data-theme="dark"] .badge-estado-por-vencer {
+  color: #FCA5A5;
 }
 
 .pedido-detalle-grid {

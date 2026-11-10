@@ -43,6 +43,7 @@
                         <th>Producto</th>
                         <th>Categoría</th>
                         <th>Stock</th>
+                        <th>Costo</th>
                         <th>Precio actual</th>
                         <th>Precio nuevo</th>
                         <th>Acciones</th>
@@ -54,6 +55,13 @@
                         <td>{{ producto.nombre }}</td>
                         <td>{{ producto.categoria.nombre }}</td>
                         <td>{{ producto.stock }}</td>
+                        <td>
+                            {% if producto.costo %}
+                            ${{ producto.costo|montos }}
+                            {% else %}
+                            <span class="texto-suave" title="Sin costo cargado: el margen no se puede calcular">—</span>
+                            {% endif %}
+                        </td>
                         <td>${{ producto.precio|montos }}</td>
                         <td>
                             <form method="post" class="form-row" style="display: flex; gap: 4px; align-items: center;">

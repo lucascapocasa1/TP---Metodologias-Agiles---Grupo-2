@@ -4,7 +4,7 @@
 
 Trabajo práctico de Metodologías Ágiles. **Norvex** (antes "Sistema Kiosco") es una plataforma web de gestión y cobro para comercios: caja, stock, clientes, pedidos de WhatsApp, cuenta corriente "FIAR" y cobro con QR de Mercado Pago. Ahora es una plataforma **multiempresa (multitenant)**: varios comercios pueden usar la misma instalación, cada uno con sus propios productos, clientes, ventas y tienda online, sin que los datos se mezclen.
 
-**Estado:** Sprint 1-4 completos · Consignas de la cátedra completas (HU-13 y HU-14) · Extras: cobro QR (HU-15/16), botón "Conectar con Mercado Pago", recuperación de contraseña con Resend, publicación en Render, arquitectura multiempresa, catálogo público por negocio, panel de superadmin, exportación de stock a Excel, arqueo de caja con conteo físico, productos sin movimiento, módulos separados de **Facturas** y **Proveedores** (con deuda por proveedor y pago FIFO) y layout de gestión con sidebar compartido · **435 tests** en verde.
+**Estado:** Sprint 1-4 completos · Consignas de la cátedra completas (HU-13 y HU-14) · Extras: cobro QR (HU-15/16), botón "Conectar con Mercado Pago", recuperación de contraseña con Resend, publicación en Render, arquitectura multiempresa, catálogo público por negocio, panel de superadmin, exportación de stock a Excel, arqueo de caja con conteo físico, productos sin movimiento, módulos separados de **Facturas** y **Proveedores** (con deuda por proveedor y pago FIFO), layout de gestión con sidebar compartido y **dashboard analítico con selector de período** · **464 tests** en verde.
 
 Publicado en: `https://norvex.onrender.com/`
 
@@ -39,6 +39,7 @@ Publicado en: `https://norvex.onrender.com/`
 | Facturas | — | Servicios y gastos (luz, gas, seguridad e higiene, otro), PDF adjunto y alerta a 7 días | ✅ Completo |
 | Proveedores | — | Facturas de mercadería, deuda por proveedor, filtros y pago FIFO | ✅ Completo |
 | Interfaz de gestión | — | Sidebar compartido, navbar sticky y dashboard con KPIs clickeables | ✅ Completo |
+| Dashboard analítico | — | Período 7/30/90/personalizado, ventas con variación, clientes FIAR, pedidos pendientes, rotación, medios de pago y vencimientos | ✅ Completo |
 
 ---
 
@@ -47,7 +48,7 @@ Publicado en: `https://norvex.onrender.com/`
 - **Sprint 1 — Seguridad y roles:** login/logout, roles por Django Groups (`Administrador` / `Cajero`), redirección post-login por rol, registro público sin rol, auditoría de login/logout con IP.
 - **Sprint 2 — Catálogo:** CRUD completo de productos con código de barras único, costo (solo admin), stock mínimo y alerta de stock bajo, búsqueda HTMX y ordenamiento por columna.
 - **Sprint 3 — Caja:** carrito en sesión, carga por código de barras, edición de cantidades, cobro en efectivo/tarjeta con vuelto y descuento automático de stock.
-- **Sprint 4 — Cierres y reportes:** cierre de turno, reportes de ventas y stock (KPIs, serie diaria, top 10, rentabilidad), fidelidad de clientes (1 punto cada $100) con asociación en el cobro.
+- **Sprint 4 - Cierres y reportes:** cierre de turno, reportes de ventas y stock (KPIs, serie diaria, top 10, rentabilidad con vista por unidad o por total del período), fidelidad de clientes (1 punto cada $100) con asociación en el cobro.
 - **HU-13 — Catálogo público + WhatsApp:** vitrina sin login que no expone el stock exacto, carrito del pedido y envío por WhatsApp. Entregar un pedido es cobrarlo: se cobra el precio congelado usando el mismo núcleo de venta del POS.
 - **HU-14 — Cuenta corriente "FIAR":** límite y saldo por cliente, cobro fiado validado en la transacción, registro de pagos (solo admin) y "deuda otorgada" separada de la caja y de los ingresos.
 - **HU-15/16 — Cobro con QR de Mercado Pago:** venta pendiente hasta aprobar el pago, stock reservado, puntos al aprobar, pantalla para el celular del cliente y webhook. Sin token: modo de prueba con pago simulado.
@@ -57,7 +58,7 @@ Publicado en: `https://norvex.onrender.com/`
 - **Tienda pública por negocio:** catálogo sin login por negocio, carrito de pedido, confirmación con retiro en local o envío a domicilio (+$1000), reserva de stock con expiración de 48 horas.
 - **Exportación de stock a Excel:** desde el reporte de stock, descarga de Excel con todos los productos del negocio (nombre, categoría, stock, precio, costo, margen).
 - **Arqueo de caja:** cierre de turno con conteo físico de efectivo, tarjeta y Mercado Pago; cálculo de diferencia sobrante/faltante.
-- **Productos sin movimiento:** KPI en dashboard con productos sin ventas en los últimos 30 días, listado con edición de precio (descuento rápido o manual) y baja de producto.
+- **Productos sin movimiento:** KPI en dashboard con productos sin ventas en los últimos 30 días, listado con costo y edición de precio (descuento rápido o manual) y baja de producto.
 - **Facturas (servicios y gastos):** módulo propio para luz, gas, seguridad e higiene y otros gastos, con monto, fecha de vencimiento, estado (pendiente/pagada/anulada), pago parcial y archivo PDF adjunto opcional. Alerta automática a 7 días del vencimiento y KPI "Deuda a servicios" en el dashboard.
 - **Proveedores:** módulo separado con las facturas de mercadería (`categoria="proveedor"`), resumen de deuda pendiente por proveedor, tarjetas de deuda, filtro por proveedor, listado paginado de a 10 y pago FIFO (el pago se aplica primero a la factura más antigua). KPI "Deuda a proveedores" en el dashboard.
 - **Interfaz de gestión:** las pantallas privadas comparten `base_admin.html` con sidebar fijo (`includes/sidebar_admin.html`), ítem activo por endpoint y navbar sticky que publica su alto en `--navbar-alto`; el dashboard muestra KPIs clickeables con animación de conteo.
@@ -152,7 +153,7 @@ python manage.py cargar_demo_clientes --limpiar
 python manage.py test --keepdb
 ```
 
-435 tests en verde.
+464 tests en verde.
 
 ---
 
@@ -233,7 +234,7 @@ kiosco_sprint1/
 ├── ventas/              # Catálogo, POS, turnos, QR de Mercado Pago, cargar_demo
 ├── clientes/            # Fidelidad, FIAR, cargar_demo_clientes
 ├── pedidos/             # Catálogo público y pedidos de WhatsApp
-├── administracion/      # Dashboard, usuarios y reportes
+├── administracion/      # Dashboard (analítica por período), usuarios y reportes
 ├── auditoria/           # Logs de auditoría
 ├── negocios/            # Multiempresa: Negocio, Proveedor, Documento (facturas), landing
 ├── templates/
@@ -266,6 +267,13 @@ kiosco_sprint1/
 - Proveedores como módulo separado: deuda por proveedor, filtros, paginación de 10 y pago FIFO
 - Layout de gestión unificado (`base_admin.html` + sidebar compartido) y navbar sticky
 - Dashboard con KPIs clickeables y deuda separada por proveedores / servicios
+- Dashboard analítico con selector de período (7/30/90 días o rango personalizado):
+  - **Ventas del período** con variación % contra el período anterior y gráfico de barras (diario hasta 31 días, semanal para rangos más largos).
+  - **Clientes FIAR**: cantidad, deuda total, clientes al límite y top 5 por saldo (solo clientes con ventas en el negocio).
+  - **Pedidos sin entregar**: conteo, monto potencial y aviso de pedidos con más de 48 h.
+  - **Rotación de stock**: top 5 más vendidos y top 5 sin ventas en el período.
+  - **Ingresos por medio de pago**: barras de efectivo / tarjeta / Mercado Pago y el fiado aparte (no es plata de caja).
+  - **Próximos vencimientos**: documentos pendientes en los próximos 7 días con monto y link al módulo.
 - Demo de los 3 negocios con stock realista y productos sin movimiento
 
 ### Pendiente
@@ -284,13 +292,17 @@ kiosco_sprint1/
 
 **Última sesión — 10/11/2026**
 
-- Se separó el módulo de documentos en dos ítems del menú lateral:
-  - **Facturas** → `/negocios/documentos/facturas/`: servicios y gastos (luz, gas, seguridad e higiene, otro). No muestra deuda ni filtros de proveedor.
-  - **Proveedores** → `/negocios/documentos/proveedores/`: solo facturas de mercadería (`categoria="proveedor"`), con resumen de deuda por proveedor, filtros y pago FIFO.
-  - La URL histórica `/negocios/documentos/` sigue existiendo como listado sin separar, pero ya no se enlaza desde el menú.
-  - El formulario de alta restringe las categorías según el módulo (`?grupo=servicios|proveedores`) y las redirecciones de crear/editar/subir PDF/pagar vuelven al listado correspondiente.
-- El dashboard muestra dos KPIs de deuda separados: **Deuda a proveedores** y **Deuda a servicios**, cada uno con link a su módulo.
-- `python manage.py check` sin errores y `python manage.py test --keepdb` → **435 tests OK**. Verificado con Playwright (sidebar, filtros, formularios y KPIs).
+- Se amplió el **dashboard** (`/administracion/dashboard/`) con seis mejoras de analítica, todas en la misma pantalla:
+  - **Selector de período compartido**: últimos 7 / 30 / 90 días o rango personalizado (por defecto 30). Las fechas solo se muestran cuando se elige "Personalizado" y el período elegido manda sobre las fechas ocultas del formulario.
+  - **Ventas del período**: total, ganancia, ticket promedio, unidades y variación % contra el período anterior, con gráfico de barras (diario hasta 31 días; agrupado por semana ISO en rangos más largos).
+  - **Clientes FIAR**: cantidad, deuda total, al límite y top 5 por saldo. Como `Cliente` es compartido, solo se cuentan los que tienen ventas en el negocio actual.
+  - **Pedidos sin entregar**: conteo, monto potencial y aviso de los que llevan más de 48 h (la reserva de stock vence a las 48 h).
+  - **Rotación de stock**: top 5 más vendidos del período y top 5 sin ventas en el mismo rango.
+  - **Ingresos por medio de pago**: barras CSS de efectivo / tarjeta / Mercado Pago; el fiado se informa aparte porque no es plata que entró a la caja.
+  - **Próximos vencimientos**: ventana fija de 7 días, con monto pendiente y link al módulo de Facturas o Proveedores según la categoría.
+- La lógica vive en `administracion/reportes.py` (`resolver_periodo_dashboard`, `analitica_dashboard` y las funciones por métrica) y se testea en `administracion/tests_dashboard_analitica.py`.
+- Se mantiene la separación previa de documentos en dos ítems del menú lateral: **Facturas** (`/negocios/documentos/facturas/`, servicios y gastos) y **Proveedores** (`/negocios/documentos/proveedores/`, mercadería, deuda por proveedor y pago FIFO).
+- `python manage.py test --keepdb` → **464 tests OK**. Verificado con Playwright: selector de período, tarjetas, gráfico (tooltip propio con unidades del día), paneles, links, tema oscuro, vista móvil y consola sin errores.
 - **Los cambios están en el working tree: sin commit y sin push.** No se subió nada a GitHub.
 
 **Para retomar:**
@@ -301,7 +313,7 @@ python manage.py runserver 8000
 python manage.py test --keepdb
 ```
 
-Entrar con `admin_barrio` / `kiosco2024` y revisar `/administracion/dashboard/`, `/negocios/documentos/facturas/` y `/negocios/documentos/proveedores/`.
+Entrar con `admin_barrio` / `kiosco2024` y revisar `/administracion/dashboard/` con los períodos 7, 30, 90 y personalizado.
 
 ---
 
@@ -313,16 +325,16 @@ Prioridad sugerida: **Alta** = operación diaria; **Media** = relación con el c
 
 | # | Idea | Qué mostraría | Prioridad |
 |---|---|---|---|
-| 1 | **Ventas del período** | Monto total vendido en el mes / últimos 30 días, con filtro de fechas y comparación contra el período anterior. | Alta |
+| 1 | ~~**Ventas del período**~~ | ✅ Hecho: monto, variación vs. período anterior y gráfico con selector de fechas. | Alta |
 | 2 | **Stock crítico (0 unidades)** | Cantidad de productos con `stock = 0`, en rojo, con link directo al reporte de stock. | Alta |
 | 3 | **Stock actual vs mínimo** | Total de productos con stock > 0 y cuántos están en o por debajo del mínimo (hoy ya existe "Stock bajo", se puede ampliar el detalle). | Alta |
-| 4 | **Clientes FIAR** | Clientes con cuenta corriente activa, deuda total otorgada y top 5 por saldo. | Media |
-| 5 | **Pedidos públicos pendientes** | Pedidos del catálogo `/t/<slug>/` sin entregar, con ingresos potenciales. | Media |
+| 4 | ~~**Clientes FIAR**~~ | ✅ Hecho: cantidad, deuda total, al límite y top 5 por saldo. | Media |
+| 5 | ~~**Pedidos públicos pendientes**~~ | ✅ Hecho: conteo, monto potencial y aviso de pedidos con más de 48 h. | Media |
 | 6 | **Rentabilidad bruta estimada** | Si todos los productos tienen costo y precio: inversión a costo, ganancia potencial si se vende todo y margen % promedio. | Media |
-| 7 | **Rotación de stock** | Top 5 productos más vendidos en 30 días y los que menos rotan. | Baja |
+| 7 | ~~**Rotación de stock**~~ | ✅ Hecho: top 5 más vendidos y top 5 sin ventas en el período. | Baja |
 | 8 | **Estado de turnos** | Turnos abiertos sin cerrar y diferencia de caja del último arqueo (sobrante/faltante). | Baja |
-| 9 | **Ingresos por método de pago** | Efectivo vs tarjeta vs Mercado Pago en el período (gráfico de torta o barras). | Baja |
-| 10 | **Próximos vencimientos** | Facturas y servicios que vencen en los próximos 7 días, con monto y link al documento. | Media |
+| 9 | ~~**Ingresos por método de pago**~~ | ✅ Hecho: efectivo / tarjeta / Mercado Pago con total, cantidad y porcentaje; el fiado va aparte. | Baja |
+| 10 | ~~**Próximos vencimientos**~~ | ✅ Hecho: documentos pendientes en los próximos 7 días con monto y link al módulo. | Media |
 
 ### Otras mejoras posibles
 

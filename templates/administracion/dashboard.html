@@ -17,122 +17,475 @@
 
 <div class="admin-panel">
 
-        <div class="main-header">
+    <div class="admin-header">
+        <div class="admin-header-left">
             <h1>Centro de Control - {{ negocio_actual.nombre }}</h1>
+            <p class="admin-subtitle">
+                {% if periodo == "personalizado" %}
+                Del {{ desde|date:"d/m/Y" }} al {{ hasta|date:"d/m/Y" }}
+                ({{ dias_periodo }} día{{ dias_periodo|pluralize }}).
+                {% else %}
+                Últimos {{ dias_periodo }} días.
+                {% endif %}
+                Ventas, clientes, stock y vencimientos de
+                <strong>{{ negocio_actual.nombre }}</strong>.
+            </p>
+        </div>
+        <div class="admin-header-right">
+            <form method="get" class="dashboard-periodo" aria-label="Filtro de período">
+                {% if user.is_superuser and negocio_actual %}
+                <input type="hidden" name="negocio_id" value="{{ negocio_actual.pk }}">
+                {% endif %}
+                <label class="kiosco-label" for="periodo">Período</label>
+                <select class="kiosco-input" name="periodo" id="periodo">
+                    {% for valor, etiqueta in periodo_opciones %}
+                    <option value="{{ valor }}" {% if periodo == valor %}selected{% endif %}>{{ etiqueta }}</option>
+                    {% endfor %}
+                    <option value="personalizado" {% if periodo == "personalizado" %}selected{% endif %}>Personalizado</option>
+                </select>
+                <span class="dashboard-fechas" id="dashboard-fechas" {% if periodo != "personalizado" %}hidden{% endif %}>
+                    <input type="date" name="desde" class="kiosco-input" value="{{ desde|date:'Y-m-d' }}" aria-label="Desde" title="Desde">
+                    <input type="date" name="hasta" class="kiosco-input" value="{{ hasta|date:'Y-m-d' }}" aria-label="Hasta" title="Hasta">
+                </span>
+                <button type="submit" class="btn btn-kiosco">
+                    <i class="bi bi-arrow-repeat" aria-hidden="true"></i> Aplicar
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Tarjetas de estadísticas -->
+    <div class="stats-grid">
+        <!-- Ventas del período -->
+        <div class="stat-card stat-total">
+            <div class="stat-icon">
+                <i class="bi bi-graph-up-arrow"></i>
+            </div>
+            <div class="stat-content">
+                <h3>${{ resumen_periodo.ingresos|montos }}</h3>
+                <p>
+                    Ventas del período
+                    {% if variacion.hay_base %}
+                    <span class="variacion variacion-{{ variacion.direccion }}">
+                        {% if variacion.direccion == "sube" %}
+                        <i class="bi bi-arrow-up-right" aria-hidden="true"></i>
+                        {% elif variacion.direccion == "baja" %}
+                        <i class="bi bi-arrow-down-right" aria-hidden="true"></i>
+                        {% else %}
+                        <i class="bi bi-dash" aria-hidden="true"></i>
+                        {% endif %}
+                        {{ variacion.porcentaje|floatformat:1 }}%
+                    </span>
+                    {% endif %}
+                </p>
+            </div>
         </div>
 
-        <!-- Tarjetas de estadísticas -->
-        <div class="stats-grid">
-            <div class="stat-card stat-total">
-                <div class="stat-icon">
-                    <i class="bi bi-people"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ total_usuarios }}</h3>
-                    <p>Total Usuarios</p>
-                </div>
+        <!-- Pedidos sin entregar -->
+        <a href="{% url 'pedidos:lista_pedidos' %}" class="stat-card stat-warning stat-card-link">
+            <div class="stat-icon">
+                <i class="bi bi-bag-check"></i>
             </div>
-
-            <div class="stat-card stat-active">
-                <div class="stat-icon">
-                    <i class="bi bi-person-check"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ usuarios_activos }}</h3>
-                    <p>Usuarios Activos</p>
-                </div>
+            <div class="stat-content">
+                <h3>{{ pedidos_pendientes.cantidad }}</h3>
+                <p>
+                    Pedidos sin entregar
+                    · ${{ pedidos_pendientes.monto|montos }}
+                </p>
             </div>
+        </a>
 
-            <div class="stat-card stat-admin">
-                <div class="stat-icon">
-                    <i class="bi bi-shield-fill"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ admins }}</h3>
-                    <p>Administradores</p>
-                </div>
+        <!-- Stock bajo (HU-06): click = ver qué productos están por agotarse -->
+        <a href="{% url 'administracion:reportes_stock' %}#stock-bajo" class="stat-card stat-alert stat-card-link">
+            <div class="stat-icon">
+                <i class="bi bi-box-seam"></i>
             </div>
-
-            <div class="stat-card stat-cashier">
-                <div class="stat-icon">
-                    <i class="bi bi-receipt"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ cajeros }}</h3>
-                    <p>Cajeros</p>
-                </div>
+            <div class="stat-content">
+                <h3>{{ productos_stock_bajo }}</h3>
+                <p>Stock bajo (≤ {{ umbral_stock_bajo }})</p>
             </div>
+        </a>
 
-            <!-- Stock bajo (HU-06): click = ver qué productos están por agotarse -->
-            <a href="{% url 'administracion:reportes_stock' %}#stock-bajo" class="stat-card stat-alert stat-card-link">
-                <div class="stat-icon">
-                    <i class="bi bi-box-seam"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ productos_stock_bajo }}</h3>
-                    <p>Stock bajo (≤ {{ umbral_stock_bajo }})</p>
-                </div>
-            </a>
+        <!-- Productos sin movimiento: click = ver y editar precios -->
+        <a href="{% url 'administracion:productos_sin_movimiento' %}" class="stat-card stat-warning stat-card-link">
+            <div class="stat-icon">
+                <i class="bi bi-hourglass-bottom"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ productos_sin_movimiento }}</h3>
+                <p>Sin movimiento ({{ dias_dias }} días)</p>
+            </div>
+        </a>
 
-            <!-- Productos sin movimiento: click = ver y editar precios -->
-            <a href="{% url 'administracion:productos_sin_movimiento' %}" class="stat-card stat-warning stat-card-link">
-                <div class="stat-icon">
-                    <i class="bi bi-hourglass-bottom"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ productos_sin_movimiento }}</h3>
-                    <p>Sin movimiento ({{ dias_dias }} días)</p>
-                </div>
-            </a>
+        <!-- Deuda a proveedores (facturas de mercadería) -->
+        <a href="{% url 'negocios:lista_proveedores' %}" class="stat-card stat-danger stat-card-link">
+            <div class="stat-icon">
+                <i class="bi bi-truck"></i>
+            </div>
+            <div class="stat-content">
+                <h3>${{ deuda_proveedores|montos }}</h3>
+                <p>Deuda a proveedores</p>
+            </div>
+        </a>
 
-            <!-- Deuda a proveedores (facturas de mercadería) -->
-            <a href="{% url 'negocios:lista_proveedores' %}" class="stat-card stat-danger stat-card-link">
-                <div class="stat-icon">
-                    <i class="bi bi-truck"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>${{ deuda_proveedores|montos }}</h3>
-                    <p>Deuda a proveedores</p>
-                </div>
-            </a>
+        <!-- Deuda a servicios (luz, gas, seguridad e higiene, otros) -->
+        <a href="{% url 'negocios:lista_facturas' %}" class="stat-card stat-danger stat-card-link">
+            <div class="stat-icon">
+                <i class="bi bi-lightning-charge"></i>
+            </div>
+            <div class="stat-content">
+                <h3>${{ deuda_servicios|montos }}</h3>
+                <p>Deuda a servicios</p>
+            </div>
+        </a>
 
-            <!-- Deuda a servicios (luz, gas, seguridad e higiene, otros) -->
-            <a href="{% url 'negocios:lista_facturas' %}" class="stat-card stat-danger stat-card-link">
-                <div class="stat-icon">
-                    <i class="bi bi-lightning-charge"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>${{ deuda_servicios|montos }}</h3>
-                    <p>Deuda a servicios</p>
-                </div>
-            </a>
+        <!-- Clientes con cuenta corriente "FIAR": click = listado filtrado -->
+        <a href="{% url 'clientes:listar_clientes' %}?cuenta=corriente" class="stat-card stat-admin stat-card-link">
+            <div class="stat-icon">
+                <i class="bi bi-credit-card-2-front"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ clientes_fiar.cantidad }}</h3>
+                <p>
+                    Clientes FIAR
+                    · ${{ clientes_fiar.deuda|montos }} en deuda
+                </p>
+            </div>
+        </a>
+
+        <!-- Total de usuarios: click = gestionar usuarios -->
+        <a href="{% url 'administracion:listar_usuarios' %}" class="stat-card stat-total stat-card-link">
+            <div class="stat-icon">
+                <i class="bi bi-people"></i>
+            </div>
+            <div class="stat-content">
+                <h3>{{ total_usuarios }}</h3>
+                <p>Total Usuarios</p>
+            </div>
+        </a>
+    </div>
+
+    <!-- Ventas del período: gráfico + totales -->
+    <div class="admin-card">
+        <div class="panel-head">
+            <h2><i class="bi bi-bar-chart"></i> Ventas del período</h2>
+            <span class="panel-nota">Por {{ granularidad }}</span>
         </div>
 
-        <!-- Información del sistema -->
-        <div class="system-info">
-            <h2><i class="bi bi-info-circle"></i> Información del Sistema</h2>
-            <div class="info-grid">
-                <div class="info-item">
-                    <span class="info-label">Versión:</span>
-                    <span class="info-value">2.0.0 - Sprint 2</span>
+        {% if serie %}
+        <div class="reporte-grafico reporte-grafico-compacto" role="img" aria-label="Ingresos por {{ granularidad }} del período">
+            {% for fila in serie %}
+            <div class="reporte-dia"
+                 data-tooltip="{{ fila.etiqueta }} · {% if fila.unidades == 1 %}1 unidad{% else %}{{ fila.unidades }} unidades{% endif %} · ${{ fila.ingresos|montos }}">
+                <div class="reporte-dia-barras">
+                    <span class="reporte-dia-ingresos"
+                          style="height: {% widthratio fila.ingresos max_ingresos 100 %}%"></span>
                 </div>
-                <div class="info-item">
-                    <span class="info-label">Django:</span>
-                    <span class="info-value">6.1.1</span>
+                <span class="reporte-dia-label">{{ fila.etiqueta }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="admin-empty">
+            <div class="empty-icon"><i class="bi bi-graph-up"></i></div>
+            <h3>Sin ventas en el período</h3>
+            <p>Probá con un rango de fechas más amplio.</p>
+        </div>
+        {% endif %}
+
+        <div class="mini-stats">
+            <div class="mini-stat">
+                <span>Ingresos</span>
+                <strong>${{ resumen_periodo.ingresos|montos }}</strong>
+            </div>
+            <div class="mini-stat">
+                <span>Ganancia</span>
+                <strong>${{ resumen_periodo.ganancia|montos }}</strong>
+            </div>
+            <div class="mini-stat">
+                <span>Ticket promedio</span>
+                <strong>${{ resumen_periodo.ticket_promedio|montos }}</strong>
+            </div>
+            <div class="mini-stat">
+                <span>Ventas</span>
+                <strong>{{ resumen_periodo.cantidad_ventas }}</strong>
+            </div>
+            <div class="mini-stat">
+                <span>Unidades</span>
+                <strong>{{ resumen_periodo.unidades_vendidas }}</strong>
+            </div>
+            {% if resumen_periodo.deuda_otorgada > 0 %}
+            <div class="mini-stat mini-stat-fiado">
+                <span>Fiado otorgado</span>
+                <strong>${{ resumen_periodo.deuda_otorgada|montos }}</strong>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Clientes con cuenta corriente -->
+        <div class="admin-card">
+            <div class="panel-head">
+                <h2><i class="bi bi-credit-card-2-front"></i> Clientes con cuenta corriente</h2>
+                <a href="{% url 'clientes:listar_clientes' %}?cuenta=corriente" class="panel-link">Ver todos</a>
+            </div>
+            {% if clientes_fiar.top %}
+            <ul class="lista-mini">
+                {% for cliente in clientes_fiar.top %}
+                <li>
+                    <a href="{% url 'clientes:detalle_cliente' cliente.pk %}">
+                        <span class="lista-nombre">{{ cliente.nombre }}</span>
+                        <span class="lista-meta">
+                            Límite ${{ cliente.limite_credito|montos }}
+                            · Disponible ${{ cliente.credito_disponible|montos }}
+                        </span>
+                        <span class="lista-monto">${{ cliente.saldo_deuda|montos }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            <p class="panel-total">
+                {{ clientes_fiar.con_saldo }} cliente{{ clientes_fiar.con_saldo|pluralize }} con deuda
+                · {{ clientes_fiar.al_limite }} al límite
+                · Total ${{ clientes_fiar.deuda|montos }}
+            </p>
+            {% else %}
+            <div class="panel-vacio">
+                <i class="bi bi-check2-circle"></i>
+                <p>No hay clientes con deuda de cuenta corriente.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Pedidos sin entregar -->
+        <div class="admin-card">
+            <div class="panel-head">
+                <h2><i class="bi bi-bag-check"></i> Pedidos sin entregar</h2>
+                <a href="{% url 'pedidos:lista_pedidos' %}" class="panel-link">Ver todos</a>
+            </div>
+            {% if pedidos_pendientes.top %}
+            <ul class="lista-mini">
+                {% for pedido in pedidos_pendientes.top %}
+                <li>
+                    <a href="{% url 'pedidos:detalle_pedido' pedido.pk %}">
+                        <span class="lista-nombre">{{ pedido.nombre_cliente }}</span>
+                        <span class="lista-meta">
+                            {{ pedido.fecha|date:"d/m H:i" }}
+                            · {{ pedido.get_tipo_entrega_display }}
+                        </span>
+                        <span class="lista-monto">${{ pedido.total|montos }}</span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            <p class="panel-total">
+                {{ pedidos_pendientes.cantidad }} pedido{{ pedidos_pendientes.cantidad|pluralize }} pendiente{{ pedidos_pendientes.cantidad|pluralize }}
+                · ${{ pedidos_pendientes.monto|montos }} en total
+                {% if pedidos_pendientes.vencidos %}
+                · <span class="texto-alerta">{{ pedidos_pendientes.vencidos }} con más de 48 h</span>
+                {% endif %}
+            </p>
+            {% else %}
+            <div class="panel-vacio">
+                <i class="bi bi-check2-circle"></i>
+                <p>No hay pedidos pendientes de entrega.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Rotación: más vendidos -->
+        <div class="admin-card">
+            <div class="panel-head">
+                <h2><i class="bi bi-trophy"></i> Más vendidos</h2>
+                <span class="panel-nota">Top 5 del período</span>
+            </div>
+            {% if rotacion_top %}
+            <ul class="lista-mini">
+                {% for fila in rotacion_top %}
+                <li>
+                    <a href="{% url 'ventas:editar_producto' fila.producto__id %}">
+                        <span class="lista-nombre">{{ fila.producto__nombre }}</span>
+                        <span class="lista-meta">
+                            {{ fila.unidades }} unidad{{ fila.unidades|pluralize }}
+                            · ${{ fila.ingresos|montos }} vendidos
+                        </span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="panel-vacio">
+                <i class="bi bi-graph-up"></i>
+                <p>Sin ventas de productos en el período.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Rotación: sin movimiento -->
+        <div class="admin-card">
+            <div class="panel-head">
+                <h2><i class="bi bi-hourglass-split"></i> Sin ventas en el período</h2>
+                <span class="panel-nota">{{ dias_periodo }} días</span>
+            </div>
+            {% if rotacion_lentos %}
+            <ul class="lista-mini">
+                {% for producto in rotacion_lentos %}
+                <li>
+                    <a href="{% url 'ventas:editar_producto' producto.pk %}">
+                        <span class="lista-nombre">{{ producto.nombre }}</span>
+                        <span class="lista-meta">
+                            Stock {{ producto.stock }}
+                            · vende desde ${{ producto.precio|montos }}
+                        </span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            <a href="{% url 'administracion:productos_sin_movimiento' %}" class="panel-link panel-link-bloque">
+                Ver todos los productos sin movimiento
+            </a>
+            {% else %}
+            <div class="panel-vacio">
+                <i class="bi bi-check2-circle"></i>
+                <p>Todos los productos tuvieron movimiento.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <!-- Ingresos por método de pago -->
+        <div class="admin-card">
+            <div class="panel-head">
+                <h2><i class="bi bi-wallet2"></i> Ingresos por medio de pago</h2>
+                <span class="panel-nota">Total ${{ metodos_pago.total|montos }}</span>
+            </div>
+            {% if metodos_pago.total > 0 %}
+            <div class="metodos-lista">
+                {% for metodo in metodos_pago.metodos %}
+                <div class="metodo-fila">
+                    <div class="metodo-head">
+                        <span>{{ metodo.etiqueta }}</span>
+                        <span>
+                            ${{ metodo.total|montos }}
+                            <span class="metodo-cantidad">
+                                {{ metodo.cantidad }} venta{{ metodo.cantidad|pluralize }}
+                                · {{ metodo.porcentaje|floatformat:1 }}%
+                            </span>
+                        </span>
+                    </div>
+                    <div class="metodo-barra">
+                        <span class="metodo-relleno metodo-{{ metodo.clave }}"
+                              style="width: {% widthratio metodo.total metodos_pago.maximo 100 %}%"></span>
+                    </div>
                 </div>
-                <div class="info-item">
-                    <span class="info-label">Base de Datos:</span>
-                    <span class="info-value">PostgreSQL (db_kiosco)</span>
-                </div>
-                <div class="info-item">
-                    <span class="info-label">Roles:</span>
-                    <span class="info-value">Administrador, Cajero</span>
-                </div>
+                {% endfor %}
+            </div>
+            {% if metodos_pago.fiado > 0 %}
+            <p class="reporte-nota">
+                Fiado otorgado en el período: ${{ metodos_pago.fiado|montos }}.
+                La cuenta corriente no se cuenta como ingreso de caja.
+            </p>
+            {% endif %}
+            {% else %}
+            <div class="panel-vacio">
+                <i class="bi bi-wallet2"></i>
+                <p>Sin ingresos registrados en el período.</p>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Próximos vencimientos -->
+        <div class="admin-card">
+            <div class="panel-head">
+                <h2><i class="bi bi-calendar-event"></i> Próximos vencimientos</h2>
+                <span class="panel-nota">{{ vencimientos.dias }} días</span>
+            </div>
+            {% if vencimientos.items %}
+            <ul class="lista-mini">
+                {% for documento in vencimientos.items %}
+                <li>
+                    <a href="{% if documento.categoria == 'proveedor' %}{% url 'negocios:lista_proveedores' %}{% else %}{% url 'negocios:lista_facturas' %}{% endif %}">
+                        <span class="lista-nombre">
+                            {{ documento.numero_factura|default:documento.nombre_proveedor }}
+                        </span>
+                        <span class="lista-meta">
+                            {{ documento.get_categoria_display }}
+                            · vence {{ documento.fecha_vencimiento|date:"d/m" }}
+                        </span>
+                        <span class="lista-derecha">
+                            <span class="lista-monto">${{ documento.monto_pendiente|montos }}</span>
+                            <span class="badge-dias">
+                                {{ documento.dias_restantes }} día{{ documento.dias_restantes|pluralize }}
+                            </span>
+                        </span>
+                    </a>
+                </li>
+                {% endfor %}
+            </ul>
+            <p class="panel-total">
+                {{ vencimientos.cantidad }} documento{{ vencimientos.cantidad|pluralize }}
+                por ${{ vencimientos.total|montos }} en los próximos {{ vencimientos.dias }} días.
+            </p>
+            {% else %}
+            <div class="panel-vacio">
+                <i class="bi bi-check2-circle"></i>
+                <p>No hay vencimientos en los próximos {{ vencimientos.dias }} días.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Información del sistema -->
+    <div class="system-info">
+        <h2><i class="bi bi-info-circle"></i> Información del Sistema</h2>
+        <div class="info-grid">
+            <div class="info-item">
+                <span class="info-label">Versión:</span>
+                <span class="info-value">2.0.0 - Sprint 2</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Django:</span>
+                <span class="info-value">6.1.1</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Base de Datos:</span>
+                <span class="info-value">PostgreSQL (db_kiosco)</span>
+            </div>
+            <div class="info-item">
+                <span class="info-label">Roles:</span>
+                <span class="info-value">Administrador, Cajero</span>
             </div>
         </div>
+    </div>
 </div>
 <script>
 (function() {
+    // El selector de período muestra las fechas solo en modo personalizado.
+    var select = document.getElementById('periodo');
+    var fechas = document.getElementById('dashboard-fechas');
+    var form = document.querySelector('.dashboard-periodo');
+    if (select && fechas) {
+        function actualizarFechas() {
+            fechas.hidden = select.value !== 'personalizado';
+        }
+        select.addEventListener('change', actualizarFechas);
+        actualizarFechas();
+    }
+    if (form) {
+        // Con un período fijo las fechas ocultas no deben viajar en la URL.
+        form.addEventListener('submit', function() {
+            if (!fechas || select.value === 'personalizado') return;
+            Array.prototype.forEach.call(
+                fechas.querySelectorAll('input'),
+                function(input) { input.disabled = true; }
+            );
+        });
+    }
+
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
     var nums = document.querySelectorAll('.stat-card .stat-content h3');
     Array.prototype.forEach.call(nums, function(el, i) {

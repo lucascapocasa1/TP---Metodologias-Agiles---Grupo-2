@@ -501,6 +501,33 @@ class ListadoYFichaTests(BaseClientes):
         )
         self.assertEqual(len(respuesta.context["clientes"]), 1)
 
+    def test_filtro_con_cuenta_corriente(self):
+        """El KPI "Clientes FIAR" del dashboard linkea a este filtro."""
+        self._venta_de()
+        self.cliente.limite_credito = Decimal("5000.00")
+        self.cliente.save(update_fields=["limite_credito"])
+
+        con_fiar = Cliente.objects.create(
+            nombre="Sin", apellido="Cuenta", dni="99999999"
+        )
+        Venta.objects.create(
+            total=Decimal("100.00"),
+            finalizada=True,
+            cliente=con_fiar,
+            metodo_pago="efectivo",
+        )
+
+        self.login_admin()
+        todos = self.client.get(reverse("clientes:listar_clientes"))
+        filtrados = self.client.get(
+            reverse("clientes:listar_clientes"), {"cuenta": "corriente"}
+        )
+
+        self.assertEqual(len(todos.context["clientes"]), 2)
+        self.assertEqual(
+            [c.dni for c in filtrados.context["clientes"]], ["30123456"]
+        )
+
     def test_ficha_muestra_puntos_fecha_e_historial(self):
         venta = self._venta_de()
         self.cliente.puntos = 15

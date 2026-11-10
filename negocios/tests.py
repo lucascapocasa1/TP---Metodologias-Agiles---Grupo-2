@@ -10,7 +10,7 @@ from django.contrib.auth.models import Group, User
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
-from datetime import date
+from datetime import date, timedelta
 from decimal import Decimal
 
 from auditoria.models import RegistroAuditoria
@@ -723,6 +723,32 @@ class DocumentosListadoTests(TestCase):
         )
 
         self.assertEqual(respuesta.status_code, 404)
+
+    def test_factura_por_vencer_muestra_la_fecha_en_rojo(self):
+        """En vez de la etiqueta "Por vencer" se muestra la fecha exacta."""
+        hoy = timezone.localdate()
+        documento = self.crear_documento("V-001", "10000.00")
+        documento.fecha_vencimiento = hoy + timedelta(days=3)
+        documento.save(update_fields=["fecha_vencimiento"])
+
+        respuesta = self.client.get(reverse("negocios:lista_documentos"))
+
+        self.assertContains(respuesta, "badge-estado-por-vencer")
+        self.assertContains(
+            respuesta, (hoy + timedelta(days=3)).strftime("%d/%m/%Y")
+        )
+        self.assertNotContains(respuesta, "Por vencer")
+
+    def test_factura_vencida_sigue_marcada_como_vencida(self):
+        hoy = timezone.localdate()
+        documento = self.crear_documento("V-002", "10000.00")
+        documento.fecha_vencimiento = hoy - timedelta(days=2)
+        documento.save(update_fields=["fecha_vencimiento"])
+
+        respuesta = self.client.get(reverse("negocios:lista_documentos"))
+
+        self.assertContains(respuesta, "badge-estado-vencida")
+        self.assertNotContains(respuesta, "badge-estado-por-vencer")
 
 
 class DocumentosSeparacionTests(TestCase):
