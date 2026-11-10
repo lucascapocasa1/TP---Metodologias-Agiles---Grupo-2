@@ -5018,10 +5018,6 @@ a.stat-card-link:hover {
   margin-right: 0.15rem;
 }
 
-[data-theme="dark"] .badge-estado-por-vencer {
-  color: #FCA5A5;
-}
-
 .pedido-detalle-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -5414,6 +5410,395 @@ body.con-menu-lateral .kiosco-main {
   .sidebar,
   .sidebar-nav a {
     transition: none;
+  }
+}
+
+/* --- Documentos: rediseño (tabs, totales, filas, acciones) --- */
+.doc-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgba(26, 26, 46, 0.08);
+  padding-bottom: 0.5rem;
+}
+
+.doc-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+  text-decoration: none;
+  border: 1px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  margin-bottom: -1px;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.doc-tab:hover {
+  color: var(--primario);
+  background: var(--surface-hover);
+}
+
+.doc-tab-activa {
+  color: var(--primario);
+  border-color: var(--primario) var(--primario) transparent;
+  background: var(--surface);
+}
+
+.doc-tab-contador {
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  background: rgba(0, 255, 255, 0.12);
+  color: var(--primario);
+}
+
+.doc-tab-activa .doc-tab-contador {
+  background: var(--primario);
+  color: #000;
+}
+
+.doc-totales {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  background: var(--surface);
+  border: 1px solid rgba(26, 26, 46, 0.08);
+  border-radius: var(--radius);
+}
+
+.doc-total {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 150px;
+}
+
+.doc-total-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.doc-total-valor {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: var(--primario);
+}
+
+.doc-total-detalle {
+  font-size: 0.78rem;
+  color: var(--texto-suave);
+}
+
+.doc-total-vencido .doc-total-valor {
+  color: var(--alert-danger);
+}
+.doc-total-por-vencer .doc-total-valor {
+  color: var(--alert-warning);
+}
+.doc-total-pagado .doc-total-valor {
+  color: var(--alert-exito);
+}
+
+.doc-filtros {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  align-items: center;
+}
+
+.doc-filtro-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Tabla de documentos */
+.tabla-documentos .celda-factura strong {
+  color: var(--primario);
+}
+.tabla-documentos .celda-proveedor {
+  font-size: 0.9rem;
+}
+.tabla-documentos .celda-vencimiento {
+  font-size: 0.9rem;
+}
+.tabla-documentos .celda-acciones {
+  width: 170px;
+}
+
+/* Saldo chip con barra de progreso */
+.saldo-chip {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+.saldo-chip .saldo-barra {
+  height: 5px;
+  background: rgba(26, 26, 46, 0.08);
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  width: 100%;
+}
+.saldo-barra::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--primario);
+  width: calc(min(var(--saldo) / var(--total) * 100%, 100%));
+  border-radius: 999px;
+}
+
+/* Menú de acciones ⋯ */
+.acciones-grupo {
+  position: relative;
+  display: inline-block;
+}
+.btn-menu-acciones {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(26, 26, 46, 0.12);
+  background: var(--surface);
+  color: var(--texto-suave);
+  cursor: pointer;
+  padding: 0;
+}
+.btn-menu-acciones:hover {
+  color: var(--primario);
+  border-color: var(--primario);
+}
+.menu-acciones {
+  position: absolute;
+  right: 0;
+  top: 110%;
+  min-width: 180px;
+  background: var(--surface);
+  border: 1px solid rgba(26, 26, 46, 0.12);
+  border-radius: var(--radius-sm);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 0.4rem 0;
+  z-index: 50;
+  display: none;
+}
+.acciones-grupo.menu-abierto .menu-acciones {
+  display: block;
+}
+.menu-item {
+  display: block;
+  padding: 0.5rem 1rem;
+  color: var(--texto);
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.menu-item:hover {
+  background: var(--surface-hover);
+  color: var(--primario);
+}
+.menu-item-peligro {
+  color: var(--alert-danger);
+}
+.menu-item-peligro:hover {
+  background: rgba(231, 76, 60, 0.08);
+  color: var(--alert-danger);
+}
+.menu-item-desactivado {
+  color: var(--texto-suave);
+  cursor: not-allowed;
+}
+
+/* Botón convertir en proveedor */
+.btn-convertir {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--primario);
+  text-decoration: none;
+  border: 1px dashed var(--primario);
+  border-radius: var(--radius-sm);
+  padding: 0.15rem 0.5rem;
+  margin-top: 0.2rem;
+}
+.btn-convertir:hover {
+  background: rgba(0, 255, 255, 0.1);
+}
+
+/* Ficha de documento / proveedor */
+.doc-ficha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid rgba(26, 26, 46, 0.08);
+  border-radius: var(--radius-sm);
+}
+.doc-ficha-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 140px;
+}
+.doc-ficha-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--texto-suave);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.doc-ficha-valor {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--texto);
+}
+
+/* Alertas */
+.admin-alert {
+  padding: 0.75rem 1rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+.admin-alert-info {
+  background: rgba(0, 255, 255, 0.1);
+  border: 1px solid var(--primario);
+  color: var(--texto);
+}
+
+/* Badges por situación (refuerzo) */
+.badge-estado-vencida {
+  background: #dc2626; /* rojo sólido */
+  color: #fff;
+}
+.badge-estado-por-vencer {
+  background: #ff9800; /* naranja */
+  color: #000; /* texto negro para contrastar */
+}
+.badge-estado-por-vencer-lejos {
+  background: #ffeb3b; /* amarillo */
+  color: #000;
+}
+.badge-estado-pagada {
+  background: var(--alert-exito);
+  color: #fff;
+}
+.badge-estado-anulada {
+  background: var(--texto-suave);
+  color: #fff;
+}
+.badge-estado-pendiente {
+  background: transparent;
+  color: var(--texto-suave);
+}
+
+/* Centrar ícono y texto dentro de los badges de color */
+.badge-estado-vencida,
+.badge-estado-por-vencer,
+.badge-estado-por-vencer-lejos {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+.badge-estado-vencida i.bi-clock,
+.badge-estado-por-vencer i.bi-clock,
+.badge-estado-por-vencer-lejos i.bi-clock {
+  font-size: 0.85em;
+}
+
+/* Columna Días restantes: solo texto, sin fondo ni bordes, color según estado */
+.dias-restantes {
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+.dias-restantes-vencida {
+  color: #dc2626;
+}
+.dias-restantes-por-vencer {
+  color: #ff9800;
+}
+.dias-restantes-por-vencer-lejos {
+  color: #ffeb3b;
+}
+.dias-restantes-pendiente {
+  color: var(--texto-suave);
+}
+}
+
+/* Botón de acciones centrado dentro de la celda */
+.celda-acciones {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 0.35rem;
+  padding-right: 0.5rem;
+}
+.btn-menu-acciones {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(26, 26, 46, 0.12);
+  background: var(--surface);
+  color: var(--texto-suave);
+  cursor: pointer;
+  padding: 0;
+  margin: 0;
+}
+.btn-menu-acciones:hover {
+  color: var(--primario);
+  border-color: var(--primario);
+}
+
+/* Contador de pestaña: blanco cuando está activa */
+.doc-tab-activa .doc-tab-contador {
+  background: var(--primario);
+  color: #fff;
+}
+
+.admin-card-titulo {
+  font-size: 1.1rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 0.75rem 0;
+  color: var(--texto);
+}
+
+@media (max-width: 768px) {
+  .doc-totales .doc-total {
+    min-width: 100%;
+  }
+  .tabla-documentos .celda-acciones {
+    width: auto;
   }
 }
 

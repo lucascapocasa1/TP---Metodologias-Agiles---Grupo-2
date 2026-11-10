@@ -41,6 +41,9 @@
     <div class="admin-card">
         <form method="post" class="admin-form">
             {% csrf_token %}
+            {% if error %}
+            <div class="kiosco-alert kiosco-alert-danger">{{ error }}</div>
+            {% endif %}
             {% if form.non_field_errors %}
             <div class="kiosco-alert kiosco-alert-danger">
                 {{ form.non_field_errors }}
@@ -58,7 +61,12 @@
                             <option value="{{ prov.pk }}" {% if form_data.proveedor == prov.pk|stringformat:"s" %}selected{% endif %}>{{ prov.nombre }}</option>
                             {% endfor %}
                         </select>
-                        <div class="texto-suave">Si el proveedor no está en la lista, escribí su nombre abajo.</div>
+                    </div>
+                    <div class="form-row">
+                        <label class="kiosco-label" for="proveedor_nuevo">O crear proveedor nuevo (alta inline)</label>
+                        <input type="text" name="proveedor_nuevo" id="proveedor_nuevo" class="kiosco-input"
+                               placeholder="Ej. Distribuidora Arcor" value="{{ form_data.proveedor_nuevo|default:'' }}">
+                        <div class="texto-suave">Si escribís un nombre nuevo, se creará el proveedor automáticamente.</div>
                     </div>
                     {% endif %}
                     <div class="form-row">

@@ -11,273 +11,268 @@
             </h1>
             <p class="admin-subtitle">
                 {% if es_proveedores %}
-                Facturas de mercadería y deuda pendiente con cada proveedor.
+                Cuentas corrientes de proveedores: cuánto se debe, qué está
+                vencido y cómo se aplican los pagos.
                 {% elif es_facturas %}
                 Facturas de servicios y gastos del negocio.
                 {% else %}
                 Facturas y comprobantes de tu negocio.
                 {% endif %}
-                <strong>{{ total_pendiente }}</strong> pendiente(s),
-                <strong>{{ total_pagada }}</strong>
-                pagada(s).
-                <strong>Deuda total: ${{ total_deuda|montos }}</strong>.
             </p>
         </div>
         <div class="admin-header-right">
-            <a href="{% url 'negocios:crear_documento' %}{% if grupo_actual %}?grupo={{ grupo_actual }}{% endif %}" class="btn btn-kiosco btn-ancho">
+            <a href="{% url 'negocios:crear_documento' %}{% if grupo_actual %}?grupo={{ grupo_actual }}{% endif %}"
+               class="btn btn-kiosco btn-ancho">
                 <i class="bi bi-plus-lg" aria-hidden="true"></i>
-                {% if es_proveedores %}Nueva factura de proveedor{% else %}Nuevo documento{% endif %}
+                {% if es_proveedores %}Nueva factura de proveedor
+                {% elif es_facturas %}Nueva factura{% else %}Crear documento{% endif %}
             </a>
         </div>
     </div>
 
-    <!-- Filtros -->
-    <div class="admin-filters">
-        <form method="get" class="filter-form">
-            {% if grupo_actual %}
-            <input type="hidden" name="grupo" value="{{ grupo_actual }}">
-            {% endif %}
-            {% if orden_actual %}
-            <input type="hidden" name="orden" value="{{ orden_actual }}">
-            <input type="hidden" name="dir" value="{{ direccion_actual }}">
-            {% endif %}
-            <div class="filter-group">
-                <label class="kiosco-label" for="estado">Estado:</label>
-                <select class="kiosco-input" name="estado" id="estado">
-                    <option value="">Todos</option>
-                    {% for valor, etiqueta in estados %}
-                    <option value="{{ valor }}" {% if estado_actual == valor %}selected{% endif %}>
-                        {{ etiqueta }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
-            {% if not es_proveedores %}
-            <div class="filter-group">
-                <label class="kiosco-label" for="categoria">Categoría:</label>
-                <select class="kiosco-input" name="categoria" id="categoria">
-                    <option value="">Todas</option>
-                    {% for valor, etiqueta in categorias %}
-                    <option value="{{ valor }}" {% if categoria_actual == valor %}selected{% endif %}>
-                        {{ etiqueta }}
-                    </option>
-                    {% endfor %}
-                </select>
-            </div>
+    {% if documentos %}
+    <!-- Tabs de estado -->
+    <div class="doc-tabs" role="tablist" aria-label="Estado de los documentos">
+        {% for vista in vistas %}
+        <a href="?{% param vista=vista.clave estado=None page=None %}"
+           class="doc-tab{% if vista.activa %} doc-tab-activa{% endif %}"
+           role="tab"
+           aria-selected="{% if vista.activa %}true{% else %}false{% endif %}">
+            {{ vista.etiqueta }}
+            <span class="doc-tab-contador">{{ vista.cantidad }}</span>
+        </a>
+        {% endfor %}
+    </div>
+
+    <!-- Banda de totales -->
+    <div class="doc-totales">
+        <div class="doc-total">
+            <span class="doc-total-label">Deuda total</span>
+            <span class="doc-total-valor">${{ totales.deuda|montos }}</span>
+        </div>
+        <div class="doc-total doc-total-vencido">
+            <span class="doc-total-label">Vencido</span>
+            <span class="doc-total-valor">${{ totales.vencido|montos }}</span>
+            <span class="doc-total-detalle">{{ totales.cantidad_vencidas }} factura{{ totales.cantidad_vencidas|pluralize }}</span>
+        </div>
+        <div class="doc-total doc-total-por-vencer">
+            <span class="doc-total-label">Vence esta semana</span>
+            <span class="doc-total-valor">${{ totales.por_vencer|montos }}</span>
+            <span class="doc-total-detalle">{{ totales.cantidad_por_vencer }} factura{{ totales.cantidad_por_vencer|pluralize }}</span>
+        </div>
+        <div class="doc-total doc-total-pagado">
+            <span class="doc-total-label">Pagado este mes</span>
+            <span class="doc-total-valor">${{ pagado_mes_monto|montos }}</span>
+            <span class="doc-total-detalle">{{ pagado_mes_cantidad }} comprobante{{ pagado_mes_cantidad|pluralize }}</span>
+        </div>
+    </div>
+
+    <!-- Filtros rápidos -->
+    <div class="doc-filtros">
+        <form method="get" class="doc-filtro-form">
+            {% if categorias %}
+            <select name="categoria" class="admin-select" onchange="this.form.submit()">
+                <option value="">Todas las categorías</option>
+                {% for valor, etiqueta in categorias %}
+                <option value="{{ valor }}"{% if categoria_actual == valor %} selected{% endif %}>
+                    {{ etiqueta }}
+                </option>
+                {% endfor %}
+            </select>
             {% endif %}
             {% if not es_facturas and proveedores %}
-            <div class="filter-group">
-                <label class="kiosco-label" for="proveedor">Proveedor:</label>
-                <select class="kiosco-input" name="proveedor" id="proveedor">
-                    <option value="">Todos</option>
-                    {% for proveedor in proveedores %}
-                    <option value="{{ proveedor.pk }}" {% if proveedor_actual == proveedor.pk|stringformat:"s" %}selected{% endif %}>
-                        {{ proveedor.nombre }}
-                    </option>
-                    {% endfor %}
-                    <option value="sin" {% if proveedor_actual == "sin" %}selected{% endif %}>
-                        Sin proveedor asignado
-                    </option>
-                </select>
-            </div>
+            <select name="proveedor" class="admin-select" onchange="this.form.submit()">
+                <option value="">Todos los proveedores</option>
+                <option value="sin"{% if proveedor_actual == "sin" %} selected{% endif %}>Sin proveedor asignado</option>
+                {% for proveedor in proveedores %}
+                <option value="{{ proveedor.pk }}"{% if proveedor_actual == proveedor.pk|stringformat:"s" %} selected{% endif %}>
+                    {{ proveedor.nombre }}
+                </option>
+                {% endfor %}
+            </select>
             {% endif %}
-            <button type="submit" class="btn btn-admin-filter">
-                <i class="bi bi-funnel"></i> Filtrar
-            </button>
-            <a href="{{ lista_url }}" class="btn btn-admin-clear">
-                Limpiar
-            </a>
+            <a href="{{ lista_url }}" class="btn btn-kiosco-outline btn-sm">Limpiar filtros</a>
         </form>
     </div>
 
-    {% if resumen_proveedores %}
-    <section class="deuda-proveedores" aria-label="Deuda por proveedor">
-        <div class="deuda-proveedores-header">
-            <h2><i class="bi bi-people"></i> Deuda por proveedor</h2>
-            <span class="deuda-total">Total: ${{ total_deuda|montos }}</span>
-        </div>
-        <div class="deuda-grid">
-            {% for item in resumen_proveedores %}
-            <article class="deuda-card {% if proveedor_actual == item.clave %}deuda-card-activa{% endif %}">
-                <div class="deuda-card-top">
-                    <h3>{{ item.nombre }}</h3>
-                    <span class="deuda-monto">${{ item.saldo|montos }}</span>
-                </div>
-                <p class="deuda-detalle">
-                    {{ item.facturas }} factura{{ item.facturas|pluralize }}
-                    {% if item.vencidas %}
-                    ·
-                    <span class="deuda-vencidas">{{ item.vencidas }} vencida{{ item.vencidas|pluralize }}</span>
-                    {% endif %}
-                </p>
-                <div class="deuda-acciones">
-                    <a class="btn-deuda-ver" href="?{% param proveedor=item.clave page=None %}">
-                        <i class="bi bi-list-ul"></i> Ver facturas
-                    </a>
-                    {% if item.proveedor_id %}
-                    <a class="btn-deuda-pagar" href="{% url 'negocios:pagar_proveedor' item.proveedor_id %}">
-                        <i class="bi bi-cash-coin"></i> Pagar
-                    </a>
-                    {% endif %}
-                </div>
-            </article>
-            {% endfor %}
-        </div>
-    </section>
-    {% endif %}
-
-    {% if documentos %}
-    <div class="admin-card">
-        <div class="admin-table-container">
-            <table class="admin-table">
-                <thead>
-                    <tr>
-                        {% for columna in columnas %}
-                        <th class="th-ordenable">
-                            <a href="?{% param orden=columna.clave dir=columna.siguiente page=None %}"
-                               class="orden-link{% if columna.activa %} orden-activa{% endif %}"
-                               title="Ordenar por {{ columna.etiqueta }}">
-                                {{ columna.etiqueta }}
-                                {% if columna.activa %}
-                                    {% if columna.direccion == "asc" %}
-                                    <i class="bi bi-caret-up-fill" aria-label="Ascendente"></i>
-                                    {% else %}
-                                    <i class="bi bi-caret-down-fill" aria-label="Descendente"></i>
-                                    {% endif %}
+    <div class="table-responsive">
+        <table class="admin-table tabla-documentos">
+            <thead>
+                <tr>
+                    {% for columna in columnas %}
+                    <th class="th-ordenable">
+                        <a href="?{% param orden=columna.clave dir=columna.siguiente page=None vista=vista_actual %}"
+                           class="orden-link{% if columna.activa %} orden-activa{% endif %}"
+                           title="Ordenar por {{ columna.etiqueta }}">
+                            {{ columna.etiqueta }}
+                            {% if columna.activa %}
+                                {% if columna.direccion == "asc" %}
+                                <i class="bi bi-caret-up-fill" aria-label="Ascendente"></i>
                                 {% else %}
-                                <i class="bi bi-arrow-down-up orden-icono-suave" aria-hidden="true"></i>
+                                <i class="bi bi-caret-down-fill" aria-label="Descendente"></i>
                                 {% endif %}
-                            </a>
-                        </th>
-                        {% endfor %}
-                        <th>Acciones</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for documento in documentos %}
-                    <tr>
-                        <td>
-                            <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>
-                            {% if documento.archivo_pdf %}
-                            <a href="{{ documento.archivo_pdf.url }}" target="_blank" class="texto-suave" title="Ver PDF">
-                                <i class="bi bi-file-earmark-pdf"></i>
-                            </a>
-                            {% endif %}
-                        </td>
-                        <td>{{ documento.get_categoria_display }}</td>
-                        <td>
-                            {% if documento.proveedor %}
-                            {{ documento.proveedor.nombre }}
-                            {% elif documento.nombre_proveedor %}
-                            {{ documento.nombre_proveedor }}
                             {% else %}
-                            <span class="texto-suave">—</span>
+                            <i class="bi bi-arrow-down-up orden-icono-suave" aria-hidden="true"></i>
                             {% endif %}
-                        </td>
-                        <td>${{ documento.monto|montos }}</td>
-                        <td>${{ documento.monto_pagado|montos }}</td>
-                        <td>
-                            {% if documento.monto_pendiente > 0 %}
-                            <span class="badge-deuda">${{ documento.monto_pendiente|montos }}</span>
-                            {% else %}
-                            <span class="texto-suave">—</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if documento.esta_vencida %}
-                            <span class="badge-estado badge-estado-vencida" title="Vencida">
-                                <i class="bi bi-clock"></i> Vencida
-                            </span>
-                            {% elif documento.esta_por_vencer %}
-                            <span class="badge-estado badge-estado-por-vencer"
-                                  title="Vence en {{ documento.fecha_vencimiento|timeuntil }}">
-                                <i class="bi bi-clock"></i> {{ documento.fecha_vencimiento|date:"d/m/Y" }}
-                            </span>
-                            {% else %}
-                            <span class="texto-suave">{{ documento.fecha_vencimiento|date:"d/m/Y" }}</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            {% if documento.estado == "pendiente" %}
-                            <span class="badge-estado badge-estado-pendiente">
-                                Pendiente
-                            </span>
-                            {% elif documento.estado == "pagada" %}
-                            <span class="badge-estado badge-estado-pagada">
-                                Pagada
-                            </span>
-                            {% else %}
-                            <span class="badge-estado badge-estado-anulada">
-                                Anulada
-                            </span>
-                            {% endif %}
-                        </td>
-                        <td class="actions-col">
-                            <div class="action-buttons">
-                                {% if documento.estado == "pendiente" %}
-                                <a href="{% url 'negocios:marcar_pagada' documento.id %}" class="btn-action btn-edit" title="Registrar pago">
-                                    <i class="bi bi-cash-coin"></i>
-                                </a>
-                                {% endif %}
-                                {% if documento.archivo_pdf %}
-                                <a href="{{ documento.archivo_pdf.url }}" target="_blank" class="btn-action" title="Ver PDF">
-                                    <i class="bi bi-file-earmark-pdf"></i>
-                                </a>
-                                {% endif %}
-                                <a href="{% url 'negocios:editar_documento' documento.id %}" class="btn-action btn-edit">
-                                    <i class="bi bi-pencil"></i>
-                                </a>
-                                {% if documento.archivo_pdf %}
-                                <a href="{% url 'negocios:subir_pdf' documento.id %}" class="btn-action" title="Cambiar PDF">
-                                    <i class="bi bi-upload"></i>
-                                </a>
-                                {% endif %}
-                            </div>
-                        </td>
-                    </tr>
+                        </a>
+                    </th>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
-
-        {% if pagina.paginator.num_pages > 1 %}
-        <nav class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3" aria-label="Paginación de documentos">
-            <span class="texto-suave">
-                Mostrando {{ pagina.start_index }}–{{ pagina.end_index }}
-                de {{ pagina.paginator.count }} documento{{ pagina.paginator.count|pluralize }}
-            </span>
-            <ul class="pagination mb-0">
-                <li class="page-item {% if not pagina.has_previous %}disabled{% endif %}">
-                    {% if pagina.has_previous %}
-                    <a class="page-link" href="?{% param page=pagina.previous_page_number %}" aria-label="Anterior">
-                        <i class="bi bi-chevron-left"></i>
-                    </a>
-                    {% else %}
-                    <span class="page-link"><i class="bi bi-chevron-left"></i></span>
-                    {% endif %}
-                </li>
-                {% for num in pagina.paginator.page_range %}
-                    {% if num == pagina.number %}
-                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
-                    {% elif num > pagina.number|add:"-3" and num < pagina.number|add:"3" %}
-                    <li class="page-item">
-                        <a class="page-link" href="?{% param page=num %}">{{ num }}</a>
-                    </li>
-                    {% endif %}
+                    <th>Días restantes</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for documento in documentos %}
+                <tr>
+                    <td class="celda-factura">
+                        <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>
+                        {% if documento.archivo_pdf %}
+                        <a href="{{ documento.archivo_pdf.url }}" target="_blank" class="texto-suave" title="Ver PDF">
+                            <i class="bi bi-file-earmark-pdf"></i>
+                        </a>
+                        {% endif %}
+                        <br><span class="texto-suave">{{ documento.get_categoria_display }}</span>
+                    </td>
+                    <td class="texto-suave">{{ documento.get_categoria_display }}</td>
+                    <td class="celda-proveedor">
+                        {% if documento.proveedor %}
+                        {{ documento.proveedor.nombre }}
+                        {% elif documento.nombre_proveedor %}
+                        <span class="texto-suave">{{ documento.nombre_proveedor }}</span>
+                        <a href="{% url 'negocios:convertir_en_proveedor' documento.id %}" class="btn-convertir" title="Convertir en proveedor">
+                            <i class="bi bi-person-plus"></i> Convertir
+                        </a>
+                        {% else %}
+                        <span class="texto-suave">—</span>
+                        {% endif %}
+                    </td>
+                    <td>${{ documento.monto|montos }}</td>
+                    <td>${{ documento.monto_pagado|montos }}</td>
+                    <td>
+                        {% if documento.monto_pendiente > 0 %}
+                        <span class="saldo-chip">
+                            ${{ documento.monto_pendiente|montos }}
+                            <span class="saldo-barra" style="--saldo: {{ documento.monto_pendiente }}; --total: {{ documento.monto }};"></span>
+                        </span>
+                        {% else %}
+                        <span class="texto-suave">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="celda-vencimiento">
+                        <span class="texto-suave">{{ documento.fecha_vencimiento|date:"d/m/Y" }}</span>
+                    </td>
+                    <td class="celda-dias-restantes">
+                        {% if documento.estado == "pendiente" and documento.esta_vencida %}
+                        <span class="dias-restantes dias-restantes-vencida">{{ documento.dias_vencida }} días vencida</span>
+                        {% elif documento.esta_por_vencer %}
+                        <span class="dias-restantes dias-restantes-por-vencer">{{ documento.dias_restantes }} días</span>
+                        {% elif documento.esta_por_vencer_lejos %}
+                        <span class="dias-restantes dias-restantes-por-vencer-lejos">{{ documento.dias_restantes }} días</span>
+                        {% elif documento.estado == "pendiente" %}
+                        <span class="dias-restantes dias-restantes-pendiente">{{ documento.dias_restantes }} días</span>
+                        {% else %}
+                        <span class="texto-suave">—</span>
+                        {% endif %}
+                    </td>
+                    <td class="celda-estado">
+                        {% if documento.estado == "anulada" %}
+                        <span class="badge-estado badge-estado-anulada">Anulada</span>
+                        {% elif documento.estado == "pagada" %}
+                        <span class="badge-estado badge-estado-pagada">Pagada</span>
+                        {% elif documento.esta_vencida %}
+                        <span class="badge-estado badge-estado-vencida" title="{{ documento.fecha_vencimiento|date:'d/m/Y' }}">
+                            <i class="bi bi-clock"></i> Vencida
+                        </span>
+                        {% elif documento.esta_por_vencer %}
+                        <span class="badge-estado badge-estado-por-vencer" title="Vence en {{ documento.fecha_vencimiento|timeuntil }}">
+                            <i class="bi bi-clock"></i> Vence pronto
+                        </span>
+                        {% elif documento.esta_por_vencer_lejos %}
+                        <span class="badge-estado badge-estado-por-vencer-lejos" title="Vence en {{ documento.fecha_vencimiento|timeuntil }}">
+                            <i class="bi bi-clock"></i> Vence pronto
+                        </span>
+                        {% else %}
+                        <span class="badge-estado badge-estado-pendiente">Pendiente</span>
+                        {% endif %}
+                    </td>
+                    <td class="text-end celda-acciones">
+                        <div class="acciones-grupo">
+                            <button class="btn btn-outline btn-menu-acciones" aria-label="Más acciones para {{ documento.numero_factura|default:documento.nombre_proveedor }}">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <div class="menu-acciones">
+                                {% if documento.estado == "pendiente" %}
+                                <a href="{% url 'negocios:marcar_pagada' documento.id %}" class="menu-item">
+                                    <i class="bi bi-cash-coin"></i> Registrar pago
+                                </a>
+                                {% elif documento.estado == "pagada" %}
+                                <span class="menu-item menu-item-desactivado">
+                                    <i class="bi bi-cash-coin"></i> Ya está pagada
+                                </span>
+                                {% endif %}
+                                {% if documento.estado == "pendiente" %}
+                                <a href="{% url 'negocios:anular_documento' documento.id %}" class="menu-item menu-item-peligro">
+                                    <i class="bi bi-trash"></i> Anular
+                                </a>
+                                {% elif documento.estado == "anulada" %}
+                                <a href="{% url 'negocios:reactivar_documento' documento.id %}" class="menu-item">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Reactivar
+                                </a>
+                                {% endif %}
+                                {% if documento.archivo_pdf %}
+                                <a href="{{ documento.archivo_pdf.url }}" target="_blank" class="menu-item">
+                                    <i class="bi bi-file-earmark-pdf"></i> Ver PDF
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'negocios:editar_documento' documento.id %}" class="menu-item">
+                                    <i class="bi bi-pencil"></i> Editar
+                                </a>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
                 {% endfor %}
-                <li class="page-item {% if not pagina.has_next %}disabled{% endif %}">
-                    {% if pagina.has_next %}
-                    <a class="page-link" href="?{% param page=pagina.next_page_number %}" aria-label="Siguiente">
-                        <i class="bi bi-chevron-right"></i>
-                    </a>
-                    {% else %}
-                    <span class="page-link"><i class="bi bi-chevron-right"></i></span>
-                    {% endif %}
-                </li>
-            </ul>
-        </nav>
-        {% endif %}
+            </tbody>
+        </table>
     </div>
+
+    {% if pagina.paginator.num_pages > 1 %}
+    <nav class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3" aria-label="Paginación de documentos">
+        <span class="texto-suave">
+            Mostrando {{ pagina.start_index }}–{{ pagina.end_index }}
+            de {{ pagina.paginator.count }} documento{{ pagina.paginator.count|pluralize }}
+        </span>
+        <ul class="pagination mb-0">
+            <li class="page-item {% if not pagina.has_previous %}disabled{% endif %}">
+                {% if pagina.has_previous %}
+                <a class="page-link" href="?{% param page=pagina.previous_page_number %}" aria-label="Anterior">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+                {% else %}
+                <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                {% endif %}
+            </li>
+            {% for num in pagina.paginator.page_range %}
+                {% if num == pagina.number %}
+                <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                {% elif num > pagina.number|add:"-3" and num < pagina.number|add:"3" %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% param page=num %}vista=vista_actual %">{{ num }}</a>
+                </li>
+                {% endif %}
+            {% endfor %}
+            <li class="page-item {% if not pagina.has_next %}disabled{% endif %}">
+                {% if pagina.has_next %}
+                <a class="page-link" href="?{% param page=pagina.next_page_number %}" aria-label="Siguiente">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+                {% else %}
+                <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                {% endif %}
+            </li>
+        </ul>
+    </nav>
+    {% endif %}
     {% else %}
     <div class="admin-empty">
         <div class="empty-icon"><i class="bi bi-file-earmark"></i></div>
@@ -294,4 +289,25 @@
     </div>
     {% endif %}
 </div>
+
+<script>
+// Menú de acciones ⋯: abrir/cerrar con click, cerrar al click fuera
+document.addEventListener('click', function (e) {
+    const btn = e.target.closest('.btn-menu-acciones');
+    if (btn) {
+        const grupo = btn.closest('.acciones-grupo');
+        // Cerrar todos los demás menús
+        document.querySelectorAll('.acciones-grupo.menu-abierto').forEach(g => {
+            if (g !== grupo) g.classList.remove('menu-abierto');
+        });
+        grupo.classList.toggle('menu-abierto');
+        e.stopPropagation();
+        return;
+    }
+    // Click fuera: cerrar todos los menús
+    document.querySelectorAll('.acciones-grupo.menu-abierto').forEach(g => {
+        g.classList.remove('menu-abierto');
+    });
+});
+</script>
 {% endblock %}

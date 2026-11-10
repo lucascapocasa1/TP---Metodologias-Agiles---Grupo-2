@@ -1,0 +1,60 @@
+{% extends "base_admin.html" %}
+{% load formatos %}
+{% block titulo %}Editar {{ proveedor.nombre }} — {{ negocio.nombre }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-pencil"></i> Editar proveedor</h1>
+            <p class="admin-subtitle">
+                Modificá los datos de
+                <strong>{{ proveedor.nombre }}</strong>.
+            </p>
+        </div>
+        <div class="admin-header-right">
+            <a href="{{ volver_url }}" class="btn btn-kiosco-outline btn-ancho">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al detalle
+            </a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <form method="post" class="admin-form">
+            {% csrf_token %}
+            {% if error %}
+            <div class="alert alert-danger">{{ error }}</div>
+            {% endif %}
+            <div class="admin-form-grid">
+                <div class="admin-form-group">
+                    <label class="admin-form-label">Nombre del proveedor <span class="requerido">*</span></label>
+                    <input type="text" name="nombre" class="admin-input"
+                           value="{{ proveedor.nombre }}" required>
+                </div>
+                <div class="admin-form-group">
+                    <label class="admin-form-label">Teléfono</label>
+                    <input type="tel" name="telefono" class="admin-input"
+                           value="{{ proveedor.telefono|default:'' }}" placeholder="Ej. 11-2345-6789">
+                </div>
+                <div class="admin-form-group">
+                    <label class="admin-form-label">Email</label>
+                    <input type="email" name="email" class="admin-input"
+                           value="{{ proveedor.email|default:'' }}" placeholder="Ej. ventas@arcor.com">
+                </div>
+                <div class="admin-form-group">
+                    <label class="admin-form-label">Estado</label>
+                    <select name="activo" class="admin-select">
+                        <option value="on"{% if proveedor.activo %} selected{% endif %}>Activo</option>
+                        <option value="off"{% if not proveedor.activo %} selected{% endif %}>Inactivo</option>
+                    </select>
+                </div>
+            </div>
+            <div class="admin-form-actions">
+                <a href="{{ volver_url }}" class="btn btn-kiosco-outline">Cancelar</a>
+                <button type="submit" class="btn btn-kiosco">
+                    <i class="bi bi-save"></i> Guardar cambios
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

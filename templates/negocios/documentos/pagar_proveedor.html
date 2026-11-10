@@ -7,8 +7,8 @@
         <div class="admin-header-left">
             <h1><i class="bi bi-cash-stack"></i> Pagar a {{ proveedor.nombre }}</h1>
             <p class="admin-subtitle">
-                El pago se aplica primero a las facturas más antiguas
-                (FIFO) y se reparte automáticamente.
+                El pago se aplica primero a las facturas más antiguas por
+                fecha de vencimiento (FIFO) y se reparte automáticamente.
             </p>
         </div>
         <div class="admin-header-right">
@@ -38,13 +38,12 @@
 
         {% if facturas %}
         <div class="admin-table-container mb-3">
-            <table class="admin-table">
+            <table class="admin-table tabla-documentos">
                 <thead>
                     <tr>
                         <th>Factura</th>
-                        <th>Emisión</th>
+                        <th>Vencimiento</th>
                         <th>Monto</th>
-                        <th>Pagado</th>
                         <th>Pendiente</th>
                     </tr>
                 </thead>
@@ -52,9 +51,8 @@
                     {% for factura in facturas %}
                     <tr>
                         <td><strong>{{ factura.numero_factura|default:"—" }}</strong></td>
-                        <td>{{ factura.fecha_emision|date:"d/m/Y" }}</td>
+                        <td>{{ factura.fecha_vencimiento|date:"d/m/Y" }}</td>
                         <td>${{ factura.monto|montos }}</td>
-                        <td>${{ factura.monto_pagado|montos }}</td>
                         <td><span class="badge-deuda">${{ factura.monto_pendiente|montos }}</span></td>
                     </tr>
                     {% endfor %}
@@ -62,15 +60,65 @@
             </table>
         </div>
 
+        <!-- Previsualización del reparto FIFO -->
+        {% if preview %}
+        <div class="admin-alert admin-alert-info mb-3">
+            {% if preview.error %}
+            <strong>Atención:</strong> {{ preview.error }}
+            {% else %}
+            <strong>Vista previa del pago de ${{ preview.monto|montos }}</strong>
+            {% if preview.sobrante > 0 %}
+            — se aplicarán ${{ preview.monto|montos }} y sobrarán
+            ${{ preview.sobrante|montos }} (no se puede pagar más que la deuda).
+            {% else %}
+            — se distribuirá así:
+            {% endif %}
+            {% endif %}
+        </div>
+        {% if preview.reparto %}
+        <table class="admin-table tabla-documentos mb-3">
+            <thead>
+                <tr>
+                    <th>Factura</th>
+                    <th>Vencimiento</th>
+                    <th>Pago a aplicar</th>
+                    <th>Quedará pendiente</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in preview.reparto %}
+                <tr>
+                    <td><strong>{{ item.documento.numero_factura|default:"—" }}</strong></td>
+                    <td>{{ item.documento.fecha_vencimiento|date:"d/m/Y" }}</td>
+                    <td>${{ item.pago|montos }}</td>
+                    <td>
+                        {% if item.quedara_pagada %}
+                        <span class="texto-suave">— (se cancela)</span>
+                        {% else %}
+                        <span class="badge-deuda">${{ item.saldo_despues|montos }}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% endif %}
+        {% endif %}
+
         <form method="post" class="admin-form">
             {% csrf_token %}
             <div class="form-row">
                 <label class="kiosco-label" for="monto">Monto a pagar <span class="obligatorio" aria-hidden="true">*</span></label>
-                <input type="number" name="monto" id="monto" step="0.01" min="0.01" max="{{ saldo_total }}" class="kiosco-input" placeholder="0,00" required>
+                <input type="number" name="monto" id="monto" step="0.01" min="0.01" max="{{ saldo_total }}"
+                       class="kiosco-input" placeholder="0,00" required>
                 <div class="texto-suave">
                     Se descuenta de la deuda total (${{ saldo_total|montos }}),
-                    empezando por la factura más antigua.
+                    empezando por la factura con vencimiento más próximo.
                 </div>
+                {% if preview %}
+                <a href="{% url 'negocios:pagar_proveedor' proveedor.pk %}"
+                   class="btn btn-kiosco-outline btn-sm mt-2">Ver otra previsualización</a>
+                {% endif %}
             </div>
 
             <div class="form-actions">

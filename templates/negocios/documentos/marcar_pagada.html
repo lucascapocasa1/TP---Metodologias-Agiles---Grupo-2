@@ -29,14 +29,14 @@
                 </div>
             </div>
             <div class="stat-card stat-active">
-                <div class="stat-icon"><i class="bi bi-cash"></i></div>
+                <div class="stat-icon"><i class="bi bi-cash-coin"></i></div>
                 <div class="stat-content">
                     <h3>${{ documento.monto_pagado|montos }}</h3>
                     <p>Ya pagado</p>
                 </div>
             </div>
             <div class="stat-card stat-warning">
-                <div class="stat-icon"><i class="bi bi-dash-circle"></i></div>
+                <div class="stat-icon"><i class="bi bi-clock"></i></div>
                 <div class="stat-content">
                     <h3>${{ documento.monto_pendiente|montos }}</h3>
                     <p>Pendiente</p>
@@ -46,17 +46,39 @@
 
         <form method="post" class="admin-form">
             {% csrf_token %}
-            <div class="form-row">
-                <label class="kiosco-label" for="monto_pagado">Monto a pagar ahora <span class="obligatorio" aria-hidden="true">*</span></label>
-                <input type="number" name="monto_pagado" id="monto_pagado" step="0.01" min="0" class="kiosco-input" placeholder="0,00" required>
-                <div class="texto-suave">Cuánto pagás ahora. Puede ser un pago parcial.</div>
+            <div class="admin-form-grid">
+                <div class="admin-form-group">
+                    <label class="admin-form-label">Monto a pagar <span class="requerido">*</span></label>
+                    <input type="number" name="monto_pagado" step="0.01" min="0.01"
+                           max="{{ documento.monto_pendiente }}"
+                           class="admin-input" placeholder="0,00" required>
+                    <p class="texto-suave">Máximo ${{ documento.monto_pendiente|montos }}</p>
+                </div>
+                <div class="admin-form-group">
+                    <label class="admin-form-label">Fecha del pago</label>
+                    <input type="date" name="fecha_pago" class="admin-input">
+                </div>
+                <div class="admin-form-group">
+                    <label class="admin-form-label">Método de pago</label>
+                    <select name="metodo_pago" class="admin-select">
+                        <option value="efectivo">Efectivo</option>
+                        <option value="transferencia">Transferencia</option>
+                        <option value="cheque">Cheque</option>
+                        <option value="tarjeta">Tarjeta</option>
+                        <option value="otro">Otro</option>
+                    </select>
+                </div>
+                <div class="admin-form-group">
+                    <label class="admin-form-label">Nota (opcional)</label>
+                    <input type="text" name="nota_pago" class="admin-input"
+                           placeholder="Ej. Pago parcial de la factura de octubre">
+                </div>
             </div>
-
-            <div class="form-actions">
-                <button type="submit" class="btn btn-kiosco btn-ancho">
-                    <i class="bi bi-cash-coin" aria-hidden="true"></i> Registrar pago
+            <div class="admin-form-actions">
+                <a href="{{ volver_url }}" class="btn btn-kiosco-outline">Cancelar</a>
+                <button type="submit" class="btn btn-kiosco">
+                    <i class="bi bi-cash-coin"></i> Registrar pago
                 </button>
-                <a href="{{ volver_url }}" class="btn btn-link-suave">Cancelar</a>
             </div>
         </form>
     </div>

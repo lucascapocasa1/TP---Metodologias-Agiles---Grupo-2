@@ -1,0 +1,55 @@
+{% extends "base_admin.html" %}
+{% load formatos %}
+{% block titulo %}Anular documento — {{ negocio.nombre }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-trash"></i> Anular documento</h1>
+            <p class="admin-subtitle">
+                Anular
+                <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>
+                deja de contarlo como deuda del negocio.
+            </p>
+        </div>
+        <div class="admin-header-right">
+            <a href="{{ volver_url }}" class="btn btn-kiosco-outline btn-ancho">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al listado
+            </a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="doc-ficha">
+            <div class="doc-ficha-item">
+                <span class="doc-ficha-label">Factura</span>
+                <span class="doc-ficha-valor">{{ documento.numero_factura|default:documento.nombre_proveedor }}</span>
+            </div>
+            <div class="doc-ficha-item">
+                <span class="doc-ficha-label">Monto total</span>
+                <span class="doc-ficha-valor">${{ documento.monto|montos }}</span>
+            </div>
+            <div class="doc-ficha-item">
+                <span class="doc-ficha-label">Saldo pendiente</span>
+                <span class="doc-ficha-valor">${{ documento.monto_pendiente|montos }}</span>
+            </div>
+        </div>
+
+        <form method="post" class="admin-form mt-4">
+            {% csrf_token %}
+            <div class="admin-form-group">
+                <label class="admin-form-label">Motivo de la anulación</label>
+                <textarea name="motivo_anulacion" class="admin-input" rows="3"
+                          placeholder="Ej. Factura duplicada, se devolvió la mercadería..."></textarea>
+                <p class="texto-suave">El motivo queda registrado en la auditoría.</p>
+            </div>
+            <div class="admin-form-actions">
+                <a href="{{ volver_url }}" class="btn btn-kiosco-outline">Cancelar</a>
+                <button type="submit" class="btn btn-kiosco btn-peligro">
+                    <i class="bi bi-trash"></i> Anular documento
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

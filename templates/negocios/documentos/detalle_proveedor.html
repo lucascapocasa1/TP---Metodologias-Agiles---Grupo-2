@@ -1,0 +1,213 @@
+{% extends "base_admin.html" %}
+{% load formatos %}
+{% block titulo %}{{ proveedor.nombre }} — {{ negocio.nombre }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-truck"></i> {{ proveedor.nombre }}</h1>
+            <p class="admin-subtitle">
+                Cuenta corriente de {{ proveedor.nombre }} con
+                <strong>{{ negocio.nombre }}</strong>.
+            </p>
+        </div>
+        <div class="admin-header-right">
+            <div class="acciones-proveedor">
+                <a href="{% url 'negocios:pagar_proveedor' proveedor.pk %}" class="btn btn-kiosco btn-ancho">
+                    <i class="bi bi-cash-coin"></i> Registrar pago
+                </a>
+                <a href="{% url 'negocios:crear_documento' %}?grupo=proveedores" class="btn btn-kiosco-outline btn-ancho">
+                    <i class="bi bi-receipt"></i> Nueva factura
+                </a>
+                <a href="{% url 'negocios:editar_proveedor' proveedor.pk %}" class="btn btn-kiosco-outline btn-ancho">
+                    <i class="bi bi-pencil"></i> Editar
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card stat-total">
+            <div class="stat-icon"><i class="bi bi-cash-stack"></i></div>
+            <div class="stat-valor">${{ saldo|montos }}</div>
+            <div class="stat-label">Saldo pendiente</div>
+        </div>
+        <div class="stat-card stat-peligro">
+            <div class="stat-icon"><i class="bi bi-clock"></i></div>
+            <div class="stat-valor">${{ vencido|montos }}</div>
+            <div class="stat-label">Vencido</div>
+        </div>
+        <div class="stat-card stat-info">
+            <div class="stat-icon"><i class="bi bi-receipt"></i></div>
+            <div class="stat-valor">{{ documentos.count }}</div>
+            <div class="stat-label">Facturas totales</div>
+        </div>
+    </div>
+
+    {% if documentos %}
+    <div class="admin-card mt-4">
+        <h2 class="admin-card-titulo">
+            <i class="bi bi-list"></i> Facturas de {{ proveedor.nombre }}
+        </h2>
+        <div class="table-responsive">
+            <table class="admin-table tabla-documentos">
+                <thead>
+                    <tr>
+                        <th>Factura</th>
+                        <th>Fecha de vencimiento</th>
+                        <th>Días restantes</th>
+                        <th>Monto</th>
+                        <th>Pagado</th>
+                        <th>Pendiente</th>
+                        <th>Estado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for documento in documentos %}
+                    <tr>
+                        <td>
+                            <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>
+                            {% if documento.archivo_pdf %}
+                            <a href="{{ documento.archivo_pdf.url }}" target="_blank" class="texto-suave" title="Ver PDF">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                            </a>
+                            {% endif %}
+                        </td>
+                        <td>{{ documento.fecha_vencimiento|date:"d/m/Y" }}</td>
+                        <td class="celda-dias-restantes">
+                            {% if documento.estado == "pendiente" and documento.esta_vencida %}
+                            <span class="dias-restantes dias-restantes-vencida">{{ documento.dias_vencida }} días vencida</span>
+                            {% elif documento.esta_por_vencer %}
+                            <span class="dias-restantes dias-restantes-por-vencer">{{ documento.dias_restantes }} días</span>
+                            {% elif documento.esta_por_vencer_lejos %}
+                            <span class="dias-restantes dias-restantes-por-vencer-lejos">{{ documento.dias_restantes }} días</span>
+                            {% elif documento.estado == "pendiente" %}
+                            <span class="dias-restantes dias-restantes-pendiente">{{ documento.dias_restantes }} días</span>
+                            {% else %}
+                            <span class="texto-suave">—</span>
+                            {% endif %}
+                        </td>
+                        <td>${{ documento.monto|montos }}</td>
+                        <td>${{ documento.monto_pagado|montos }}</td>
+                        <td>
+                            {% if documento.monto_pendiente > 0 %}
+                            <span class="saldo-chip">${{ documento.monto_pendiente|montos }}</span>
+                            {% else %}
+                            <span class="texto-suave">—</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if documento.estado == "anulada" %}
+                            <span class="badge-estado badge-estado-anulada">Anulada</span>
+                            {% elif documento.estado == "pagada" %}
+                            <span class="badge-estado badge-estado-pagada">Pagada</span>
+                            {% elif documento.esta_vencida %}
+                            <span class="badge-estado badge-estado-vencida">Vencida</span>
+                            {% elif documento.esta_por_vencer %}
+                            <span class="badge-estado badge-estado-por-vencer">Vence pronto</span>
+                            {% elif documento.esta_por_vencer_lejos %}
+                            <span class="badge-estado badge-estado-por-vencer-lejos">Vence pronto</span>
+                            {% else %}
+                            <span class="badge-estado badge-estado-pendiente">Pendiente</span>
+                            {% endif %}
+                        </td>
+                        <td class="text-end">
+                            <a href="{% url 'negocios:marcar_pagada' documento.id %}"
+                               class="btn btn-outline btn-sm">Pagar</a>
+                            <a href="{% url 'negocios:editar_documento' documento.id %}"
+                               class="btn btn-outline btn-sm">Editar</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="admin-empty mt-4">
+        <div class="empty-icon"><i class="bi bi-truck"></i></div>
+        <h3>No hay facturas de {{ proveedor.nombre }}</h3>
+        <p>Aún no se registraron documentos de este proveedor.</p>
+        <a href="{% url 'negocios:crear_documento' %}?grupo=proveedores" class="btn btn-kiosco mt-3">
+            <i class="bi bi-receipt"></i> Nueva factura
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Historial de pagos -->
+    {% if pagos_agrupados or pagos_individuales %}
+    <div class="admin-card mt-4">
+        <h2 class="admin-card-titulo">
+            <i class="bi bi-clock-history"></i> Historial de pagos
+        </h2>
+        {% for grupo_pago, pagos in pagos_agrupados.items %}
+        <div class="table-responsive">
+            <table class="admin-table tabla-documentos">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Factura</th>
+                        <th>Monto pagado</th>
+                        <th>Método</th>
+                        <th>Usuario</th>
+                        <th>Nota</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pago in pagos %}
+                    <tr>
+                        <td>{{ pago.fecha|date:"d/m/Y" }}</td>
+                        <td>{{ pago.documento.numero_factura|default:pago.documento.nombre_proveedor }}</td>
+                        <td>${{ pago.monto|montos }}</td>
+                        <td>{{ pago.get_metodo_display }}</td>
+                        <td>{{ pago.usuario.username|default:"-" }}</td>
+                        <td class="texto-suave">{{ pago.nota|default:"-" }}</td>
+                        <td class="text-end">
+                            <form method="post" action="{% url 'negocios:deshacer_pago_grupo' grupo_pago %}" class="d-inline" onsubmit="return confirm('¿Deshacer esta operación de pago? Se revirtirán todos sus pagos.')">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline btn-sm btn-peligro">
+                                    <i class="bi bi-arrow-counterclockwise"></i> Deshacer operación
+                                </button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endfor %}
+
+        {% if pagos_individuales %}
+        <div class="table-responsive mt-3">
+            <table class="admin-table tabla-documentos">
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Factura</th>
+                        <th>Monto pagado</th>
+                        <th>Método</th>
+                        <th>Usuario</th>
+                        <th>Nota</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for pago in pagos_individuales %}
+                    <tr>
+                        <td>{{ pago.fecha|date:"d/m/Y" }}</td>
+                        <td>{{ pago.documento.numero_factura|default:pago.documento.nombre_proveedor }}</td>
+                        <td>${{ pago.monto|montos }}</td>
+                        <td>{{ pago.get_metodo_display }}</td>
+                        <td>{{ pago.usuario.username|default:"-" }}</td>
+                        <td class="texto-suave">{{ pago.nota|default:"-" }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

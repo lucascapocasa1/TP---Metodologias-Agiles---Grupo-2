@@ -1,5 +1,6 @@
 from datetime import timedelta
 from decimal import Decimal
+import uuid
 
 from django.conf import settings
 from django.db import models
@@ -208,6 +209,12 @@ class Documento(models.Model):
         default="pendiente",
         verbose_name="Estado",
     )
+    motivo_anulacion = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Motivo de anulación",
+        help_text="Motivo por el cual se anuló este documento.",
+    )
     archivo_pdf = models.FileField(
         upload_to="documentos/facturas/",
         blank=True,
@@ -228,6 +235,12 @@ class Documento(models.Model):
         verbose_name = "documento"
         verbose_name_plural = "documentos"
         ordering = ["-fecha_vencimiento"]
+        indexes = [
+            models.Index(
+                fields=["negocio", "estado", "fecha_vencimiento"],
+                name="doc_neg_estado_venc_idx",
+            ),
+        ]
 
     @property
     def monto_pendiente(self):
@@ -253,5 +266,132 @@ class Documento(models.Model):
         hoy = timezone.localdate()
         return hoy <= self.fecha_vencimiento <= hoy + timedelta(days=7)
 
+    @property
+    def esta_por_vencer_lejos(self):
+        """True si vence entre 8 y 15 días y aún no está pagada."""
+        if self.estado != "pendiente":
+            return False
+        from django.utils import timezone
+
+        hoy = timezone.localdate()
+        dias = (self.fecha_vencimiento - hoy).days
+        return 8 <= dias <= 15
+
+    @property
+    def dias_restantes(self):
+        """Días que faltan para el vencimiento (negativo si ya venció)."""
+        from django.utils import timezone
+
+        if hasattr(self, "_dias_restantes_cache"):
+            return self._dias_restantes_cache
+        return (self.fecha_vencimiento - timezone.localdate()).days
+
+    @dias_restantes.setter
+    def dias_restantes(self, valor):
+        self._dias_restantes_cache = valor
+
+    @property
+    def dias_vencida(self):
+        """Días que lleva vencida (valor absoluto de dias_restantes si venció)."""
+        if self.esta_vencida:
+            return abs(self.dias_restantes)
+        return 0
+
     def __str__(self):
         return f"{self.numero_factura or self.nombre_proveedor or 'Sin nombre'} - ${self.monto}"
+
+
+class PagoDocumento(models.Model):
+    """
+    Registro de un pago aplicado a un documento (factura).
+
+    Es la fuente de verdad de cuánto y cuándo se pagó cada factura.
+    `monto_pagado` en Documento se mantiene como caché y se actualiza
+    desde acá mediante los services, para no degradar los listados.
+
+    Un mismo `grupo_pago` agrupa los pagos de una operación FIFO (pago a
+    un proveedor repartido en varias facturas), así se puede mostrar como
+    un solo movimiento y deshacerlo completo si es necesario.
+    """
+
+    METODOS = [
+        ("efectivo", "Efectivo"),
+        ("transferencia", "Transferencia"),
+        ("cheque", "Cheque"),
+        ("tarjeta", "Tarjeta"),
+        ("otro", "Otro"),
+    ]
+
+    documento = models.ForeignKey(
+        Documento,
+        on_delete=models.CASCADE,
+        related_name="pagos_registrados",
+        verbose_name="Documento",
+    )
+    negocio = models.ForeignKey(
+        Negocio,
+        on_delete=models.CASCADE,
+        related_name="pagos_documentos",
+        verbose_name="Negocio",
+    )
+    fecha = models.DateField(verbose_name="Fecha del pago")
+    monto = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        verbose_name="Monto pagado",
+    )
+    metodo = models.CharField(
+        max_length=20,
+        choices=METODOS,
+        default="efectivo",
+        verbose_name="Método de pago",
+    )
+    comprobante = models.FileField(
+        upload_to="documentos/pagos/",
+        blank=True,
+        null=True,
+        verbose_name="Comprobante",
+        help_text="PDF o imagen del comprobante de pago (opcional).",
+    )
+    usuario = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Usuario que registró el pago",
+    )
+    nota = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Nota",
+        help_text="Observaciones sobre este pago (opcional).",
+    )
+    grupo_pago = models.UUIDField(
+        null=True,
+        blank=True,
+        db_index=True,
+        verbose_name="Grupo de pago",
+        help_text="Agrupa los pagos de una misma operación (p. ej. FIFO a un proveedor).",
+    )
+    fecha_creacion = models.DateTimeField(
+        auto_now_add=True,
+        verbose_name="Fecha de creación",
+    )
+
+    class Meta:
+        verbose_name = "pago de documento"
+        verbose_name_plural = "pagos de documentos"
+        ordering = ["-fecha", "-fecha_creacion"]
+        indexes = [
+            models.Index(
+                fields=["documento", "-fecha"],
+                name="pago_doc_fecha_idx",
+            ),
+            models.Index(
+                fields=["grupo_pago"],
+                name="pago_grupo_idx",
+            ),
+        ]
+
+    def __str__(self):
+        return f"Pago ${self.monto} a {self.documento} ({self.fecha})"

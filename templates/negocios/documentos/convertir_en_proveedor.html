@@ -1,0 +1,51 @@
+{% extends "base_admin.html" %}
+{% load formatos %}
+{% block titulo %}Convertir en proveedor — {{ negocio.nombre }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-person-plus"></i> Convertir en proveedor</h1>
+            <p class="admin-subtitle">
+                La factura
+                <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>
+                tiene el proveedor escrito a mano ("{{ nombre_texto }}").
+                ¿Convertís ese nombre en un proveedor registrado?
+            </p>
+        </div>
+        <div class="admin-header-right">
+            <a href="{{ volver_url }}" class="btn btn-kiosco-outline btn-ancho">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al listado
+            </a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="doc-ficha">
+            <div class="doc-ficha-item">
+                <span class="doc-ficha-label">Nombre actual</span>
+                <span class="doc-ficha-valor">{{ nombre_texto }}</span>
+            </div>
+            <div class="doc-ficha-item">
+                <span class="doc-ficha-label">Facturas afectadas</span>
+                <span class="doc-ficha-valor">{{ cantidad }}</span>
+            </div>
+        </div>
+        <p class="texto-suave mt-3">
+            Se crearán un proveedor llamado "{{ nombre_texto }}" y se le
+            asignarán automáticamente las {{ cantidad }} factura{{ cantidad|pluralize }}
+            de este negocio que llevan ese nombre escrito a mano.
+        </p>
+
+        <form method="post" class="admin-form mt-4">
+            {% csrf_token %}
+            <div class="admin-form-actions">
+                <a href="{{ volver_url }}" class="btn btn-kiosco-outline">Cancelar</a>
+                <button type="submit" class="btn btn-kiosco">
+                    <i class="bi bi-person-plus"></i> Sí, convertir en proveedor
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
