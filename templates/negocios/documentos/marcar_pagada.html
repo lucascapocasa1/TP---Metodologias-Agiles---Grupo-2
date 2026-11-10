@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "base_admin.html" %}
 {% load formatos %}
 {% block titulo %}Registrar pago — {{ documento.numero_factura|default:documento.nombre_proveedor }}{% endblock %}
 {% block contenido %}
@@ -13,8 +13,8 @@
             </p>
         </div>
         <div class="admin-header-right">
-            <a href="{% url 'negocios:lista_documentos' %}" class="btn btn-kiosco-outline btn-ancho">
-                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a documentos
+            <a href="{{ volver_url }}" class="btn btn-kiosco-outline btn-ancho">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver al listado
             </a>
         </div>
     </div>
@@ -56,7 +56,7 @@
                 <button type="submit" class="btn btn-kiosco btn-ancho">
                     <i class="bi bi-cash-coin" aria-hidden="true"></i> Registrar pago
                 </button>
-                <a href="{% url 'negocios:lista_documentos' %}" class="btn btn-link-suave">Cancelar</a>
+                <a href="{{ volver_url }}" class="btn btn-link-suave">Cancelar</a>
             </div>
         </form>
     </div>

@@ -5,6 +5,8 @@ from django.core.exceptions import PermissionDenied
 from django.test import TestCase
 from django.urls import reverse
 
+from negocios.models import Documento, Negocio
+from usuarios.models import Empleado
 from ventas.models import Categoria, Producto
 
 
@@ -302,3 +304,92 @@ class EliminarUsuarioTests(TestCase):
         )
         self.assertEqual(respuesta.status_code, 302)
         self.assertFalse(User.objects.filter(username="usuario_test").exists())
+
+
+class DashboardDeudaProveedoresTests(TestCase):
+    """El KPI del dashboard solo suma facturas pendientes, no pagadas ni anuladas."""
+
+    def setUp(self):
+        from datetime import date
+
+        self.grupo_admin = Group.objects.create(name="Administrador")
+        self.negocio = Negocio.objects.create(
+            nombre="Kiosco KPI",
+            slug="kiosco-kpi",
+            activo=True,
+        )
+        self.admin = User.objects.create_user(
+            username="admin_kpi", password="claveSegura123", is_staff=True
+        )
+        self.admin.groups.add(self.grupo_admin)
+        Empleado.objects.create(
+            usuario=self.admin, negocio=self.negocio, activo=True
+        )
+        self.fecha_emision = date(2026, 9, 1)
+        self.fecha_vencimiento = date(2026, 9, 30)
+        self.client.login(username="admin_kpi", password="claveSegura123")
+
+    def crear_documento(self, numero, monto, pagado, estado, categoria="proveedor"):
+        return Documento.objects.create(
+            negocio=self.negocio,
+            nombre_proveedor="Proveedor de prueba",
+            categoria=categoria,
+            numero_factura=numero,
+            monto=Decimal(monto),
+            monto_pagado=Decimal(pagado),
+            fecha_emision=self.fecha_emision,
+            fecha_vencimiento=self.fecha_vencimiento,
+            estado=estado,
+        )
+
+    def test_kpi_solo_suma_pendientes(self):
+        self.crear_documento("K-001", "10000.00", "4000.00", "pendiente")
+        # Pagada con saldo parcial: no debe sumar deuda.
+        self.crear_documento("K-002", "5000.00", "2000.00", "pagada")
+        # Anulada: tampoco.
+        self.crear_documento("K-003", "7000.00", "0.00", "anulada")
+
+        respuesta = self.client.get(reverse("administracion:dashboard"))
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(
+            respuesta.context["deuda_proveedores"], Decimal("6000.00")
+        )
+
+    def test_kpi_es_cero_sin_pendientes(self):
+        self.crear_documento("K-001", "5000.00", "5000.00", "pagada")
+        self.crear_documento("K-002", "7000.00", "0.00", "anulada")
+
+        respuesta = self.client.get(reverse("administracion:dashboard"))
+
+        self.assertEqual(
+            respuesta.context["deuda_proveedores"], Decimal("0.00")
+        )
+        self.assertEqual(
+            respuesta.context["deuda_servicios"], Decimal("0.00")
+        )
+
+    def test_kpi_separa_deuda_de_proveedores_y_servicios(self):
+        # Proveedores: solo facturas de mercadería.
+        self.crear_documento(
+            "K-001", "10000.00", "4000.00", "pendiente", "proveedor"
+        )
+        # Servicios: luz, gas, seguridad e higiene y otros.
+        self.crear_documento("K-002", "68450.00", "0.00", "pendiente", "luz")
+        self.crear_documento(
+            "K-003", "38750.00", "25000.00", "pendiente", "gas"
+        )
+        self.crear_documento(
+            "K-004", "18000.00", "18000.00", "pagada", "seguridad"
+        )
+        self.crear_documento("K-005", "55000.00", "0.00", "pendiente", "otro")
+
+        respuesta = self.client.get(reverse("administracion:dashboard"))
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(
+            respuesta.context["deuda_proveedores"], Decimal("6000.00")
+        )
+        self.assertEqual(
+            respuesta.context["deuda_servicios"], Decimal("137200.00")
+        )

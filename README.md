@@ -4,7 +4,7 @@
 
 Trabajo práctico de Metodologías Ágiles. **Norvex** (antes "Sistema Kiosco") es una plataforma web de gestión y cobro para comercios: caja, stock, clientes, pedidos de WhatsApp, cuenta corriente "FIAR" y cobro con QR de Mercado Pago. Ahora es una plataforma **multiempresa (multitenant)**: varios comercios pueden usar la misma instalación, cada uno con sus propios productos, clientes, ventas y tienda online, sin que los datos se mezclen.
 
-**Estado:** Sprint 1-4 completos · Consignas de la cátedra completas (HU-13 y HU-14) · Extras: cobro QR (HU-15/16), botón "Conectar con Mercado Pago", recuperación de contraseña con Resend, publicación en Render, arquitectura multiempresa, catálogo público por negocio, panel de superadmin, exportación de stock a Excel, arqueo de caja con conteo físico, productos sin movimiento y módulo de facturas/documentos · **410 tests** en verde.
+**Estado:** Sprint 1-4 completos · Consignas de la cátedra completas (HU-13 y HU-14) · Extras: cobro QR (HU-15/16), botón "Conectar con Mercado Pago", recuperación de contraseña con Resend, publicación en Render, arquitectura multiempresa, catálogo público por negocio, panel de superadmin, exportación de stock a Excel, arqueo de caja con conteo físico, productos sin movimiento, módulos separados de **Facturas** y **Proveedores** (con deuda por proveedor y pago FIFO) y layout de gestión con sidebar compartido · **435 tests** en verde.
 
 Publicado en: `https://norvex.onrender.com/`
 
@@ -36,7 +36,9 @@ Publicado en: `https://norvex.onrender.com/`
 | Exportación Excel | — | Exportar stock a Excel desde el reporte de stock | ✅ Completo |
 | Arqueo de caja | — | Conteo físico al cerrar turno, diferencias sobrante/faltante | ✅ Completo |
 | Productos sin movimiento | — | KPI en dashboard, listado con descuento manual y baja de producto | ✅ Completo |
-| Facturas / Documentos | — | Facturas por negocio, PDF adjunto, alerta 7 días, KPI deudas a proveedores | ✅ Completo |
+| Facturas | — | Servicios y gastos (luz, gas, seguridad e higiene, otro), PDF adjunto y alerta a 7 días | ✅ Completo |
+| Proveedores | — | Facturas de mercadería, deuda por proveedor, filtros y pago FIFO | ✅ Completo |
+| Interfaz de gestión | — | Sidebar compartido, navbar sticky y dashboard con KPIs clickeables | ✅ Completo |
 
 ---
 
@@ -56,7 +58,9 @@ Publicado en: `https://norvex.onrender.com/`
 - **Exportación de stock a Excel:** desde el reporte de stock, descarga de Excel con todos los productos del negocio (nombre, categoría, stock, precio, costo, margen).
 - **Arqueo de caja:** cierre de turno con conteo físico de efectivo, tarjeta y Mercado Pago; cálculo de diferencia sobrante/faltante.
 - **Productos sin movimiento:** KPI en dashboard con productos sin ventas en los últimos 30 días, listado con edición de precio (descuento rápido o manual) y baja de producto.
-- **Facturas / Documentos del negocio:** creación, edición y gestión de facturas (luz, gas, seguridad e higiene, proveedores, otro) con monto, fecha de vencimiento, estado (pendiente/pagada/anulada) y archivo PDF adjunto opcional. KPI de "Deudas a proveedores", alerta automática a 7 días del vencimiento, pago parcial soportado.
+- **Facturas (servicios y gastos):** módulo propio para luz, gas, seguridad e higiene y otros gastos, con monto, fecha de vencimiento, estado (pendiente/pagada/anulada), pago parcial y archivo PDF adjunto opcional. Alerta automática a 7 días del vencimiento y KPI "Deuda a servicios" en el dashboard.
+- **Proveedores:** módulo separado con las facturas de mercadería (`categoria="proveedor"`), resumen de deuda pendiente por proveedor, tarjetas de deuda, filtro por proveedor, listado paginado de a 10 y pago FIFO (el pago se aplica primero a la factura más antigua). KPI "Deuda a proveedores" en el dashboard.
+- **Interfaz de gestión:** las pantallas privadas comparten `base_admin.html` con sidebar fijo (`includes/sidebar_admin.html`), ítem activo por endpoint y navbar sticky que publica su alto en `--navbar-alto`; el dashboard muestra KPIs clickeables con animación de conteo.
 
 ---
 
@@ -134,10 +138,13 @@ python manage.py cargar_demo_clientes --limpiar
 | `admin` | `kiosco2024` | Superadmin | todos |
 | `admin_barrio` | `kiosco2024` | Administrador | Kiosco De Barrio |
 | `cajero_barrio_1` | `kiosco2024` | Cajero | Kiosco De Barrio |
+| `cajero_barrio_2` | `kiosco2024` | Cajero | Kiosco De Barrio |
 | `admin_martillito` | `kiosco2024` | Administrador | Ferretería Martillito |
 | `cajero_martillito_1` | `kiosco2024` | Cajero | Ferretería Martillito |
+| `cajero_martillito_2` | `kiosco2024` | Cajero | Ferretería Martillito |
 | `admin_natural` | `kiosco2024` | Administrador | Dietética Natural |
 | `cajero_natural_1` | `kiosco2024` | Cajero | Dietética Natural |
+| `cajero_natural_2` | `kiosco2024` | Cajero | Dietética Natural |
 
 ### Correr los tests
 
@@ -145,7 +152,7 @@ python manage.py cargar_demo_clientes --limpiar
 python manage.py test --keepdb
 ```
 
-410 tests en verde.
+435 tests en verde.
 
 ---
 
@@ -228,7 +235,11 @@ kiosco_sprint1/
 ├── pedidos/             # Catálogo público y pedidos de WhatsApp
 ├── administracion/      # Dashboard, usuarios y reportes
 ├── auditoria/           # Logs de auditoría
+├── negocios/            # Multiempresa: Negocio, Proveedor, Documento (facturas), landing
 ├── templates/
+│   ├── base.html        # Layout general + navbar sticky + HTMX
+│   ├── base_admin.html  # Layout de gestión con sidebar compartido
+│   └── includes/sidebar_admin.html
 └── static/
 ```
 
@@ -251,7 +262,11 @@ kiosco_sprint1/
 - Exportación de stock a Excel desde el reporte de stock
 - Arqueo de caja con conteo físico y cálculo de sobrante/faltante
 - Productos sin movimiento con KPI, descuento manual y baja de producto
-- Facturas/documentos del negocio con PDF adjunto, expiración 7 días y KPI de deudas a proveedores
+- Facturas de servicios y gastos con PDF adjunto, alerta a 7 días y KPI "Deuda a servicios"
+- Proveedores como módulo separado: deuda por proveedor, filtros, paginación de 10 y pago FIFO
+- Layout de gestión unificado (`base_admin.html` + sidebar compartido) y navbar sticky
+- Dashboard con KPIs clickeables y deuda separada por proveedores / servicios
+- Demo de los 3 negocios con stock realista y productos sin movimiento
 
 ### Pendiente
 
@@ -262,3 +277,59 @@ kiosco_sprint1/
 | Facturación electrónica (AFIP/ARCA) | Generar factura electrónica con CAE y código QR. |
 | Notificaciones automáticas | Email o WhatsApp al cliente cuando el pedido está listo. |
 | Dashboard comparativo entre negocios | Para el superadmin, comparar ventas entre comercios. |
+
+---
+
+## Dónde quedamos (para retomar mañana)
+
+**Última sesión — 10/11/2026**
+
+- Se separó el módulo de documentos en dos ítems del menú lateral:
+  - **Facturas** → `/negocios/documentos/facturas/`: servicios y gastos (luz, gas, seguridad e higiene, otro). No muestra deuda ni filtros de proveedor.
+  - **Proveedores** → `/negocios/documentos/proveedores/`: solo facturas de mercadería (`categoria="proveedor"`), con resumen de deuda por proveedor, filtros y pago FIFO.
+  - La URL histórica `/negocios/documentos/` sigue existiendo como listado sin separar, pero ya no se enlaza desde el menú.
+  - El formulario de alta restringe las categorías según el módulo (`?grupo=servicios|proveedores`) y las redirecciones de crear/editar/subir PDF/pagar vuelven al listado correspondiente.
+- El dashboard muestra dos KPIs de deuda separados: **Deuda a proveedores** y **Deuda a servicios**, cada uno con link a su módulo.
+- `python manage.py check` sin errores y `python manage.py test --keepdb` → **435 tests OK**. Verificado con Playwright (sidebar, filtros, formularios y KPIs).
+- **Los cambios están en el working tree: sin commit y sin push.** No se subió nada a GitHub.
+
+**Para retomar:**
+
+```powershell
+.\venv\Scripts\Activate.ps1
+python manage.py runserver 8000
+python manage.py test --keepdb
+```
+
+Entrar con `admin_barrio` / `kiosco2024` y revisar `/administracion/dashboard/`, `/negocios/documentos/facturas/` y `/negocios/documentos/proveedores/`.
+
+---
+
+## Ideas para seguir agregando
+
+### KPIs y tarjetas para el dashboard
+
+Prioridad sugerida: **Alta** = operación diaria; **Media** = relación con el cliente; **Baja** = analítica.
+
+| # | Idea | Qué mostraría | Prioridad |
+|---|---|---|---|
+| 1 | **Ventas del período** | Monto total vendido en el mes / últimos 30 días, con filtro de fechas y comparación contra el período anterior. | Alta |
+| 2 | **Stock crítico (0 unidades)** | Cantidad de productos con `stock = 0`, en rojo, con link directo al reporte de stock. | Alta |
+| 3 | **Stock actual vs mínimo** | Total de productos con stock > 0 y cuántos están en o por debajo del mínimo (hoy ya existe "Stock bajo", se puede ampliar el detalle). | Alta |
+| 4 | **Clientes FIAR** | Clientes con cuenta corriente activa, deuda total otorgada y top 5 por saldo. | Media |
+| 5 | **Pedidos públicos pendientes** | Pedidos del catálogo `/t/<slug>/` sin entregar, con ingresos potenciales. | Media |
+| 6 | **Rentabilidad bruta estimada** | Si todos los productos tienen costo y precio: inversión a costo, ganancia potencial si se vende todo y margen % promedio. | Media |
+| 7 | **Rotación de stock** | Top 5 productos más vendidos en 30 días y los que menos rotan. | Baja |
+| 8 | **Estado de turnos** | Turnos abiertos sin cerrar y diferencia de caja del último arqueo (sobrante/faltante). | Baja |
+| 9 | **Ingresos por método de pago** | Efectivo vs tarjeta vs Mercado Pago en el período (gráfico de torta o barras). | Baja |
+| 10 | **Próximos vencimientos** | Facturas y servicios que vencen en los próximos 7 días, con monto y link al documento. | Media |
+
+### Otras mejoras posibles
+
+- **Dashboard por rol:** que el Cajero vea solo su caja y sus ventas del día, no los KPIs de deuda.
+- **Dashboard comparativo para superadmin:** ranking de negocios por ventas, deuda y stock.
+- **Exportar el dashboard:** botón para descargar los KPIs del mes a Excel/PDF.
+- **Alertas configurables:** definir desde la UI los días de anticipación de vencimientos y el umbral de stock bajo por negocio.
+- **Historial de deuda por proveedor:** gráfico de evolución de la deuda y de los pagos FIFO.
+- **Recordatorio de pago:** marcar facturas próximas a vencer y enviar aviso por email.
+- **Tests de la parte visual:** ampliar Playwright a los flujos de alta/edición de facturas y proveedores.

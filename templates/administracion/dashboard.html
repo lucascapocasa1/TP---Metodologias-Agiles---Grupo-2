@@ -1,229 +1,22 @@
-{% extends "base.html" %}
+{% extends "base_admin.html" %}
 {% load formatos %}
 {% block titulo %}Panel de Administración{% endblock %}
 {% block contenido %}
 <style>
-    /* Sidebar de navegación */
-    .sidebar {
-        position: fixed;
-        top: 0;
-        left: 0;
-        bottom: 0;
-        width: 260px;
-        background: var(--ink-solid);
-        color: var(--crema);
-        padding-top: 1.5rem;
-        z-index: 100;
-        overflow-y: auto;
-    }
-    [data-tema="neon"] .sidebar {
-        background: var(--ink-solid);
-        color: var(--crema);
-    }
-    .sidebar-header {
-        padding: 1rem 1.5rem;
-        font-family: var(--font-display);
-        font-size: 1.4rem;
-        color: var(--sol);
-        font-weight: bold;
-        border-bottom: 1px solid var(--contorno);
-        margin-bottom: 1rem;
-        text-align: center;
-    }
-    .sidebar-nav {
-        list-style: none;
-        margin: 0;
-        padding: 0;
-        left: 2rem;
-    }
-    .sidebar-nav li {
-        margin: 0;
-    }
-    .sidebar-nav .nav-group-title {
-        font-size: 0.75rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-        color: var(--texto-suave);
-        padding: 0.75rem 1.5rem 0.35rem 1rem;
-        text-align: center;
-    }
-    .sidebar-nav a {
-        display: block;
-        padding: 0.75rem 2rem 0.75rem 2rem;
-        color: var(--texto-suave);
-        text-decoration: none;
-        font-size: 0.95rem;
-        transition: background 0.2s, color 0.2s;
-        text-align: center;
-    }
-    .sidebar-nav a:hover {
-        background: rgba(255, 255, 255, 0.05);
-        color: var(--texto);
-    }
-    .sidebar-nav a.active {
-        background: var(--sol);
-        color: var(--ink-solid);
-    }
-    .sidebar-nav a i {
-        margin-right: 0.75rem;
-    }
-
-    /* Área principal */
-    .main-content {
-        margin-left: 260px;
-        padding: 2rem;
-        min-height: 100vh;
-    }
     .main-header {
         margin-bottom: 2rem;
     }
+
     .main-header h1 {
         font-size: 1.75rem;
         font-weight: 700;
         color: var(--texto);
         margin-bottom: 0.5rem;
     }
-    .main-header p {
-        color: var(--texto-suave);
-        font-size: 1rem;
-    }
-
-    /* Responsive: en móviles el sidebar se oculta */
-    @media (max-width: 768px) {
-        .sidebar {
-            position: fixed;
-            left: -260px;
-            transition: left 0.3s ease;
-            z-index: 1000;
-        }
-        .sidebar.open {
-            left: 0;
-        }
-        .main-content {
-            margin-left: 0;
-            padding: 1rem;
-        }
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0,0,0,0.5);
-            z-index: 999;
-        }
-        .sidebar-overlay.open {
-            display: block;
-        }
-        .mobile-menu-btn {
-            display: inline-block;
-            background: var(--sol);
-            color: var(--ink-solid);
-            border: none;
-            padding: 0.5rem 1rem;
-            font-weight: 700;
-            border-radius: var(--radio-chico);
-            cursor: pointer;
-        }
-    }
 </style>
 
 <div class="admin-panel">
-    <!-- Sidebar lateral de navegación -->
-    <nav class="sidebar" id="sidebar">
-        <div class="sidebar-header">
-            <i class="bi bi-speedometer2"></i>
-            Administrador de {{ negocio_actual.nombre }}
-        </div>
-        <ul class="sidebar-nav">
-            <!-- Inicio -->
-            <li>
-                <a href="{% url 'administracion:dashboard' %}">
-                    <i class="bi bi-house-door"></i> Inicio
-                </a>
-            </li>
 
-            <!-- Usuarios -->
-            <li>
-                <span class="sidebar-nav-group-title">Usuarios</span>
-            </li>
-            <li>
-                <a href="{% url 'administracion:listar_usuarios' %}">
-                    <i class="bi bi-people"></i> Gestionar usuarios
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'administracion:crear_usuario' %}">
-                    <i class="bi bi-person-plus"></i> Crear usuario
-                </a>
-            </li>
-
-            <!-- Clientes -->
-            <li>
-                <span class="sidebar-nav-group-title">Clientes</span>
-            </li>
-            <li>
-                <a href="{% url 'clientes:listar_clientes' %}">
-                    <i class="bi bi-people-fill"></i> Información de clientes
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'pedidos:lista_pedidos' %}">
-                    <i class="bi bi-bag-check"></i> Pedidos online
-                </a>
-            </li>
-
-            <!-- Reportes -->
-            <li>
-                <span class="sidebar-nav-group-title">Reportes</span>
-            </li>
-            <li>
-                <a href="{% url 'administracion:reportes_ventas' %}">
-                    <i class="bi bi-graph-up-arrow"></i> Reporte de ventas
-                </a>
-            </li>
-            <li>
-                <a href="{% url 'administracion:reportes_stock' %}#stock-bajo">
-                    <i class="bi bi-box-seam"></i> Reporte de stock
-                </a>
-            </li>
-
-            <!-- Cobrar -->
-            <li>
-                <span class="sidebar-nav-group-title">Cobro</span>
-            </li>
-            <li>
-                <a href="{% url 'ventas:pantalla_cobro' %}">
-                    <i class="bi bi-cash"></i> Cobrar
-                </a>
-            </li>
-
-            <!-- Facturas/documentos -->
-            <li>
-                <span class="sidebar-nav-group-title">Documentos</span>
-            </li>
-            <li>
-                <a href="{% url 'negocios:lista_documentos' %}">
-                    <i class="bi bi-file-earmark-text"></i> Facturas / Documentos
-                </a>
-            </li>
-
-            <!-- Cierre de turno -->
-            <li>
-                <span class="sidebar-nav-group-title">Caja</span>
-            </li>
-            <li>
-                <a href="{% url 'ventas:cierre_turno' %}">
-                    <i class="bi bi-clock-history"></i> Cierre de turno
-                </a>
-            </li>
-        </ul>
-    </nav>
-
-    <!-- Área principal -->
-    <main class="main-content">
         <div class="main-header">
             <h1>Centro de Control - {{ negocio_actual.nombre }}</h1>
         </div>
@@ -250,16 +43,6 @@
                 </div>
             </div>
 
-            <div class="stat-card stat-inactive">
-                <div class="stat-icon">
-                    <i class="bi bi-person-x"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ usuarios_inactivos }}</h3>
-                    <p>Usuarios Inactivos</p>
-                </div>
-            </div>
-
             <div class="stat-card stat-admin">
                 <div class="stat-icon">
                     <i class="bi bi-shield-fill"></i>
@@ -277,16 +60,6 @@
                 <div class="stat-content">
                     <h3>{{ cajeros }}</h3>
                     <p>Cajeros</p>
-                </div>
-            </div>
-
-            <div class="stat-card stat-warning">
-                <div class="stat-icon">
-                    <i class="bi bi-exclamation-triangle"></i>
-                </div>
-                <div class="stat-content">
-                    <h3>{{ sin_rol }}</h3>
-                    <p>Sin Rol Asignado</p>
                 </div>
             </div>
 
@@ -312,14 +85,25 @@
                 </div>
             </a>
 
-            <!-- Deudas a proveedores -->
-            <a href="{% url 'negocios:lista_documentos' %}" class="stat-card stat-danger stat-card-link">
+            <!-- Deuda a proveedores (facturas de mercadería) -->
+            <a href="{% url 'negocios:lista_proveedores' %}" class="stat-card stat-danger stat-card-link">
                 <div class="stat-icon">
-                    <i class="bi bi-credit-card"></i>
+                    <i class="bi bi-truck"></i>
                 </div>
                 <div class="stat-content">
                     <h3>${{ deuda_proveedores|montos }}</h3>
                     <p>Deuda a proveedores</p>
+                </div>
+            </a>
+
+            <!-- Deuda a servicios (luz, gas, seguridad e higiene, otros) -->
+            <a href="{% url 'negocios:lista_facturas' %}" class="stat-card stat-danger stat-card-link">
+                <div class="stat-icon">
+                    <i class="bi bi-lightning-charge"></i>
+                </div>
+                <div class="stat-content">
+                    <h3>${{ deuda_servicios|montos }}</h3>
+                    <p>Deuda a servicios</p>
                 </div>
             </a>
         </div>
@@ -346,7 +130,6 @@
                 </div>
             </div>
         </div>
-    </main>
 </div>
 <script>
 (function() {

@@ -1,0 +1,124 @@
+{% load roles %}
+{% usuario_admin user as puede_admin %}
+<nav class="sidebar" id="sidebar" aria-label="Menú de gestión">
+    <div class="sidebar-header">
+        <i class="bi bi-shop" aria-hidden="true"></i>
+        <span>{% if request.negocio %}{{ request.negocio.nombre }}{% else %}Norvex{% endif %}</span>
+    </div>
+    <ul class="sidebar-nav">
+        {% if puede_admin %}
+        <li>
+            <a class="{% menu_activo 'dashboard' %}" href="{% url 'administracion:dashboard' %}">
+                <i class="bi bi-house-door"></i> Inicio
+            </a>
+        </li>
+
+        <li><span class="sidebar-nav-group-title">Usuarios</span></li>
+        <li>
+            <a class="{% menu_activo 'listar_usuarios' 'editar_usuario' 'eliminar_usuario' 'asignar_roles' %}" href="{% url 'administracion:listar_usuarios' %}">
+                <i class="bi bi-people"></i> Gestionar usuarios
+            </a>
+        </li>
+        <li>
+            <a class="{% menu_activo 'crear_usuario' %}" href="{% url 'administracion:crear_usuario' %}">
+                <i class="bi bi-person-plus"></i> Crear usuario
+            </a>
+        </li>
+
+        <li><span class="sidebar-nav-group-title">Clientes</span></li>
+        <li>
+            <a class="{% menu_activo 'listar_clientes' 'crear_cliente' 'editar_cliente' 'eliminar_cliente' 'detalle_cliente' %}" href="{% url 'clientes:listar_clientes' %}">
+                <i class="bi bi-people-fill"></i> Información de clientes
+            </a>
+        </li>
+        <li>
+            <a class="{% menu_activo 'lista_pedidos' 'detalle_pedido' %}" href="{% url 'pedidos:lista_pedidos' %}">
+                <i class="bi bi-bag-check"></i> Pedidos online
+            </a>
+        </li>
+
+        <li><span class="sidebar-nav-group-title">Catálogo</span></li>
+        <li>
+            <a class="{% menu_activo 'lista_productos' 'agregar_producto' 'editar_producto' 'eliminar_producto' 'detalle_venta' %}" href="{% url 'ventas:lista_productos' %}">
+                <i class="bi bi-box-seam"></i> Productos
+            </a>
+        </li>
+
+        <li><span class="sidebar-nav-group-title">Reportes</span></li>
+        <li>
+            <a class="{% menu_activo 'reportes_ventas' %}" href="{% url 'administracion:reportes_ventas' %}">
+                <i class="bi bi-graph-up-arrow"></i> Reporte de ventas
+            </a>
+        </li>
+        <li>
+            <a class="{% menu_activo 'reportes_stock' %}" href="{% url 'administracion:reportes_stock' %}#stock-bajo">
+                <i class="bi bi-box-seam"></i> Reporte de stock
+            </a>
+        </li>
+        <li>
+            <a class="{% menu_activo 'productos_sin_movimiento' %}" href="{% url 'administracion:productos_sin_movimiento' %}">
+                <i class="bi bi-hourglass-bottom"></i> Productos sin movimiento
+            </a>
+        </li>
+
+        <li><span class="sidebar-nav-group-title">Documentos</span></li>
+        <li>
+            <a class="{% menu_activo_documentos 'servicios' %}" href="{% url 'negocios:lista_facturas' %}">
+                <i class="bi bi-receipt"></i> Facturas
+            </a>
+        </li>
+        <li>
+            <a class="{% menu_activo_documentos 'proveedores' %}" href="{% url 'negocios:lista_proveedores' %}">
+                <i class="bi bi-truck"></i> Proveedores
+            </a>
+        </li>
+        {% endif %}
+
+        <li><span class="sidebar-nav-group-title">Cobro</span></li>
+        <li>
+            <a class="{% menu_activo 'pantalla_cobro' %}" href="{% url 'ventas:pantalla_cobro' %}">
+                <i class="bi bi-cash"></i> Cobrar
+            </a>
+        </li>
+        <li>
+            <a class="{% menu_activo 'cierre_turno' %}" href="{% url 'ventas:cierre_turno' %}">
+                <i class="bi bi-clock-history"></i> Cierre de turno
+            </a>
+        </li>
+        {% if puede_admin %}
+        <li>
+            <a class="{% menu_activo 'mercadopago_config' %}" href="{% url 'ventas:mercadopago_config' %}">
+                <i class="bi bi-qr-code"></i> Mercado Pago
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+
+<button type="button" class="sidebar-toggle" id="sidebarToggle" aria-label="Abrir menú de gestión" aria-controls="sidebar" aria-expanded="false">
+    <i class="bi bi-list" aria-hidden="true"></i>
+</button>
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+<script>
+(function () {
+    var sidebar = document.getElementById('sidebar');
+    var boton = document.getElementById('sidebarToggle');
+    var overlay = document.getElementById('sidebarOverlay');
+    if (!sidebar || !boton || !overlay) return;
+
+    function abrir(estado) {
+        sidebar.classList.toggle('open', estado);
+        overlay.classList.toggle('open', estado);
+        boton.setAttribute('aria-expanded', estado ? 'true' : 'false');
+    }
+
+    boton.addEventListener('click', function () {
+        abrir(!sidebar.classList.contains('open'));
+    });
+    overlay.addEventListener('click', function () { abrir(false); });
+    document.addEventListener('keydown', function (evento) {
+        if (evento.key === 'Escape') abrir(false);
+    });
+})();
+</script>

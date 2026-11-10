@@ -1,19 +1,39 @@
-{% extends "base.html" %}
+{% extends "base_admin.html" %}
 {% load formatos %}
-{% block titulo %}Crear documento — {{ negocio.nombre }}{% endblock %}
+{% block titulo %}
+{% if grupo_form == "proveedores" %}Nueva factura de proveedor
+{% elif grupo_form == "servicios" %}Nueva factura
+{% else %}Crear documento{% endif %} — {{ negocio.nombre }}
+{% endblock %}
 {% block contenido %}
 <div class="admin-panel">
     <div class="admin-header">
         <div class="admin-header-left">
-            <h1><i class="bi bi-file-earmark-plus"></i> Crear documento</h1>
+            <h1>
+                <i class="bi {% if grupo_form == 'proveedores' %}bi-truck{% elif grupo_form == 'servicios' %}bi-receipt{% else %}bi-file-earmark-plus{% endif %}"></i>
+                {% if grupo_form == "proveedores" %}Nueva factura de proveedor
+                {% elif grupo_form == "servicios" %}Nueva factura
+                {% else %}Crear documento{% endif %}
+            </h1>
             <p class="admin-subtitle">
+                {% if grupo_form == "proveedores" %}
+                Carga una factura de mercadería de un proveedor de
+                <strong>{{ negocio.nombre }}</strong>.
+                {% elif grupo_form == "servicios" %}
+                Registra una factura de servicios o gastos de
+                <strong>{{ negocio.nombre }}</strong>.
+                {% else %}
                 Registra una factura o comprobante para
                 <strong>{{ negocio.nombre }}</strong>.
+                {% endif %}
             </p>
         </div>
         <div class="admin-header-right">
-            <a href="{% url 'negocios:lista_documentos' %}" class="btn btn-kiosco-outline btn-ancho">
-                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a documentos
+            <a href="{{ volver_url }}" class="btn btn-kiosco-outline btn-ancho">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i>
+                {% if grupo_form == "proveedores" %}Volver a proveedores
+                {% elif grupo_form == "servicios" %}Volver a facturas
+                {% else %}Volver a documentos{% endif %}
             </a>
         </div>
     </div>
@@ -29,19 +49,23 @@
 
             <div class="form-grid">
                 <div class="form-col form-col-2">
+                    {% if grupo_form != "servicios" %}
                     <div class="form-row">
                         <label class="kiosco-label" for="proveedor">Proveedor <span class="obligatorio" aria-hidden="true">*</span></label>
                         <select class="kiosco-input" name="proveedor" id="proveedor">
                             <option value="">Seleccionar proveedor existente</option>
                             {% for prov in proveedores %}
-                            <option value="{{ prov.pk }}">{{ prov.nombre }}</option>
+                            <option value="{{ prov.pk }}" {% if form_data.proveedor == prov.pk|stringformat:"s" %}selected{% endif %}>{{ prov.nombre }}</option>
                             {% endfor %}
                         </select>
                         <div class="texto-suave">Si el proveedor no está en la lista, escribí su nombre abajo.</div>
                     </div>
+                    {% endif %}
                     <div class="form-row">
-                        <label class="kiosco-label" for="nombre_proveedor">Nombre del proveedor (si no está en la lista)</label>
-                        <input type="text" name="nombre_proveedor" id="nombre_proveedor" class="kiosco-input" placeholder="Ej. EDENOR, Sancor, etc." value="{{ form_data.nombre_proveedor|default:'' }}">
+                        <label class="kiosco-label" for="nombre_proveedor">
+                            {% if grupo_form == "servicios" %}Ente / empresa emisora{% else %}Nombre del proveedor (si no está en la lista){% endif %}
+                        </label>
+                        <input type="text" name="nombre_proveedor" id="nombre_proveedor" class="kiosco-input" placeholder="{% if grupo_form == 'servicios' %}Ej. EDENOR, Metrogas, etc.{% else %}Ej. Arcor, Sancor, etc.{% endif %}" value="{{ form_data.nombre_proveedor|default:'' }}">
                         {% if form_data and form_data.nombre_proveedor.errors %}
                         <div class="error-texto">{{ form_data.nombre_proveedor.errors }}</div>
                         {% endif %}
@@ -50,7 +74,7 @@
                         <label class="kiosco-label" for="categoria">Categoría <span class="obligatorio" aria-hidden="true">*</span></label>
                         <select class="kiosco-input" name="categoria" id="categoria">
                             {% for valor, etiqueta in categorias %}
-                            <option value="{{ valor }}">{{ etiqueta }}</option>
+                            <option value="{{ valor }}" {% if form_data.categoria == valor or not form_data and categoria_inicial == valor %}selected{% endif %}>{{ etiqueta }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -85,9 +109,10 @@
 
             <div class="form-actions">
                 <button type="submit" class="btn btn-kiosco btn-ancho">
-                    <i class="bi bi-save" aria-hidden="true"></i> Crear documento
+                    <i class="bi bi-save" aria-hidden="true"></i>
+                    {% if grupo_form == "proveedores" %}Crear factura de proveedor{% else %}Crear documento{% endif %}
                 </button>
-                <a href="{% url 'negocios:lista_documentos' %}" class="btn btn-link-suave">Cancelar</a>
+                <a href="{{ volver_url }}" class="btn btn-link-suave">Cancelar</a>
             </div>
         </form>
     </div>

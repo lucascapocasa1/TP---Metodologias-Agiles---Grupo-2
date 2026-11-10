@@ -14,6 +14,18 @@ urlpatterns = [
         name="lista_documentos",
     ),
     path(
+        "documentos/facturas/",
+        views.lista_documentos,
+        {"grupo_fijo": "servicios"},
+        name="lista_facturas",
+    ),
+    path(
+        "documentos/proveedores/",
+        views.lista_documentos,
+        {"grupo_fijo": "proveedores"},
+        name="lista_proveedores",
+    ),
+    path(
         "documentos/crear/",
         views.crear_documento,
         name="crear_documento",
@@ -32,5 +44,10 @@ urlpatterns = [
         "documentos/<int:documento_id>/marcar-pagada/",
         views.marcar_pagada,
         name="marcar_pagada",
+    ),
+    path(
+        "documentos/proveedor/<int:proveedor_id>/pagar/",
+        views.pagar_proveedor,
+        name="pagar_proveedor",
     ),
 ]

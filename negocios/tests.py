@@ -10,10 +10,11 @@ from django.contrib.auth.models import Group, User
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
+from datetime import date
 from decimal import Decimal
 
 from auditoria.models import RegistroAuditoria
-from negocios.models import Negocio
+from negocios.models import Documento, Negocio, Proveedor
 from usuarios.models import Empleado
 from ventas.models import Categoria, Producto, Venta, DetalleVenta
 from clientes.models import Cliente
@@ -439,3 +440,450 @@ class FlujoCompletoTests(TestCase):
 
         # 10. La venta está vinculada al pedido y es del negocio correcto
         self.assertEqual(venta.pedidos.first(), pedido)
+
+
+class DocumentosKpiTests(TestCase):
+    """El KPI de deuda a proveedores solo debe contar facturas pendientes."""
+
+    def setUp(self):
+        self.grupo_admin = Group.objects.create(name="Administrador")
+        self.negocio = Negocio.objects.create(
+            nombre="Kiosco Documentos",
+            slug="kiosco-documentos",
+            activo=True,
+        )
+        self.admin = User.objects.create_user(
+            username="admin_docs", password="clave123", is_staff=True
+        )
+        self.admin.groups.add(self.grupo_admin)
+        Empleado.objects.create(
+            usuario=self.admin, negocio=self.negocio, activo=True
+        )
+        self.proveedor = Proveedor.objects.create(
+            nombre="EDESUR S.A.", negocio=self.negocio, activo=True
+        )
+        self.client.login(username="admin_docs", password="clave123")
+
+    def crear_documento(self, numero, monto, pagado, estado, categoria="luz"):
+        return Documento.objects.create(
+            negocio=self.negocio,
+            proveedor=self.proveedor,
+            nombre_proveedor=self.proveedor.nombre,
+            categoria=categoria,
+            numero_factura=numero,
+            monto=Decimal(monto),
+            monto_pagado=Decimal(pagado),
+            fecha_emision=date(2026, 9, 1),
+            fecha_vencimiento=date(2026, 9, 30),
+            estado=estado,
+        )
+
+    def test_deuda_total_solo_suma_facturas_pendientes(self):
+        # Pendiente con pago parcial: debe 6000.
+        self.crear_documento("P-001", "10000.00", "4000.00", "pendiente")
+        # Pagada con pago parcial (dato inconsistente a propósito): NO debe.
+        self.crear_documento("P-002", "5000.00", "2000.00", "pagada")
+        # Anulada: NO debe.
+        self.crear_documento("P-003", "7000.00", "0.00", "anulada")
+
+        respuesta = self.client.get(reverse("negocios:lista_documentos"))
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.context["total_deuda"], Decimal("6000.00"))
+
+    def test_deuda_total_es_cero_sin_facturas_pendientes(self):
+        self.crear_documento("P-001", "5000.00", "5000.00", "pagada")
+        self.crear_documento("P-002", "7000.00", "0.00", "anulada")
+
+        respuesta = self.client.get(reverse("negocios:lista_documentos"))
+
+        self.assertEqual(respuesta.context["total_deuda"], Decimal("0.00"))
+
+    def test_deuda_total_suma_varias_pendientes(self):
+        self.crear_documento("P-001", "68450.00", "0.00", "pendiente")
+        self.crear_documento("P-002", "38750.00", "25000.00", "pendiente")
+        self.crear_documento("P-003", "18500.00", "18500.00", "pagada")
+
+        respuesta = self.client.get(reverse("negocios:lista_documentos"))
+
+        self.assertEqual(
+            respuesta.context["total_deuda"], Decimal("82200.00")
+        )
+
+    def test_filtro_grupo_servicios_excluye_proveedores(self):
+        self.crear_documento("D-001", "1000.00", "0.00", "pendiente", "luz")
+        self.crear_documento(
+            "D-002", "2000.00", "0.00", "pendiente", "proveedor"
+        )
+
+        respuesta = self.client.get(
+            reverse("negocios:lista_documentos"), {"grupo": "servicios"}
+        )
+
+        numeros = [d.numero_factura for d in respuesta.context["documentos"]]
+        self.assertIn("D-001", numeros)
+        self.assertNotIn("D-002", numeros)
+
+    def test_filtro_grupo_proveedores_excluye_servicios(self):
+        self.crear_documento("D-001", "1000.00", "0.00", "pendiente", "luz")
+        self.crear_documento(
+            "D-002", "2000.00", "0.00", "pendiente", "proveedor"
+        )
+
+        respuesta = self.client.get(
+            reverse("negocios:lista_documentos"), {"grupo": "proveedores"}
+        )
+
+        numeros = [d.numero_factura for d in respuesta.context["documentos"]]
+        self.assertIn("D-002", numeros)
+        self.assertNotIn("D-001", numeros)
+
+
+class DocumentosListadoTests(TestCase):
+    """Paginación, orden, filtro por proveedor y pagos FIFO."""
+
+    def setUp(self):
+        self.grupo_admin = Group.objects.create(name="Administrador")
+        self.negocio = Negocio.objects.create(
+            nombre="Kiosco Listado",
+            slug="kiosco-listado",
+            activo=True,
+        )
+        self.otro_negocio = Negocio.objects.create(
+            nombre="Otro Negocio",
+            slug="otro-negocio",
+            activo=True,
+        )
+        self.admin = User.objects.create_user(
+            username="admin_listado", password="clave123", is_staff=True
+        )
+        self.admin.groups.add(self.grupo_admin)
+        Empleado.objects.create(
+            usuario=self.admin, negocio=self.negocio, activo=True
+        )
+        self.proveedor_a = Proveedor.objects.create(
+            nombre="Proveedor A", negocio=self.negocio, activo=True
+        )
+        self.proveedor_b = Proveedor.objects.create(
+            nombre="Proveedor B", negocio=self.negocio, activo=True
+        )
+        self.client.login(username="admin_listado", password="clave123")
+
+    def crear_documento(
+        self,
+        numero,
+        monto,
+        pagado="0.00",
+        estado="pendiente",
+        proveedor=None,
+        emision=date(2026, 9, 1),
+    ):
+        return Documento.objects.create(
+            negocio=self.negocio,
+            proveedor=proveedor or self.proveedor_a,
+            nombre_proveedor=(proveedor or self.proveedor_a).nombre,
+            categoria="proveedor",
+            numero_factura=numero,
+            monto=Decimal(monto),
+            monto_pagado=Decimal(pagado),
+            fecha_emision=emision,
+            fecha_vencimiento=date(2026, 9, 30),
+            estado=estado,
+        )
+
+    def test_listado_pagina_de_a_10(self):
+        for i in range(15):
+            self.crear_documento(f"P-{i:03d}", "1000.00")
+
+        respuesta = self.client.get(reverse("negocios:lista_documentos"))
+
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertEqual(respuesta.context["paginador"].num_pages, 2)
+        self.assertEqual(len(respuesta.context["documentos"]), 10)
+
+    def test_orden_por_monto_ascendente_y_descendente(self):
+        self.crear_documento("P-300", "300.00")
+        self.crear_documento("P-100", "100.00")
+        self.crear_documento("P-200", "200.00")
+
+        asc = self.client.get(
+            reverse("negocios:lista_documentos"),
+            {"orden": "monto", "dir": "asc"},
+        )
+        self.assertEqual(
+            [d.monto for d in asc.context["documentos"]],
+            [Decimal("100.00"), Decimal("200.00"), Decimal("300.00")],
+        )
+
+        desc = self.client.get(
+            reverse("negocios:lista_documentos"),
+            {"orden": "monto", "dir": "desc"},
+        )
+        self.assertEqual(
+            [d.monto for d in desc.context["documentos"]],
+            [Decimal("300.00"), Decimal("200.00"), Decimal("100.00")],
+        )
+
+    def test_filtro_por_proveedor(self):
+        self.crear_documento("A-001", "1000.00", proveedor=self.proveedor_a)
+        self.crear_documento("B-001", "2000.00", proveedor=self.proveedor_b)
+
+        respuesta = self.client.get(
+            reverse("negocios:lista_documentos"),
+            {"proveedor": self.proveedor_a.pk},
+        )
+
+        numeros = [d.numero_factura for d in respuesta.context["documentos"]]
+        self.assertEqual(numeros, ["A-001"])
+
+    def test_resumen_deuda_por_proveedor(self):
+        # A: 100.000 + 200.000 con 150.000 pagados -> debe 150.000.
+        self.crear_documento("A-001", "100000.00", proveedor=self.proveedor_a)
+        self.crear_documento(
+            "A-002", "200000.00", pagado="150000.00", proveedor=self.proveedor_a
+        )
+        self.crear_documento("B-001", "50000.00", proveedor=self.proveedor_b)
+        # Una factura pagada no debe sumar deuda.
+        self.crear_documento(
+            "A-003",
+            "80000.00",
+            pagado="80000.00",
+            estado="pagada",
+            proveedor=self.proveedor_a,
+        )
+
+        respuesta = self.client.get(reverse("negocios:lista_documentos"))
+
+        resumen = {
+            item["nombre"]: item for item in respuesta.context["resumen_proveedores"]
+        }
+        self.assertEqual(resumen["Proveedor A"]["saldo"], Decimal("150000.00"))
+        self.assertEqual(resumen["Proveedor B"]["saldo"], Decimal("50000.00"))
+        self.assertEqual(
+            respuesta.context["total_deuda"], Decimal("200000.00")
+        )
+
+    def test_pago_a_proveedor_aplica_fifo(self):
+        antigua = self.crear_documento(
+            "A-001",
+            "100000.00",
+            proveedor=self.proveedor_a,
+            emision=date(2026, 8, 1),
+        )
+        nueva = self.crear_documento(
+            "A-002",
+            "200000.00",
+            proveedor=self.proveedor_a,
+            emision=date(2026, 9, 1),
+        )
+
+        respuesta = self.client.post(
+            reverse("negocios:pagar_proveedor", args=[self.proveedor_a.pk]),
+            {"monto": "150000.00"},
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        antigua.refresh_from_db()
+        nueva.refresh_from_db()
+        self.assertEqual(antigua.monto_pagado, Decimal("100000.00"))
+        self.assertEqual(antigua.estado, "pagada")
+        self.assertEqual(nueva.monto_pagado, Decimal("50000.00"))
+        self.assertEqual(nueva.estado, "pendiente")
+
+    def test_pago_mayor_a_la_deuda_se_rechaza(self):
+        documento = self.crear_documento("A-001", "100000.00")
+
+        respuesta = self.client.post(
+            reverse("negocios:pagar_proveedor", args=[self.proveedor_a.pk]),
+            {"monto": "150000.00"},
+        )
+
+        self.assertEqual(respuesta.status_code, 302)
+        documento.refresh_from_db()
+        self.assertEqual(documento.monto_pagado, Decimal("0.00"))
+
+    def test_pago_cero_se_rechaza(self):
+        documento = self.crear_documento("A-001", "100000.00")
+
+        self.client.post(
+            reverse("negocios:pagar_proveedor", args=[self.proveedor_a.pk]),
+            {"monto": "0"},
+        )
+
+        documento.refresh_from_db()
+        self.assertEqual(documento.monto_pagado, Decimal("0.00"))
+
+    def test_no_se_puede_pagar_proveedor_de_otro_negocio(self):
+        ajeno = Proveedor.objects.create(
+            nombre="Ajeno", negocio=self.otro_negocio, activo=True
+        )
+
+        respuesta = self.client.get(
+            reverse("negocios:pagar_proveedor", args=[ajeno.pk])
+        )
+
+        self.assertEqual(respuesta.status_code, 404)
+
+
+class DocumentosSeparacionTests(TestCase):
+    """Facturas y Proveedores son módulos separados, sin mezclar datos."""
+
+    def setUp(self):
+        self.grupo_admin = Group.objects.create(name="Administrador")
+        self.negocio = Negocio.objects.create(
+            nombre="Kiosco Separado",
+            slug="kiosco-separado",
+            activo=True,
+        )
+        self.admin = User.objects.create_user(
+            username="admin_separado", password="clave123", is_staff=True
+        )
+        self.admin.groups.add(self.grupo_admin)
+        Empleado.objects.create(
+            usuario=self.admin, negocio=self.negocio, activo=True
+        )
+        self.proveedor = Proveedor.objects.create(
+            nombre="Distribuidora Norte", negocio=self.negocio, activo=True
+        )
+        self.client.login(username="admin_separado", password="clave123")
+
+    def crear_documento(self, numero, categoria, monto="1000.00", pagado="0.00"):
+        return Documento.objects.create(
+            negocio=self.negocio,
+            proveedor=self.proveedor if categoria == "proveedor" else None,
+            nombre_proveedor="Distribuidora Norte"
+            if categoria == "proveedor"
+            else "EDESUR",
+            categoria=categoria,
+            numero_factura=numero,
+            monto=Decimal(monto),
+            monto_pagado=Decimal(pagado),
+            fecha_emision=date(2026, 9, 1),
+            fecha_vencimiento=date(2026, 9, 30),
+            estado="pendiente",
+        )
+
+    def test_lista_facturas_solo_muestra_servicios(self):
+        self.crear_documento("S-001", "luz", monto="3000.00")
+        self.crear_documento("P-001", "proveedor", monto="9000.00")
+
+        respuesta = self.client.get(reverse("negocios:lista_facturas"))
+
+        self.assertEqual(respuesta.status_code, 200)
+        numeros = [d.numero_factura for d in respuesta.context["documentos"]]
+        self.assertEqual(numeros, ["S-001"])
+        self.assertEqual(respuesta.context["resumen_proveedores"], [])
+        self.assertEqual(list(respuesta.context["proveedores"]), [])
+        self.assertEqual(respuesta.context["total_deuda"], Decimal("3000.00"))
+        self.assertTrue(respuesta.context["es_facturas"])
+        self.assertFalse(respuesta.context["es_proveedores"])
+
+    def test_lista_proveedores_solo_muestra_facturas_de_mercaderia(self):
+        self.crear_documento("S-001", "luz", monto="3000.00")
+        self.crear_documento("P-001", "proveedor", monto="9000.00")
+
+        respuesta = self.client.get(reverse("negocios:lista_proveedores"))
+
+        self.assertEqual(respuesta.status_code, 200)
+        numeros = [d.numero_factura for d in respuesta.context["documentos"]]
+        self.assertEqual(numeros, ["P-001"])
+        resumen = respuesta.context["resumen_proveedores"]
+        self.assertEqual(len(resumen), 1)
+        self.assertEqual(resumen[0]["saldo"], Decimal("9000.00"))
+        self.assertEqual(respuesta.context["total_deuda"], Decimal("9000.00"))
+        self.assertTrue(respuesta.context["es_proveedores"])
+        self.assertFalse(respuesta.context["es_facturas"])
+
+    def test_lista_facturas_ignora_filtro_de_proveedor(self):
+        self.crear_documento("S-001", "luz")
+        self.crear_documento("P-001", "proveedor")
+
+        respuesta = self.client.get(
+            reverse("negocios:lista_facturas"),
+            {"proveedor": self.proveedor.pk, "categoria": "proveedor"},
+        )
+
+        numeros = [d.numero_factura for d in respuesta.context["documentos"]]
+        self.assertEqual(numeros, ["S-001"])
+
+    def test_crear_factura_de_proveedor_redirige_al_modulo_proveedores(self):
+        respuesta = self.client.post(
+            reverse("negocios:crear_documento") + "?grupo=proveedores",
+            {
+                "proveedor": self.proveedor.pk,
+                "categoria": "proveedor",
+                "numero_factura": "P-100",
+                "monto": "1500.00",
+                "fecha_emision": "2026-09-01",
+                "fecha_vencimiento": "2026-09-30",
+            },
+        )
+
+        self.assertRedirects(
+            respuesta, reverse("negocios:lista_proveedores")
+        )
+
+    def test_crear_servicio_redirige_al_modulo_facturas(self):
+        respuesta = self.client.post(
+            reverse("negocios:crear_documento") + "?grupo=servicios",
+            {
+                "categoria": "luz",
+                "nombre_proveedor": "EDESUR",
+                "numero_factura": "S-100",
+                "monto": "2500.00",
+                "fecha_emision": "2026-09-01",
+                "fecha_vencimiento": "2026-09-30",
+            },
+        )
+
+        self.assertRedirects(respuesta, reverse("negocios:lista_facturas"))
+
+    def test_crear_desde_proveedores_no_permite_categoria_servicio(self):
+        respuesta = self.client.post(
+            reverse("negocios:crear_documento") + "?grupo=proveedores",
+            {
+                "proveedor": self.proveedor.pk,
+                "categoria": "luz",
+                "numero_factura": "P-200",
+                "monto": "1000.00",
+                "fecha_emision": "2026-09-01",
+                "fecha_vencimiento": "2026-09-30",
+            },
+        )
+
+        self.assertRedirects(
+            respuesta, reverse("negocios:lista_proveedores")
+        )
+        documento = Documento.objects.get(numero_factura="P-200")
+        self.assertEqual(documento.categoria, "proveedor")
+
+    def test_formulario_de_proveedores_solo_ofrece_categoria_proveedor(self):
+        respuesta = self.client.get(
+            reverse("negocios:crear_documento"), {"grupo": "proveedores"}
+        )
+
+        categorias = [valor for valor, _ in respuesta.context["categorias"]]
+        self.assertEqual(categorias, ["proveedor"])
+
+    def test_formulario_de_facturas_no_ofrece_categoria_proveedor(self):
+        respuesta = self.client.get(
+            reverse("negocios:crear_documento"), {"grupo": "servicios"}
+        )
+
+        categorias = [valor for valor, _ in respuesta.context["categorias"]]
+        self.assertNotIn("proveedor", categorias)
+        self.assertIn("luz", categorias)
+
+    def test_pago_a_proveedor_redirige_al_modulo_proveedores(self):
+        self.crear_documento("P-300", "proveedor", monto="1000.00")
+
+        respuesta = self.client.post(
+            reverse("negocios:pagar_proveedor", args=[self.proveedor.pk]),
+            {"monto": "1000.00"},
+        )
+
+        self.assertRedirects(
+            respuesta,
+            f"{reverse('negocios:lista_proveedores')}"
+            f"?proveedor={self.proveedor.pk}",
+        )

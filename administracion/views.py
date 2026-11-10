@@ -143,16 +143,12 @@ def dashboard(request):
 
     total_usuarios = usuarios_qs.count()
     usuarios_activos = usuarios_qs.filter(is_active=True).count()
-    usuarios_inactivos = usuarios_qs.filter(is_active=False).count()
     admins = (
         usuarios_qs.filter(groups__name="Administrador").distinct().count()
     )
     cajeros = (
         usuarios_qs.filter(groups__name="Cajero").distinct().count()
     )
-    sin_rol = usuarios_qs.filter(
-        groups__isnull=True, is_active=True
-    ).count()
 
     # Stock bajo (HU-06): mismo umbral que el reporte, y la ficha del
     # dashboard es un link a ese reporte para ver de qué productos se trata.
@@ -167,12 +163,21 @@ def dashboard(request):
     # últimos 30 días.
     productos_sin_mov = reportes.productos_sin_movimiento(negocio=negocio, dias=30)
 
-    # Deudas a proveedores: monto pendiente de documentos no pagados
+    # Deuda pendiente separada por tipo: facturas de proveedores vs.
+    # servicios y gastos (luz, gas, seguridad e higiene, otros).
     deuda_proveedores = Decimal("0.00")
+    deuda_servicios = Decimal("0.00")
     if negocio is not None:
-        deuda_proveedores = Documento.objects.filter(
-            negocio=negocio,
-            estado__in=["pendiente"],
+        pendientes = Documento.objects.filter(
+            negocio=negocio, estado="pendiente"
+        )
+        deuda_proveedores = pendientes.filter(
+            categoria="proveedor"
+        ).aggregate(
+            total=Coalesce(Sum(F("monto") - F("monto_pagado")), Decimal("0.00"))
+        )["total"]
+        deuda_servicios = pendientes.exclude(
+            categoria="proveedor"
         ).aggregate(
             total=Coalesce(Sum(F("monto") - F("monto_pagado")), Decimal("0.00"))
         )["total"]
@@ -185,15 +190,14 @@ def dashboard(request):
     context = {
         "total_usuarios": total_usuarios,
         "usuarios_activos": usuarios_activos,
-        "usuarios_inactivos": usuarios_inactivos,
         "admins": admins,
         "cajeros": cajeros,
-        "sin_rol": sin_rol,
         "productos_stock_bajo": productos_stock_bajo,
         "umbral_stock_bajo": reportes.UMBRAL_STOCK_BAJO,
         "productos_sin_movimiento": len(productos_sin_mov),
         "dias_dias": 30,
         "deuda_proveedores": deuda_proveedores,
+        "deuda_servicios": deuda_servicios,
         "negocio_actual": negocio,
         "todos_los_negocios": todos_los_negocios,
     }
@@ -339,46 +343,6 @@ def productos_sin_movimiento(request):
         "total_sin_movimiento": len(productos),
     }
     return render(request, "administracion/productos_sin_movimiento.html", contexto)
-    """Panel principal de administración con estadísticas."""
-    negocio = request.negocio
-
-    usuarios_qs = User.objects.all()
-    if negocio is not None:
-        usuarios_qs = usuarios_qs.filter(empleado__negocio=negocio)
-
-    total_usuarios = usuarios_qs.count()
-    usuarios_activos = usuarios_qs.filter(is_active=True).count()
-    usuarios_inactivos = usuarios_qs.filter(is_active=False).count()
-    admins = (
-        usuarios_qs.filter(groups__name="Administrador").distinct().count()
-    )
-    cajeros = (
-        usuarios_qs.filter(groups__name="Cajero").distinct().count()
-    )
-    sin_rol = usuarios_qs.filter(
-        groups__isnull=True, is_active=True
-    ).count()
-
-    # Stock bajo (HU-06): mismo umbral que el reporte, y la ficha del
-    # dashboard es un link a ese reporte para ver de qué productos se trata.
-    productos_qs = Producto.objects.filter(activo=True)
-    if negocio is not None:
-        productos_qs = productos_qs.filter(negocio=negocio)
-    productos_stock_bajo = productos_qs.filter(
-        stock__lte=reportes.UMBRAL_STOCK_BAJO
-    ).count()
-
-    context = {
-        "total_usuarios": total_usuarios,
-        "usuarios_activos": usuarios_activos,
-        "usuarios_inactivos": usuarios_inactivos,
-        "admins": admins,
-        "cajeros": cajeros,
-        "sin_rol": sin_rol,
-        "productos_stock_bajo": productos_stock_bajo,
-        "umbral_stock_bajo": reportes.UMBRAL_STOCK_BAJO,
-    }
-    return render(request, "administracion/dashboard.html", context)
 
 
 @rol_requerido("Administrador")

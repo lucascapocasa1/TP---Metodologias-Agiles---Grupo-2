@@ -1,22 +1,32 @@
-{% extends "base.html" %}
-{% load formatos %}
-{% block titulo %}Documentos — {{ negocio.nombre }}{% endblock %}
+{% extends "base_admin.html" %}
+{% load formatos pagination_tags %}
+{% block titulo %}{{ titulo_listado }} — {{ negocio.nombre }}{% endblock %}
 {% block contenido %}
 <div class="admin-panel">
     <div class="admin-header">
         <div class="admin-header-left">
-            <h1><i class="bi bi-file-earmark-text"></i> Documentos — {{ negocio.nombre }}</h1>
+            <h1>
+                <i class="bi {% if es_proveedores %}bi-truck{% elif es_facturas %}bi-receipt{% else %}bi-file-earmark-text{% endif %}"></i>
+                {{ titulo_listado }} — {{ negocio.nombre }}
+            </h1>
             <p class="admin-subtitle">
+                {% if es_proveedores %}
+                Facturas de mercadería y deuda pendiente con cada proveedor.
+                {% elif es_facturas %}
+                Facturas de servicios y gastos del negocio.
+                {% else %}
                 Facturas y comprobantes de tu negocio.
+                {% endif %}
                 <strong>{{ total_pendiente }}</strong> pendiente(s),
-                <strong>{{ total_pagada }}</div>
+                <strong>{{ total_pagada }}</strong>
                 pagada(s).
                 <strong>Deuda total: ${{ total_deuda|montos }}</strong>.
             </p>
         </div>
         <div class="admin-header-right">
-            <a href="{% url 'negocios:crear_documento' %}" class="btn btn-kiosco btn-ancho">
-                <i class="bi bi-plus-lg" aria-hidden="true"></i> Nuevo documento
+            <a href="{% url 'negocios:crear_documento' %}{% if grupo_actual %}?grupo={{ grupo_actual }}{% endif %}" class="btn btn-kiosco btn-ancho">
+                <i class="bi bi-plus-lg" aria-hidden="true"></i>
+                {% if es_proveedores %}Nueva factura de proveedor{% else %}Nuevo documento{% endif %}
             </a>
         </div>
     </div>
@@ -24,6 +34,13 @@
     <!-- Filtros -->
     <div class="admin-filters">
         <form method="get" class="filter-form">
+            {% if grupo_actual %}
+            <input type="hidden" name="grupo" value="{{ grupo_actual }}">
+            {% endif %}
+            {% if orden_actual %}
+            <input type="hidden" name="orden" value="{{ orden_actual }}">
+            <input type="hidden" name="dir" value="{{ direccion_actual }}">
+            {% endif %}
             <div class="filter-group">
                 <label class="kiosco-label" for="estado">Estado:</label>
                 <select class="kiosco-input" name="estado" id="estado">
@@ -35,6 +52,7 @@
                     {% endfor %}
                 </select>
             </div>
+            {% if not es_proveedores %}
             <div class="filter-group">
                 <label class="kiosco-label" for="categoria">Categoría:</label>
                 <select class="kiosco-input" name="categoria" id="categoria">
@@ -46,14 +64,67 @@
                     {% endfor %}
                 </select>
             </div>
+            {% endif %}
+            {% if not es_facturas and proveedores %}
+            <div class="filter-group">
+                <label class="kiosco-label" for="proveedor">Proveedor:</label>
+                <select class="kiosco-input" name="proveedor" id="proveedor">
+                    <option value="">Todos</option>
+                    {% for proveedor in proveedores %}
+                    <option value="{{ proveedor.pk }}" {% if proveedor_actual == proveedor.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ proveedor.nombre }}
+                    </option>
+                    {% endfor %}
+                    <option value="sin" {% if proveedor_actual == "sin" %}selected{% endif %}>
+                        Sin proveedor asignado
+                    </option>
+                </select>
+            </div>
+            {% endif %}
             <button type="submit" class="btn btn-admin-filter">
                 <i class="bi bi-funnel"></i> Filtrar
             </button>
-            <a href="{% url 'negocios:lista_documentos' %}" class="btn btn-admin-clear">
+            <a href="{{ lista_url }}" class="btn btn-admin-clear">
                 Limpiar
             </a>
         </form>
     </div>
+
+    {% if resumen_proveedores %}
+    <section class="deuda-proveedores" aria-label="Deuda por proveedor">
+        <div class="deuda-proveedores-header">
+            <h2><i class="bi bi-people"></i> Deuda por proveedor</h2>
+            <span class="deuda-total">Total: ${{ total_deuda|montos }}</span>
+        </div>
+        <div class="deuda-grid">
+            {% for item in resumen_proveedores %}
+            <article class="deuda-card {% if proveedor_actual == item.clave %}deuda-card-activa{% endif %}">
+                <div class="deuda-card-top">
+                    <h3>{{ item.nombre }}</h3>
+                    <span class="deuda-monto">${{ item.saldo|montos }}</span>
+                </div>
+                <p class="deuda-detalle">
+                    {{ item.facturas }} factura{{ item.facturas|pluralize }}
+                    {% if item.vencidas %}
+                    ·
+                    <span class="deuda-vencidas">{{ item.vencidas }} vencida{{ item.vencidas|pluralize }}</span>
+                    {% endif %}
+                </p>
+                <div class="deuda-acciones">
+                    <a class="btn-deuda-ver" href="?{% param proveedor=item.clave page=None %}">
+                        <i class="bi bi-list-ul"></i> Ver facturas
+                    </a>
+                    {% if item.proveedor_id %}
+                    <a class="btn-deuda-pagar" href="{% url 'negocios:pagar_proveedor' item.proveedor_id %}">
+                        <i class="bi bi-cash-coin"></i> Pagar
+                    </a>
+                    {% endif %}
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 
     {% if documentos %}
     <div class="admin-card">
@@ -61,14 +132,24 @@
             <table class="admin-table">
                 <thead>
                     <tr>
-                        <th>Factura / Nombre</th>
-                        <th>Categoría</th>
-                        <th>Proveedor</th>
-                        <th>Monto</th>
-                        <th>Pagado</th>
-                        <th>Pendiente</th>
-                        <th>Vencimiento</th>
-                        <th>Estado</th>
+                        {% for columna in columnas %}
+                        <th class="th-ordenable">
+                            <a href="?{% param orden=columna.clave dir=columna.siguiente page=None %}"
+                               class="orden-link{% if columna.activa %} orden-activa{% endif %}"
+                               title="Ordenar por {{ columna.etiqueta }}">
+                                {{ columna.etiqueta }}
+                                {% if columna.activa %}
+                                    {% if columna.direccion == "asc" %}
+                                    <i class="bi bi-caret-up-fill" aria-label="Ascendente"></i>
+                                    {% else %}
+                                    <i class="bi bi-caret-down-fill" aria-label="Descendente"></i>
+                                    {% endif %}
+                                {% else %}
+                                <i class="bi bi-arrow-down-up orden-icono-suave" aria-hidden="true"></i>
+                                {% endif %}
+                            </a>
+                        </th>
+                        {% endfor %}
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -157,14 +238,57 @@
                 </tbody>
             </table>
         </div>
+
+        {% if pagina.paginator.num_pages > 1 %}
+        <nav class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-3" aria-label="Paginación de documentos">
+            <span class="texto-suave">
+                Mostrando {{ pagina.start_index }}–{{ pagina.end_index }}
+                de {{ pagina.paginator.count }} documento{{ pagina.paginator.count|pluralize }}
+            </span>
+            <ul class="pagination mb-0">
+                <li class="page-item {% if not pagina.has_previous %}disabled{% endif %}">
+                    {% if pagina.has_previous %}
+                    <a class="page-link" href="?{% param page=pagina.previous_page_number %}" aria-label="Anterior">
+                        <i class="bi bi-chevron-left"></i>
+                    </a>
+                    {% else %}
+                    <span class="page-link"><i class="bi bi-chevron-left"></i></span>
+                    {% endif %}
+                </li>
+                {% for num in pagina.paginator.page_range %}
+                    {% if num == pagina.number %}
+                    <li class="page-item active"><span class="page-link">{{ num }}</span></li>
+                    {% elif num > pagina.number|add:"-3" and num < pagina.number|add:"3" %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% param page=num %}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                <li class="page-item {% if not pagina.has_next %}disabled{% endif %}">
+                    {% if pagina.has_next %}
+                    <a class="page-link" href="?{% param page=pagina.next_page_number %}" aria-label="Siguiente">
+                        <i class="bi bi-chevron-right"></i>
+                    </a>
+                    {% else %}
+                    <span class="page-link"><i class="bi bi-chevron-right"></i></span>
+                    {% endif %}
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
     </div>
     {% else %}
     <div class="admin-empty">
         <div class="empty-icon"><i class="bi bi-file-earmark"></i></div>
-        <h3>No hay documentos</h3>
-        <p>No hay facturas registradas para {{ negocio.nombre }}.</p>
-        <a href="{% url 'negocios:crear_documento' %}" class="btn btn-kiosco mt-3">
-            <i class="bi bi-plus-lg"></i> Crear documento
+        <h3>
+            {% if es_proveedores %}No hay facturas de proveedores
+            {% elif es_facturas %}No hay facturas de servicios
+            {% else %}No hay documentos{% endif %}
+        </h3>
+        <p>No hay facturas registradas para {{ negocio.nombre }} con estos filtros.</p>
+        <a href="{% url 'negocios:crear_documento' %}{% if grupo_actual %}?grupo={{ grupo_actual }}{% endif %}" class="btn btn-kiosco mt-3">
+            <i class="bi bi-plus-lg"></i>
+            {% if es_proveedores %}Nueva factura de proveedor{% elif es_facturas %}Nueva factura{% else %}Crear documento{% endif %}
         </a>
     </div>
     {% endif %}

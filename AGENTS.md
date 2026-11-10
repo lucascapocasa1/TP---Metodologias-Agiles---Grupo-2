@@ -101,7 +101,9 @@ templates/         # base.html + templates por app (también 403.html y 404.html
 - `/catalogo/` → Catálogo público general (HU-13, mantiene compatibilidad).
 - `/app/` → Gestión privada (login requerido, filtrado por negocio del usuario).
 - `/superadmin/` → Panel de superadmin (solo `is_superuser=True`).
-- `/negocios/documentos/` → Gestión de facturas/documentos del negocio (solo Administrador del negocio).
+- `/negocios/documentos/facturas/` → Facturas de servicios y gastos del negocio (luz, gas, seguridad e higiene, otro).
+- `/negocios/documentos/proveedores/` → Facturas de mercadería y deuda por proveedor (filtro y pago FIFO).
+- `/negocios/documentos/` → Listado histórico sin separar (no se enlaza desde el menú lateral).
 - Raíz `/` ya no redirige a login: muestra la landing pública.
 
 ## Comandos adicionales
@@ -123,11 +125,12 @@ Desde `/ventas/cierre_turno/`, al cerrar el turno el cajero o Administrador ingr
 Desde `/administracion/reportes/productos-sin-movimiento/`, lista productos del negocio sin ventas ni pedidos entregados en los últimos X días (default 30). Desde ahí se puede editar el precio directamente (descuento 5%, 10%, 15% o valor manual) o dar de baja el producto. Hay un KPI en el dashboard.
 
 ### Facturas / Documentos del negocio
-Desde `/negocios/documentos/`, el Administrador del negocio puede crear, editar y gestionar facturas/documentos (luz, gas, seguridad e higiene, proveedores, otro). Cada documento tiene monto, monto pagado, fecha de emisión, fecha de vencimiento, estado (pendiente/pagada/anulada) y archivo PDF opcional (adjunto). Hay un KPI "Deudas a proveedores" en el dashboard que acumula montos pendientes. Alerta automática para facturas que vencen en 7 días. Se puede marcar como pagada con pago parcial o total.
+Desde `/negocios/documentos/facturas/` y `/negocios/documentos/proveedores/` (dos ítems separados del menú lateral), el Administrador del negocio puede crear, editar y gestionar documentos. **Facturas** agrupa servicios y gastos (luz, gas, seguridad e higiene, otro) sin filtros ni deuda de proveedores; **Proveedores** agrupa solo las facturas de mercadería (`categoria="proveedor"`) con resumen de deuda por proveedor y pago FIFO. Las categorías del formulario se restringen según el módulo (`?grupo=servicios|proveedores`) y las redirecciones vuelven al listado correspondiente. Cada documento tiene monto, monto pagado, fecha de emisión, fecha de vencimiento, estado (pendiente/pagada/anulada) y archivo PDF opcional (adjunto). Hay KPIs "Deuda a proveedores" y "Deuda a servicios" en el dashboard que enlazan a cada módulo. Alerta automática para facturas que vencen en 7 días. Se puede marcar como pagada con pago parcial o total.
 
 ## Templates
 
-- Extienden `base.html` (Bootstrap 5 CDN). Blocks: `titulo`, `contenido`.
+- Extienden `base.html` (Bootstrap 5 CDN). Blocks: `titulo`, `contenido`, `body_class`, `menu_lateral`.
+- Endpoints de gestión (administración, clientes, pedidos, documentos, ventas) extienden `base_admin.html`: mismo layout + menú lateral fijo (`templates/includes/sidebar_admin.html`). El ítem activo se marca con `{% menu_activo 'url_name' %}` y las secciones solo-Administrador con `{% usuario_admin user %}` (tags en `usuarios/templatetags/roles.py`). El navbar superior es `position: sticky` y publica su alto en `--navbar-alto`.
 - HTMX: CDN al final de `base.html`. Las vistas revisan `request.headers.get("HX-Request")` y devuelven solo el partial (ej. `ventas:lista_productos` → `ventas/_productos_tabla.html`).
 - Frontend: un solo estilo visual, **neón cian**, fijo — `data-tema="neon"` se fuerza en el `<head>` de `base.html` + `data-theme` (claro/oscuro) en `<html>`; tema oscuro en `localStorage['kiosco-tema']`. No existe selector de estilos (el botón `#estiloToggle` y las paletas cartelera/ticket fueron eliminados); botón `#darkToggle` sí. Vocabulario de animaciones "toldo" al final de `static/css/styles.css`; respetar `prefers-reduced-motion`.
 

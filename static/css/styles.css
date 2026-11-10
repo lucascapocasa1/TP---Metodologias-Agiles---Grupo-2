@@ -85,6 +85,8 @@
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Los anclajes (#stock-bajo, etc.) no quedan tapados por el navbar fijo. */
+  scroll-padding-top: var(--navbar-alto, 72px);
 }
 
 body {
@@ -138,6 +140,11 @@ strong {
 .kiosco-navbar {
   background-color: var(--ink-solid);
   padding: 0.7rem 1.25rem 0.85rem;
+  /* Barra superior siempre visible: queda fija al hacer scroll y al
+     navegar entre endpoints. El alto real se publica en --navbar-alto. */
+  position: sticky;
+  top: 0;
+  z-index: 1030;
 }
 
 .kiosco-navbar-inner {
@@ -1946,7 +1953,7 @@ strong {
 /* --- Stats Grid --- */
 .stats-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
 }
@@ -2035,12 +2042,13 @@ a.stat-card-link:hover {
 }
 
 .stat-content h3 {
-  font-size: clamp(1.1rem, 0.75rem + 1.1vw, 1.5rem);
+  font-size: clamp(1.05rem, 0.75rem + 1vw, 1.5rem);
   font-weight: 700;
   color: var(--text-primary);
   margin: 0;
   line-height: 1.1;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
+  overflow-wrap: normal;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2443,6 +2451,174 @@ a.stat-card-link:hover {
   text-align: right;
   width: 160px;
 }
+
+/* --- Documentos: columnas ordenables --- */
+.th-ordenable {
+  white-space: nowrap;
+}
+
+.orden-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color var(--transition);
+}
+
+.orden-link:hover,
+.orden-link:focus-visible {
+  color: var(--kiosco-yellow);
+  text-decoration: none;
+}
+
+.orden-link.orden-activa {
+  color: var(--text-primary);
+}
+
+.orden-icono-suave {
+  font-size: 0.7rem;
+  opacity: 0.35;
+}
+
+/* --- Documentos: deuda por proveedor --- */
+.deuda-proveedores {
+  margin-bottom: 1.5rem;
+}
+
+.deuda-proveedores-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.deuda-proveedores-header h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.deuda-total {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--alert-danger-fg);
+}
+
+.deuda-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 0.75rem;
+}
+
+.deuda-card {
+  background: var(--surface);
+  border: 1px solid rgba(26, 26, 46, 0.08);
+  border-left: 3px solid var(--alert-danger-fg);
+  border-radius: var(--radius-sm);
+  padding: 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.deuda-card-activa {
+  border-color: rgba(245, 166, 35, 0.55);
+  box-shadow: 0 0 0 2px rgba(245, 166, 35, 0.18);
+}
+
+.deuda-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.deuda-card-top h3 {
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin: 0;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.deuda-monto {
+  font-size: 0.9rem;
+  font-weight: 700;
+  white-space: nowrap;
+  color: var(--alert-danger-fg);
+  font-variant-numeric: tabular-nums;
+}
+
+.deuda-detalle {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin: 0;
+}
+
+.deuda-vencidas {
+  color: var(--alert-danger-fg);
+  font-weight: 600;
+}
+
+.deuda-acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+
+.btn-deuda-ver,
+.btn-deuda-pagar {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.25rem 0.55rem;
+  border-radius: 999px;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid transparent;
+  transition: all var(--transition);
+}
+
+.btn-deuda-ver {
+  background: rgba(26, 26, 46, 0.06);
+  color: var(--text-primary);
+}
+
+.btn-deuda-ver:hover {
+  background: rgba(26, 26, 46, 0.12);
+  text-decoration: none;
+}
+
+.btn-deuda-pagar {
+  background: var(--kiosco-yellow);
+  color: #1a1a2e;
+}
+
+.btn-deuda-pagar:hover {
+  filter: brightness(1.05);
+  text-decoration: none;
+}
+
+[data-theme="dark"] .deuda-card {
+  border-color: rgba(255, 255, 255, 0.12);
+  border-left-color: var(--alert-danger-fg);
+}
+
+[data-theme="dark"] .btn-deuda-ver {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary);
+}
+
 
 /* --- User Cell --- */
 .user-cell {
@@ -4553,5 +4729,159 @@ a.stat-card-link:hover {
   background: rgba(255, 107, 107, 0.2);
   color: #FF6B6B;
   border-color: rgba(255, 107, 107, 0.4);
+}
+
+/* ============================================================
+   Menú lateral de gestión (siempre visible en endpoints privados)
+   ============================================================ */
+
+.sidebar {
+  position: fixed;
+  top: var(--navbar-alto, 72px);
+  left: 0;
+  bottom: 0;
+  width: 260px;
+  background: var(--ink-solid);
+  color: var(--crema);
+  padding-top: 1rem;
+  z-index: 1020; /* debajo del navbar fijo (1030) */
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6rem 1.25rem 0.7rem;
+  font-family: var(--font-display);
+  font-size: 1.1rem;
+  line-height: 1.25;
+  color: var(--sol);
+  border-bottom: 1px solid var(--contorno, rgba(255, 255, 255, 0.15));
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.sidebar-nav {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 1.5rem;
+}
+
+.sidebar-nav li {
+  margin: 0;
+}
+
+.sidebar-nav .sidebar-nav-group-title {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--texto-suave);
+  padding: 0.6rem 1.5rem 0.25rem;
+  text-align: center;
+}
+
+.sidebar-nav a {
+  display: block;
+  padding: 0.55rem 1.25rem;
+  color: var(--texto-suave);
+  text-decoration: none;
+  font-size: 0.95rem;
+  line-height: 1.3;
+  border-left: 3px solid transparent;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.sidebar-nav a i {
+  margin-right: 0.6rem;
+}
+
+.sidebar-nav a:hover,
+.sidebar-nav a:focus-visible {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--texto);
+}
+
+.sidebar-nav a.active {
+  background: var(--sol);
+  border-left-color: var(--sol);
+  color: var(--ink-solid);
+  font-weight: 700;
+}
+
+/* El contenido privado se corre para no quedar debajo del menú. */
+body.con-menu-lateral .kiosco-main {
+  width: auto;
+  max-width: 1280px;
+  margin-left: 260px;
+  margin-right: auto;
+  padding-inline: 1.25rem;
+}
+
+/* El botón hamburguesa solo aparece en pantallas chicas. */
+.sidebar-toggle {
+  display: none;
+}
+
+.sidebar-overlay {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  body.con-menu-lateral .kiosco-main {
+    margin-left: 0;
+    padding-inline: 1rem;
+  }
+
+  .sidebar {
+    top: var(--navbar-alto, 72px);
+    left: -260px;
+    width: 260px;
+    z-index: 1025;
+    transition: left 0.25s ease;
+    box-shadow: 0 0 30px rgba(0, 0, 0, 0.45);
+  }
+
+  .sidebar.open {
+    left: 0;
+  }
+
+  .sidebar-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    left: 1rem;
+    bottom: 1rem;
+    width: 52px;
+    height: 52px;
+    border: none;
+    border-radius: 50%;
+    background: var(--sol);
+    color: var(--ink-solid);
+    font-size: 1.5rem;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    z-index: 1026;
+    cursor: pointer;
+  }
+
+  .sidebar-overlay.open {
+    display: block;
+    position: fixed;
+    inset: var(--navbar-alto, 72px) 0 0 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 1024;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-nav a {
+    transition: none;
+  }
 }
 

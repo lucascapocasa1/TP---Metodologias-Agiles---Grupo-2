@@ -22,7 +22,7 @@
     })();
     </script>
 </head>
-<body hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
+<body class="{% block body_class %}{% endblock %}" hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'>
     {% if user.is_authenticated %}
     <nav class="kiosco-navbar">
         <div class="kiosco-navbar-inner">
@@ -81,6 +81,7 @@
             {% endfor %}
         </div>
         {% endif %}
+        {% block menu_lateral %}{% endblock %}
         {% block contenido %}{% endblock %}
     </main>
 
@@ -126,5 +127,26 @@
     </script>
 
     <script src="https://cdn.jsdelivr.net/npm/htmx.org@1.9.12/dist/htmx.min.js"></script>
+
+    <script>
+    (function() {
+        // Publica el alto real del navbar para que el sidebar fijo y los
+        // anclajes se acomoden sin superponerse.
+        var navbar = document.querySelector('.kiosco-navbar');
+        if (!navbar) return;
+
+        function medirNavbar() {
+            document.documentElement.style.setProperty(
+                '--navbar-alto', navbar.offsetHeight + 'px'
+            );
+        }
+
+        medirNavbar();
+        window.addEventListener('resize', medirNavbar);
+        if (document.fonts && document.fonts.ready) {
+            document.fonts.ready.then(medirNavbar);
+        }
+    })();
+    </script>
 </body>
 </html>

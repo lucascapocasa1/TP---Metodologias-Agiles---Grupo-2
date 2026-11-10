@@ -6,7 +6,9 @@ Comando de datos de demostración para los 3 comercios de Noruega:
 
 Crea categorías, productos, usuarios (admin + cajeros por negocio),
 clientes, ventas con detalle, turnos, pedidos y pagos de cuenta
-corriente para cada negocio, desde el 20/09/2026 hasta hoy.
+corriente para cada negocio, desde el 20/09/2026 hasta hoy. También
+carga proveedores y documentos/facturas realistas (luz, gas, seguridad
+e higiene, proveedores y otros gastos) por negocio.
 
 Uso:
     python manage.py cargar_demo_todos --limpiar   # borra y regenera todo
@@ -25,7 +27,7 @@ from django.db import transaction
 from django.utils import timezone
 
 from clientes.models import Cliente, PagoCuentaCorriente
-from negocios.models import Negocio
+from negocios.models import Documento, Negocio, Proveedor
 from pedidos.models import ItemPedido, Pedido, ReservaStock
 from ventas.models import Categoria, DetalleVenta, Producto, Turno, Venta
 
@@ -195,6 +197,211 @@ CLIENTES_COMPARTIDOS = [
 ]
 
 # ---------------------------------------------------------------------------
+# PROVEEDORES POR NEGOCIO
+# (nombre, teléfono, email)
+# ---------------------------------------------------------------------------
+
+PROVEEDORES_POR_NEGOCIO = {
+    "de-barrio": [
+        ("EDESUR S.A.", "0800-333-3787", "clientes@edesur.com.ar"),
+        ("METROGAS S.A.", "0800-333-6427", "clientes@metrogas.com.ar"),
+        ("Consultora Prevenir S.R.L.", "011-4555-9090", "contacto@prevenir.com.ar"),
+        ("Distribuidora Arcor S.A.", "011-4340-2000", "ventas@arcor.com.ar"),
+        ("Coca-Cola FEMSA Argentina", "0800-333-2653", "atencion@coca-colafemsa.com"),
+        ("Mastellone Hnos. S.A.", "0800-666-8278", "clientes@mastellone.com.ar"),
+        ("Molinos Río de la Plata S.A.", "0800-555-6466", "contacto@molinos.com.ar"),
+        ("Pepsico Alimentos Argentina", "0800-333-7337", "consumidor@pepsico.com"),
+        ("Bagley Argentina S.A.", "0800-333-2245", "atencion@bagley.com.ar"),
+        ("Cervecería y Maltería Quilmes", "0800-222-2783", "clientes@quilmes.com.ar"),
+        ("Estudio Contable Bengochea & Asoc.", "011-4372-8899", "estudio@bengochea.com.ar"),
+        ("Papelera del Sur S.A.", "011-4200-1122", "ventas@papeleradelsur.com.ar"),
+    ],
+    "ferreteria-martillito": [
+        ("EDESUR S.A.", "0800-333-3787", "clientes@edesur.com.ar"),
+        ("METROGAS S.A.", "0800-333-6427", "clientes@metrogas.com.ar"),
+        ("Consultora Prevenir S.R.L.", "011-4555-9090", "contacto@prevenir.com.ar"),
+        ("Truper Argentina S.A.", "0800-777-8877", "ventas@truper.com.ar"),
+        ("Bosch Argentina Industrial S.A.", "0800-888-2674", "industrial@bosch.com.ar"),
+        ("Black & Decker Argentina S.A.", "0800-999-2244", "servicio@blackanddecker.com.ar"),
+        ("Pinturas Alba S.A.", "0800-444-2522", "ventas@pinturasalba.com.ar"),
+        ("Sika Argentina S.A.I.C.", "0800-555-7452", "informes@sika.com.ar"),
+        ("FV Griferías S.A.", "0800-666-3820", "ventas@fv.com.ar"),
+        ("Distribuidora Ferretera del Norte", "011-4762-3311", "pedidos@ferreteradelnorte.com.ar"),
+        ("Estudio Contable Bengochea & Asoc.", "011-4372-8899", "estudio@bengochea.com.ar"),
+        ("Transporte Rápido Sur S.R.L.", "011-4601-7788", "logistica@transportesur.com.ar"),
+    ],
+    "dietetica-natural": [
+        ("EDESUR S.A.", "0800-333-3787", "clientes@edesur.com.ar"),
+        ("METROGAS S.A.", "0800-333-6427", "clientes@metrogas.com.ar"),
+        ("Consultora Prevenir S.R.L.", "011-4555-9090", "contacto@prevenir.com.ar"),
+        ("Distribuidora Nutritiva S.R.L.", "011-4683-2211", "ventas@distrinutritiva.com.ar"),
+        ("Molinos Río de la Plata S.A.", "0800-555-6466", "contacto@molinos.com.ar"),
+        ("Distribuidora Arcor S.A.", "011-4340-2000", "ventas@arcor.com.ar"),
+        ("Verde Campo S.A.", "0800-777-3322", "pedidos@verdecampo.com.ar"),
+        ("Dietética Central Mayorista S.A.", "011-4932-8855", "mayorista@dieteticacentral.com.ar"),
+        ("Georgalos Hnos. S.A.I.C.", "0800-888-4433", "ventas@georgalos.com.ar"),
+        ("Estudio Contable Bengochea & Asoc.", "011-4372-8899", "estudio@bengochea.com.ar"),
+        ("Servicios Digitales del Plata", "0800-999-5511", "soporte@sdplata.com.ar"),
+    ],
+}
+
+# ---------------------------------------------------------------------------
+# DOCUMENTOS / FACTURAS POR NEGOCIO
+# (proveedor, categoría, nro factura, monto, monto pagado, estado,
+#  emisión MM-DD, vencimiento MM-DD, observaciones)
+#
+# Criterio de coherencia:
+#   - pagada   -> monto_pagado == monto
+#   - pendiente -> monto_pagado < monto (puede ser 0 o un pago parcial)
+#   - anulada  -> monto_pagado == 0
+# Los importes siguen valores de mercado de Argentina en 2026 y las fechas
+# cubren facturas vencidas, por vencer y futuras.
+# ---------------------------------------------------------------------------
+
+FACTURAS_POR_NEGOCIO = {
+    "de-barrio": [
+        # Luz
+        ("EDESUR S.A.", "luz", "EDES-2026-09-4821", "68450.00", "68450.00", "pagada", "09-03", "09-23", "Consumo septiembre 2026."),
+        ("EDESUR S.A.", "luz", "EDES-2026-10-5137", "72180.00", "72180.00", "pagada", "10-03", "10-23", "Consumo octubre 2026."),
+        ("EDESUR S.A.", "luz", "EDES-2026-11-5502", "79340.00", "0.00", "pendiente", "11-02", "11-22", "Consumo noviembre 2026. Vence el 22."),
+        # Gas
+        ("METROGAS S.A.", "gas", "MET-2026-09-3318", "42300.00", "42300.00", "pagada", "09-06", "09-26", "Consumo septiembre 2026."),
+        ("METROGAS S.A.", "gas", "MET-2026-10-3490", "38750.00", "25000.00", "pendiente", "10-06", "10-26", "Pago parcial; saldo pendiente."),
+        ("METROGAS S.A.", "gas", "MET-2026-11-3664", "45900.00", "0.00", "pendiente", "11-05", "11-25", "Consumo noviembre 2026."),
+        # Seguridad e higiene
+        ("Consultora Prevenir S.R.L.", "seguridad", "PRV-2026-09", "18500.00", "18500.00", "pagada", "09-10", "09-30", "Asesoramiento y libreta sanitaria."),
+        ("Consultora Prevenir S.R.L.", "seguridad", "PRV-2026-10", "18500.00", "18500.00", "pagada", "10-10", "10-30", "Asesoramiento y libreta sanitaria."),
+        ("Consultora Prevenir S.R.L.", "seguridad", "PRV-2026-11", "19100.00", "0.00", "pendiente", "11-10", "11-15", "Vence en pocos días."),
+        # Arcor
+        ("Distribuidora Arcor S.A.", "proveedor", "ARC-0003-00012745", "154300.50", "154300.50", "pagada", "09-08", "10-08", "Reposición golosinas y chocolates."),
+        ("Distribuidora Arcor S.A.", "proveedor", "ARC-0003-00013891", "168720.00", "168720.00", "pagada", "10-08", "11-07", "Reposición golosinas y chocolates."),
+        ("Distribuidora Arcor S.A.", "proveedor", "ARC-0003-00014902", "142980.75", "0.00", "pendiente", "11-06", "12-06", "Reposición noviembre."),
+        # Coca-Cola FEMSA
+        ("Coca-Cola FEMSA Argentina", "proveedor", "COCA-0002-00008812", "98340.00", "98340.00", "pagada", "09-12", "10-12", "Bebidas surtidas."),
+        ("Coca-Cola FEMSA Argentina", "proveedor", "COCA-0002-00009917", "105760.00", "105760.00", "pagada", "10-12", "11-11", "Bebidas surtidas."),
+        ("Coca-Cola FEMSA Argentina", "proveedor", "COCA-0002-00010443", "112250.00", "0.00", "pendiente", "11-09", "12-09", "Bebidas surtidas noviembre."),
+        # Mastellone
+        ("Mastellone Hnos. S.A.", "proveedor", "MAS-0001-00045623", "87560.00", "87560.00", "pagada", "09-15", "10-15", "Lácteos y yogures."),
+        ("Mastellone Hnos. S.A.", "proveedor", "MAS-0001-00048891", "91240.00", "91240.00", "pagada", "10-15", "11-14", "Lácteos y yogures."),
+        ("Mastellone Hnos. S.A.", "proveedor", "MAS-0001-00051207", "78930.00", "0.00", "pendiente", "11-08", "12-08", "Lácteos y yogures noviembre."),
+        # Molinos
+        ("Molinos Río de la Plata S.A.", "proveedor", "MOL-0001-00077120", "64210.00", "64210.00", "pagada", "09-18", "10-18", "Fideos secos y aceites."),
+        ("Molinos Río de la Plata S.A.", "proveedor", "MOL-0001-00081234", "58990.00", "58990.00", "pagada", "10-18", "11-17", "Fideos secos y aceites."),
+        ("Molinos Río de la Plata S.A.", "proveedor", "MOL-0001-00085672", "61340.00", "30000.00", "pendiente", "11-04", "12-04", "Pago parcial acordado con el proveedor."),
+        # Pepsico
+        ("Pepsico Alimentos Argentina", "proveedor", "PEP-0005-00033110", "47650.00", "47650.00", "pagada", "09-20", "10-20", "Snacks y galletitas."),
+        ("Pepsico Alimentos Argentina", "proveedor", "PEP-0005-00035428", "51280.00", "0.00", "pendiente", "10-20", "11-19", "Snacks y galletitas."),
+        # Bagley
+        ("Bagley Argentina S.A.", "proveedor", "BAG-0001-00022031", "38900.00", "38900.00", "pagada", "09-25", "10-25", "Galletitas surtidas."),
+        ("Bagley Argentina S.A.", "proveedor", "BAG-0001-00024487", "41250.00", "41250.00", "pagada", "10-25", "11-24", "Galletitas surtidas."),
+        # Quilmes
+        ("Cervecería y Maltería Quilmes", "proveedor", "QUI-0004-00055012", "134800.00", "134800.00", "pagada", "09-22", "10-22", "Cervezas y bebidas."),
+        ("Cervecería y Maltería Quilmes", "proveedor", "QUI-0004-00058740", "128450.00", "64225.00", "pendiente", "10-22", "11-21", "Pago del 50%; saldo a 30 días."),
+        ("Cervecería y Maltería Quilmes", "proveedor", "QUI-0004-00061290", "141300.00", "0.00", "pendiente", "11-07", "12-07", "Cervezas y bebidas noviembre."),
+        # Estudio contable
+        ("Estudio Contable Bengochea & Asoc.", "otro", "EC-2026-09", "55000.00", "55000.00", "pagada", "09-01", "09-10", "Honorarios profesionales septiembre."),
+        ("Estudio Contable Bengochea & Asoc.", "otro", "EC-2026-10", "55000.00", "55000.00", "pagada", "10-01", "10-10", "Honorarios profesionales octubre."),
+        ("Estudio Contable Bengochea & Asoc.", "otro", "EC-2026-11", "57000.00", "0.00", "pendiente", "11-01", "11-05", "Honorarios profesionales noviembre. Vencida."),
+        # Papelera
+        ("Papelera del Sur S.A.", "proveedor", "PAP-0002-00011054", "26800.00", "26800.00", "pagada", "09-28", "10-28", "Bolsas y descartables."),
+        ("Papelera del Sur S.A.", "proveedor", "PAP-0002-00012876", "29450.00", "0.00", "pendiente", "10-28", "11-27", "Bolsas y descartables."),
+        ("Papelera del Sur S.A.", "proveedor", "PAP-0002-00009532", "31500.00", "0.00", "anulada", "09-14", "10-14", "Factura duplicada, anulada por el proveedor."),
+    ],
+    "ferreteria-martillito": [
+        # Luz
+        ("EDESUR S.A.", "luz", "EDES-2026-09-8801", "93640.00", "93640.00", "pagada", "09-03", "09-23", "Consumo septiembre 2026 (trifásico)."),
+        ("EDESUR S.A.", "luz", "EDES-2026-10-9142", "101280.00", "101280.00", "pagada", "10-03", "10-23", "Consumo octubre 2026 (trifásico)."),
+        ("EDESUR S.A.", "luz", "EDES-2026-11-9577", "98750.00", "0.00", "pendiente", "11-02", "11-22", "Consumo noviembre 2026."),
+        # Gas
+        ("METROGAS S.A.", "gas", "MET-2026-09-5520", "51800.00", "51800.00", "pagada", "09-06", "09-26", "Consumo septiembre 2026."),
+        ("METROGAS S.A.", "gas", "MET-2026-10-5781", "48900.00", "24000.00", "pendiente", "10-06", "10-26", "Pago parcial; saldo vencido."),
+        ("METROGAS S.A.", "gas", "MET-2026-11-6014", "53600.00", "0.00", "pendiente", "11-05", "11-25", "Consumo noviembre 2026."),
+        # Seguridad e higiene
+        ("Consultora Prevenir S.R.L.", "seguridad", "PRV-MAR-2026-09", "24500.00", "24500.00", "pagada", "09-10", "09-30", "Plan de evacuación y capacitación."),
+        ("Consultora Prevenir S.R.L.", "seguridad", "PRV-MAR-2026-10", "24500.00", "24500.00", "pagada", "10-10", "10-30", "Plan de evacuación y capacitación."),
+        ("Consultora Prevenir S.R.L.", "seguridad", "PRV-MAR-2026-11", "25300.00", "0.00", "pendiente", "11-10", "11-15", "Vence en pocos días."),
+        # Truper
+        ("Truper Argentina S.A.", "proveedor", "TRU-0001-00018420", "342800.00", "342800.00", "pagada", "09-05", "10-05", "Herramientas manuales."),
+        ("Truper Argentina S.A.", "proveedor", "TRU-0001-00020117", "298450.00", "298450.00", "pagada", "09-28", "10-28", "Herramientas manuales."),
+        ("Truper Argentina S.A.", "proveedor", "TRU-0001-00022389", "375620.00", "200000.00", "pendiente", "10-26", "11-25", "Pago parcial; saldo pendiente."),
+        ("Truper Argentina S.A.", "proveedor", "TRU-0001-00024502", "318900.00", "0.00", "pendiente", "11-08", "12-08", "Herramientas manuales noviembre."),
+        # Bosch
+        ("Bosch Argentina Industrial S.A.", "proveedor", "BOS-0002-00008810", "425300.00", "425300.00", "pagada", "09-12", "10-12", "Herramientas eléctricas."),
+        ("Bosch Argentina Industrial S.A.", "proveedor", "BOS-0002-00009534", "389750.00", "389750.00", "pagada", "10-11", "11-10", "Herramientas eléctricas."),
+        ("Bosch Argentina Industrial S.A.", "proveedor", "BOS-0002-00010220", "456800.00", "0.00", "pendiente", "11-07", "12-07", "Herramientas eléctricas noviembre."),
+        # Black & Decker
+        ("Black & Decker Argentina S.A.", "proveedor", "BD-0003-00004127", "215600.00", "215600.00", "pagada", "09-16", "10-16", "Taladros y lijadoras."),
+        ("Black & Decker Argentina S.A.", "proveedor", "BD-0003-00004680", "238900.00", "100000.00", "pendiente", "10-15", "11-14", "Pago parcial acordado."),
+        # Pinturas Alba
+        ("Pinturas Alba S.A.", "proveedor", "ALB-0001-00033108", "187400.00", "187400.00", "pagada", "09-19", "10-19", "Pinturas y solventes."),
+        ("Pinturas Alba S.A.", "proveedor", "ALB-0001-00035871", "165280.00", "165280.00", "pagada", "10-18", "11-17", "Pinturas y solventes."),
+        ("Pinturas Alba S.A.", "proveedor", "ALB-0001-00038224", "172650.00", "0.00", "pendiente", "11-06", "12-06", "Pinturas y solventes noviembre."),
+        # Sika
+        ("Sika Argentina S.A.I.C.", "proveedor", "SIK-0004-00012093", "143500.00", "143500.00", "pagada", "09-23", "10-23", "Adhesivos y selladores."),
+        ("Sika Argentina S.A.I.C.", "proveedor", "SIK-0004-00013877", "156800.00", "156800.00", "pagada", "10-22", "11-21", "Adhesivos y selladores."),
+        # FV
+        ("FV Griferías S.A.", "proveedor", "FV-0002-00007210", "96800.00", "96800.00", "pagada", "09-26", "10-26", "Griferías y accesorios."),
+        ("FV Griferías S.A.", "proveedor", "FV-0002-00008455", "104250.00", "0.00", "pendiente", "10-25", "11-24", "Griferías y accesorios."),
+        # Distribuidora Ferretera del Norte
+        ("Distribuidora Ferretera del Norte", "proveedor", "DFN-0001-00021007", "264800.00", "264800.00", "pagada", "09-09", "10-09", "Tornillería y fijaciones."),
+        ("Distribuidora Ferretera del Norte", "proveedor", "DFN-0001-00023112", "287300.00", "287300.00", "pagada", "10-09", "11-08", "Tornillería y fijaciones."),
+        ("Distribuidora Ferretera del Norte", "proveedor", "DFN-0001-00025443", "302150.00", "0.00", "pendiente", "11-05", "12-05", "Tornillería y fijaciones noviembre."),
+        # Estudio contable
+        ("Estudio Contable Bengochea & Asoc.", "otro", "EC-MAR-2026-09", "68000.00", "68000.00", "pagada", "09-01", "09-10", "Honorarios profesionales septiembre."),
+        ("Estudio Contable Bengochea & Asoc.", "otro", "EC-MAR-2026-10", "68000.00", "68000.00", "pagada", "10-01", "10-10", "Honorarios profesionales octubre."),
+        ("Estudio Contable Bengochea & Asoc.", "otro", "EC-MAR-2026-11", "70500.00", "0.00", "pendiente", "11-01", "11-05", "Honorarios profesionales noviembre. Vencida."),
+        # Transporte
+        ("Transporte Rápido Sur S.R.L.", "otro", "TRS-0002-00006541", "42800.00", "42800.00", "pagada", "09-30", "10-30", "Fletes de mercadería."),
+        ("Transporte Rápido Sur S.R.L.", "otro", "TRS-0002-00007108", "46500.00", "0.00", "pendiente", "10-30", "11-29", "Fletes de mercadería."),
+        ("Transporte Rápido Sur S.R.L.", "otro", "TRS-0002-00005210", "38200.00", "0.00", "anulada", "09-08", "10-08", "Nota de crédito: flete cancelado."),
+    ],
+    "dietetica-natural": [
+        # Luz
+        ("EDESUR S.A.", "luz", "EDES-2026-09-6671", "42800.00", "42800.00", "pagada", "09-03", "09-23", "Consumo septiembre 2026."),
+        ("EDESUR S.A.", "luz", "EDES-2026-10-6934", "45120.00", "45120.00", "pagada", "10-03", "10-23", "Consumo octubre 2026."),
+        ("EDESUR S.A.", "luz", "EDES-2026-11-7215", "47980.00", "0.00", "pendiente", "11-02", "11-22", "Consumo noviembre 2026."),
+        # Gas
+        ("METROGAS S.A.", "gas", "MET-2026-09-4471", "31200.00", "31200.00", "pagada", "09-06", "09-26", "Consumo septiembre 2026."),
+        ("METROGAS S.A.", "gas", "MET-2026-10-4688", "29450.00", "15000.00", "pendiente", "10-06", "10-26", "Pago parcial; saldo vencido."),
+        ("METROGAS S.A.", "gas", "MET-2026-11-4902", "33800.00", "0.00", "pendiente", "11-05", "11-25", "Consumo noviembre 2026."),
+        # Seguridad e higiene
+        ("Consultora Prevenir S.R.L.", "seguridad", "PRV-NAT-2026-09", "15200.00", "15200.00", "pagada", "09-10", "09-30", "Asesoramiento bromatológico."),
+        ("Consultora Prevenir S.R.L.", "seguridad", "PRV-NAT-2026-10", "15200.00", "15200.00", "pagada", "10-10", "10-30", "Asesoramiento bromatológico."),
+        ("Consultora Prevenir S.R.L.", "seguridad", "PRV-NAT-2026-11", "15900.00", "0.00", "pendiente", "11-10", "11-15", "Vence en pocos días."),
+        # Distribuidora Nutritiva
+        ("Distribuidora Nutritiva S.R.L.", "proveedor", "NUT-0001-00011204", "98500.00", "98500.00", "pagada", "09-07", "10-07", "Semillas y frutos secos."),
+        ("Distribuidora Nutritiva S.R.L.", "proveedor", "NUT-0001-00012871", "112300.00", "112300.00", "pagada", "10-07", "11-06", "Semillas y frutos secos."),
+        ("Distribuidora Nutritiva S.R.L.", "proveedor", "NUT-0001-00014088", "104750.00", "50000.00", "pendiente", "11-03", "12-03", "Pago parcial acordado."),
+        # Molinos
+        ("Molinos Río de la Plata S.A.", "proveedor", "MOL-0001-00088210", "76200.00", "76200.00", "pagada", "09-14", "10-14", "Harinas y aceites."),
+        ("Molinos Río de la Plata S.A.", "proveedor", "MOL-0001-00091447", "81450.00", "81450.00", "pagada", "10-13", "11-12", "Harinas y aceites."),
+        ("Molinos Río de la Plata S.A.", "proveedor", "MOL-0001-00094502", "79300.00", "0.00", "pendiente", "11-05", "12-05", "Harinas y aceites noviembre."),
+        # Arcor
+        ("Distribuidora Arcor S.A.", "proveedor", "ARC-0003-00016510", "68900.00", "68900.00", "pagada", "09-18", "10-18", "Mermeladas y endulzantes."),
+        ("Distribuidora Arcor S.A.", "proveedor", "ARC-0003-00017822", "72450.00", "30000.00", "pendiente", "10-17", "11-16", "Pago parcial acordado."),
+        # Verde Campo
+        ("Verde Campo S.A.", "proveedor", "VC-0002-00009120", "118400.00", "118400.00", "pagada", "09-21", "10-21", "Lácteos y bebidas vegetales."),
+        ("Verde Campo S.A.", "proveedor", "VC-0002-00010355", "125780.00", "125780.00", "pagada", "10-20", "11-19", "Lácteos y bebidas vegetales."),
+        ("Verde Campo S.A.", "proveedor", "VC-0002-00011508", "121300.00", "0.00", "pendiente", "11-07", "12-07", "Lácteos y bebidas vegetales noviembre."),
+        # Dietética Central
+        ("Dietética Central Mayorista S.A.", "proveedor", "DCM-0001-00044310", "87600.00", "87600.00", "pagada", "09-24", "10-24", "Granos y cereales a granel."),
+        ("Dietética Central Mayorista S.A.", "proveedor", "DCM-0001-00046128", "92350.00", "92350.00", "pagada", "10-23", "11-22", "Granos y cereales a granel."),
+        # Georgalos
+        ("Georgalos Hnos. S.A.I.C.", "proveedor", "GEO-0004-00022119", "45600.00", "45600.00", "pagada", "09-27", "10-27", "Alfajores y snacks sin TACC."),
+        ("Georgalos Hnos. S.A.I.C.", "proveedor", "GEO-0004-00023876", "48900.00", "0.00", "pendiente", "10-26", "11-25", "Alfajores y snacks sin TACC."),
+        # Estudio contable
+        ("Estudio Contable Bengochea & Asoc.", "otro", "EC-NAT-2026-09", "48000.00", "48000.00", "pagada", "09-01", "09-10", "Honorarios profesionales septiembre."),
+        ("Estudio Contable Bengochea & Asoc.", "otro", "EC-NAT-2026-10", "48000.00", "48000.00", "pagada", "10-01", "10-10", "Honorarios profesionales octubre."),
+        ("Estudio Contable Bengochea & Asoc.", "otro", "EC-NAT-2026-11", "49500.00", "0.00", "pendiente", "11-01", "11-05", "Honorarios profesionales noviembre. Vencida."),
+        # Servicios digitales
+        ("Servicios Digitales del Plata", "otro", "SDP-2026-09", "18500.00", "18500.00", "pagada", "09-01", "09-15", "Internet y telefonía."),
+        ("Servicios Digitales del Plata", "otro", "SDP-2026-10", "18500.00", "18500.00", "pagada", "10-01", "10-15", "Internet y telefonía."),
+        ("Servicios Digitales del Plata", "otro", "SDP-2026-11", "19200.00", "0.00", "pendiente", "11-01", "11-15", "Internet y telefonía."),
+        ("Servicios Digitales del Plata", "otro", "SDP-2026-08", "17900.00", "0.00", "anulada", "09-01", "09-15", "Factura duplicada del período agosto."),
+    ],
+}
+
+# ---------------------------------------------------------------------------
 # MÉTODOS DE PAGO Y PROBABILIDADES
 # ---------------------------------------------------------------------------
 
@@ -225,6 +432,27 @@ def hora_aleatoria():
 def monto_aleatorio(minimo=500, maximo=15000):
     """Monto redondeado a enteros realistas."""
     return Decimal(str(random.randint(minimo, maximo)))
+
+
+def fecha_documento(md):
+    """Convierte un 'MM-DD' del catálogo de facturas a date de 2026."""
+    mes, dia = (int(parte) for parte in md.split("-"))
+    return date(2026, mes, dia)
+
+
+def ids_sin_movimiento(negocio):
+    """
+    IDs de productos que la demo deja sin ventas ni pedidos.
+
+    Se elige uno de cada diez (ordenados por id) para que el reporte de
+    "productos sin movimiento" tenga datos reales en los 3 negocios.
+    """
+    ids = list(
+        Producto.objects.filter(negocio=negocio, activo=True)
+        .order_by("pk")
+        .values_list("pk", flat=True)
+    )
+    return set(ids[::10])
 
 
 class Command(BaseCommand):
@@ -379,6 +607,8 @@ class Command(BaseCommand):
                 ReservaStock.objects.filter(fecha_reserva__gte=FECHA_INICIO).delete()
                 PagoCuentaCorriente.objects.filter(negocio=negocio, fecha__gte=FECHA_INICIO).delete()
                 Turno.objects.filter(negocio=negocio, fecha_apertura__gte=FECHA_INICIO).delete()
+                Documento.objects.filter(negocio=negocio).delete()
+                Proveedor.objects.filter(negocio=negocio).delete()
                 self.stdout.write(self.style.WARNING(f"Datos anteriores de {negocio.nombre} borrados."))
 
         # 8. Generar ventas por negocio
@@ -387,6 +617,10 @@ class Command(BaseCommand):
 
         for slug, negocio in negocios.items():
             productos = list(Producto.objects.filter(negocio=negocio, activo=True))
+            # Dejar algunos productos sin ventas para el reporte de
+            # "productos sin movimiento".
+            sin_movimiento = ids_sin_movimiento(negocio)
+            productos = [p for p in productos if p.pk not in sin_movimiento]
             if not productos:
                 self.stdout.write(self.style.WARNING(f"No hay productos para {negocio.nombre}, saltando ventas."))
                 continue
@@ -531,6 +765,9 @@ class Command(BaseCommand):
         # 10. Crear pedidos para cada negocio (algunos pendientes, algunos entregados)
         for slug, negocio in negocios.items():
             productos = list(Producto.objects.filter(negocio=negocio, activo=True))
+            # Los mismos productos sin movimiento tampoco participan de pedidos.
+            sin_movimiento = ids_sin_movimiento(negocio)
+            productos = [p for p in productos if p.pk not in sin_movimiento]
             if not productos:
                 continue
 
@@ -611,6 +848,107 @@ class Command(BaseCommand):
                         )
 
             self.stdout.write(self.style.SUCCESS(f"{negocio.nombre}: 30 pedidos generados."))
+
+        # 10.5 Reponer stock realista para los 3 negocios.
+        # Las ventas de la demo descuentan stock y podían dejarlo en 0;
+        # acá se define un stock final sano, con algunos productos bajos
+        # (para el KPI de stock bajo) y otros sin movimiento con stock.
+        for slug, negocio in negocios.items():
+            productos = list(
+                Producto.objects.filter(negocio=negocio, activo=True).order_by("pk")
+            )
+            if not productos:
+                continue
+
+            sin_movimiento = ids_sin_movimiento(negocio)
+            bajos = 0
+            for indice, producto in enumerate(productos):
+                stock_minimo = producto.stock_minimo or 5
+                if producto.pk in sin_movimiento:
+                    # Sin movimiento pero con stock disponible.
+                    stock = random.randint(stock_minimo + 5, stock_minimo + 30)
+                elif indice % 9 == 1:
+                    # Pocos productos con stock bajo (alerta HU-06).
+                    stock = random.randint(1, max(1, stock_minimo))
+                    bajos += 1
+                else:
+                    # Stock saludable.
+                    stock = random.randint(stock_minimo + 8, stock_minimo + 60)
+
+                Producto.objects.filter(pk=producto.pk).update(stock=stock)
+
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"{negocio.nombre}: stock repuesto en {len(productos)} productos "
+                    f"({bajos} con stock bajo, {len(sin_movimiento)} sin movimiento)."
+                )
+            )
+
+        # 11. Crear proveedores y documentos (facturas) por negocio
+        for slug, negocio in negocios.items():
+            proveedores = {}
+            for nombre, telefono, email in PROVEEDORES_POR_NEGOCIO[slug]:
+                proveedor, _ = Proveedor.objects.update_or_create(
+                    negocio=negocio,
+                    nombre=nombre,
+                    defaults={
+                        "telefono": telefono,
+                        "email": email,
+                        "activo": True,
+                    },
+                )
+                proveedores[nombre] = proveedor
+
+            facturas = FACTURAS_POR_NEGOCIO[slug]
+            for (
+                nombre_prov,
+                categoria,
+                numero,
+                monto,
+                monto_pagado,
+                estado,
+                emision_md,
+                vencimiento_md,
+                observaciones,
+            ) in facturas:
+                Documento.objects.update_or_create(
+                    negocio=negocio,
+                    numero_factura=numero,
+                    defaults={
+                        "proveedor": proveedores.get(nombre_prov),
+                        "nombre_proveedor": nombre_prov,
+                        "categoria": categoria,
+                        "monto": Decimal(monto),
+                        "monto_pagado": Decimal(monto_pagado),
+                        "fecha_emision": fecha_documento(emision_md),
+                        "fecha_vencimiento": fecha_documento(vencimiento_md),
+                        "estado": estado,
+                        "observaciones": observaciones,
+                    },
+                )
+
+            deuda = sum(
+                Decimal(monto) - Decimal(monto_pagado)
+                for (
+                    _,
+                    _,
+                    _,
+                    monto,
+                    monto_pagado,
+                    estado,
+                    _,
+                    _,
+                    _,
+                ) in facturas
+                if estado == "pendiente"
+            )
+            self.stdout.write(
+                self.style.SUCCESS(
+                    f"{negocio.nombre}: {len(proveedores)} proveedores y "
+                    f"{len(facturas)} documentos creados. "
+                    f"Deuda pendiente: ${deuda:,.2f}"
+                )
+            )
 
         self.stdout.write(self.style.SUCCESS("=== Poblado completo ==="))
         self.stdout.write("")

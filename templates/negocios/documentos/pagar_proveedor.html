@@ -1,0 +1,92 @@
+{% extends "base_admin.html" %}
+{% load formatos %}
+{% block titulo %}Pagar a {{ proveedor.nombre }}{% endblock %}
+{% block contenido %}
+<div class="admin-panel">
+    <div class="admin-header">
+        <div class="admin-header-left">
+            <h1><i class="bi bi-cash-stack"></i> Pagar a {{ proveedor.nombre }}</h1>
+            <p class="admin-subtitle">
+                El pago se aplica primero a las facturas más antiguas
+                (FIFO) y se reparte automáticamente.
+            </p>
+        </div>
+        <div class="admin-header-right">
+            <a href="{% url 'negocios:lista_proveedores' %}?proveedor={{ proveedor.pk }}" class="btn btn-kiosco-outline btn-ancho">
+                <i class="bi bi-arrow-left" aria-hidden="true"></i> Volver a proveedores
+            </a>
+        </div>
+    </div>
+
+    <div class="admin-card">
+        <div class="stats-grid">
+            <div class="stat-card stat-warning">
+                <div class="stat-icon"><i class="bi bi-receipt"></i></div>
+                <div class="stat-content">
+                    <h3>${{ saldo_total|montos }}</h3>
+                    <p>Deuda total con el proveedor</p>
+                </div>
+            </div>
+            <div class="stat-card stat-active">
+                <div class="stat-icon"><i class="bi bi-file-earmark-text"></i></div>
+                <div class="stat-content">
+                    <h3>{{ facturas|length }}</h3>
+                    <p>Factura(s) pendiente(s)</p>
+                </div>
+            </div>
+        </div>
+
+        {% if facturas %}
+        <div class="admin-table-container mb-3">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Factura</th>
+                        <th>Emisión</th>
+                        <th>Monto</th>
+                        <th>Pagado</th>
+                        <th>Pendiente</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for factura in facturas %}
+                    <tr>
+                        <td><strong>{{ factura.numero_factura|default:"—" }}</strong></td>
+                        <td>{{ factura.fecha_emision|date:"d/m/Y" }}</td>
+                        <td>${{ factura.monto|montos }}</td>
+                        <td>${{ factura.monto_pagado|montos }}</td>
+                        <td><span class="badge-deuda">${{ factura.monto_pendiente|montos }}</span></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <form method="post" class="admin-form">
+            {% csrf_token %}
+            <div class="form-row">
+                <label class="kiosco-label" for="monto">Monto a pagar <span class="obligatorio" aria-hidden="true">*</span></label>
+                <input type="number" name="monto" id="monto" step="0.01" min="0.01" max="{{ saldo_total }}" class="kiosco-input" placeholder="0,00" required>
+                <div class="texto-suave">
+                    Se descuenta de la deuda total (${{ saldo_total|montos }}),
+                    empezando por la factura más antigua.
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn btn-kiosco btn-ancho">
+                    <i class="bi bi-cash-coin" aria-hidden="true"></i> Registrar pago
+                </button>
+                <a href="{% url 'negocios:lista_proveedores' %}?proveedor={{ proveedor.pk }}" class="btn btn-link-suave">Cancelar</a>
+            </div>
+        </form>
+        {% else %}
+        <div class="admin-empty">
+            <div class="empty-icon"><i class="bi bi-check2-circle"></i></div>
+            <h3>Sin deuda pendiente</h3>
+            <p>{{ proveedor.nombre }} no tiene facturas pendientes de pago.</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
