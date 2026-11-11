@@ -8,7 +8,7 @@
 | Fecha | 05/11/2026 |
 | Versión del código documentado | `main` @ `ef1dd93` (incluye fix: `init_point` también con cuentas de prueba) |
 | Proyecto | Sistema Kiosco (Norvex) — TP Metodologías Ágiles (UNAB) |
-| Estado del producto | **Sprint 1 ✅ · Sprint 2 ✅ · Sprint 3 ✅ · Sprint 4 ✅ · HU-13 ✅ (catálogo público + WhatsApp con cobro de la entrega) · HU-14 ✅ (cuenta corriente "FIAR") · HU-15 ✅ (cobro QR Mercado Pago) · HU-16 ✅ (pantalla del cliente) · recuperación de contraseña ✅ (Resend) · publicación en Render ✅ · 379 tests en verde** |
+| Estado del producto | **Sprint 1 ✅ · Sprint 2 ✅ · Sprint 3 ✅ · Sprint 4 ✅ · HU-13 ✅ (catálogo público + WhatsApp con cobro de la entrega) · HU-14 ✅ (cuenta corriente "FIAR") · HU-15 ✅ (cobro QR Mercado Pago) · HU-16 ✅ (pantalla del cliente) · recuperación de contraseña ✅ (Resend) · publicación en Render ✅ · 472 tests en verde** |
 | Documento relacionado | [ARD — Arquitectura y requerimientos técnicos](ARD.md) |
 
 > Historial: v1.0 cubre Sprints 1 y 2 en curso. v2.0-v2.6 agregan progresivamente el Sprint 2 (catálogo + HTMX), el Sprint 3 (caja), la fidelidad (HU-12), el cierre de turno (HU-10), el catálogo público + WhatsApp (HU-13), la cuenta corriente "FIAR" (HU-14) y el cierre del flujo con **entregar es cobrar**. v2.7 suma los extras: cobro QR (HU-15), pantalla del cliente (HU-16), OAuth "Conectar con Mercado Pago", recuperación de contraseña con Resend y publicación en Render, con demo idempotente. v2.8 suma el fix `ef1dd93` (siempre `init_point` en el QR, incluso con cuentas de prueba) y la documentación de cuentas sandbox para facultad.

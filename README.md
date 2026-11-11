@@ -4,7 +4,7 @@
 
 Trabajo práctico de Metodologías Ágiles. **Norvex** (antes "Sistema Kiosco") es una plataforma web de gestión y cobro para comercios: caja, stock, clientes, pedidos de WhatsApp, cuenta corriente "FIAR" y cobro con QR de Mercado Pago. Ahora es una plataforma **multiempresa (multitenant)**: varios comercios pueden usar la misma instalación, cada uno con sus propios productos, clientes, ventas y tienda online, sin que los datos se mezclen.
 
-**Estado:** Sprint 1-4 completos · Consignas de la cátedra completas (HU-13 y HU-14) · Extras: cobro QR (HU-15/16), botón "Conectar con Mercado Pago", recuperación de contraseña con Resend, publicación en Render, arquitectura multiempresa, catálogo público por negocio, panel de superadmin, exportación de stock a Excel, arqueo de caja con conteo físico, productos sin movimiento, módulos separados de **Facturas** y **Proveedores** (con deuda por proveedor y pago FIFO), layout de gestión con sidebar compartido y **dashboard analítico con selector de período** · **464 tests** en verde.
+**Estado:** Sprint 1-4 completos · Consignas de la cátedra completas (HU-13 y HU-14) · Extras: cobro QR (HU-15/16), botón "Conectar con Mercado Pago", recuperación de contraseña con Resend, publicación en Render, arquitectura multiempresa, catálogo público por negocio, panel de superadmin, exportación de stock a Excel, arqueo de caja con conteo físico, productos sin movimiento, módulos separados de **Facturas** y **Proveedores** (con deuda por proveedor y pago FIFO), layout de gestión con sidebar compartido y **dashboard analítico con selector de período** · **472 tests** en verde.
 
 Publicado en: `https://norvex.onrender.com/`
 
@@ -16,9 +16,8 @@ Publicado en: `https://norvex.onrender.com/`
 |---|---|
 | [docs/PRD.md](docs/PRD.md) | Requerimientos de producto (RF-01…RF-115), historias de usuario y criterios de aceptación. |
 | [docs/ARD.md](docs/ARD.md) | Arquitectura técnica, modelo de datos, endpoints, autorización y ADRs. |
+| [docs/MANUAL_USUARIO.md](docs/MANUAL_USUARIO.md) | Guía rápida de uso: cómo vender, cerrar turno, gestionar facturas y proveedores. |
 | [AGENTS.md](AGENTS.md) | Instrucciones para el agente de IA: estructura, modelos, arquitectura multiempresa, URLs, usuarios de prueba y convenciones. |
-| [cambios-antes-de-entrega-final.md](cambios-antes-de-entrega-final.md) | Contrato de diseño de la evolución multiempresa. |
-| [plan-implementacion-etapas.md](plan-implementacion-etapas.md) | Plan de implementación por etapas de las nuevas funcionalidades. |
 
 ---
 
@@ -302,8 +301,7 @@ kiosco_sprint1/
   - **Próximos vencimientos**: ventana fija de 7 días, con monto pendiente y link al módulo de Facturas o Proveedores según la categoría.
 - La lógica vive en `administracion/reportes.py` (`resolver_periodo_dashboard`, `analitica_dashboard` y las funciones por métrica) y se testea en `administracion/tests_dashboard_analitica.py`.
 - Se mantiene la separación previa de documentos en dos ítems del menú lateral: **Facturas** (`/negocios/documentos/facturas/`, servicios y gastos) y **Proveedores** (`/negocios/documentos/proveedores/`, mercadería, deuda por proveedor y pago FIFO).
-- `python manage.py test --keepdb` → **464 tests OK**. Verificado con Playwright: selector de período, tarjetas, gráfico (tooltip propio con unidades del día), paneles, links, tema oscuro, vista móvil y consola sin errores.
-- **Los cambios están en el working tree: sin commit y sin push.** No se subió nada a GitHub.
+- `python manage.py test --keepdb` → **472 tests OK**. Verificado con Playwright: selector de período, tarjetas, gráfico (tooltip propio con unidades del día), paneles, links, tema oscuro, vista móvil y consola sin errores.
 
 **Para retomar:**
 

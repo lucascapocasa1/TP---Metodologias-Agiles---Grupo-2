@@ -6,7 +6,7 @@
 |---|---|
 | Documento | ARD v2.8 |
 | Fecha | 05/11/2026 |
-| Versión del código documentado | `main` @ `ef1dd93` (fix: `init_point` también con cuentas de prueba) · 379 tests OK |
+| Versión del código documentado | `main` @ `HEAD` · 472 tests OK |
 | Documento relacionado | [PRD — Documento de Requerimientos de Producto](PRD.md) |
 
 > El PRD define el **qué**; este documento define el **cómo**: stack,
