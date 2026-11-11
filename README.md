@@ -284,62 +284,6 @@ kiosco_sprint1/
 | Facturación electrónica (AFIP/ARCA) | Generar factura electrónica con CAE y código QR. |
 | Notificaciones automáticas | Email o WhatsApp al cliente cuando el pedido está listo. |
 | Dashboard comparativo entre negocios | Para el superadmin, comparar ventas entre comercios. |
-
----
-
-## Dónde quedamos (para retomar mañana)
-
-**Última sesión — 10/11/2026**
-
-- Se amplió el **dashboard** (`/administracion/dashboard/`) con seis mejoras de analítica, todas en la misma pantalla:
-  - **Selector de período compartido**: últimos 7 / 30 / 90 días o rango personalizado (por defecto 30). Las fechas solo se muestran cuando se elige "Personalizado" y el período elegido manda sobre las fechas ocultas del formulario.
-  - **Ventas del período**: total, ganancia, ticket promedio, unidades y variación % contra el período anterior, con gráfico de barras (diario hasta 31 días; agrupado por semana ISO en rangos más largos).
-  - **Clientes FIAR**: cantidad, deuda total, al límite y top 5 por saldo. Como `Cliente` es compartido, solo se cuentan los que tienen ventas en el negocio actual.
-  - **Pedidos sin entregar**: conteo, monto potencial y aviso de los que llevan más de 48 h (la reserva de stock vence a las 48 h).
-  - **Rotación de stock**: top 5 más vendidos del período y top 5 sin ventas en el mismo rango.
-  - **Ingresos por medio de pago**: barras CSS de efectivo / tarjeta / Mercado Pago; el fiado se informa aparte porque no es plata que entró a la caja.
-  - **Próximos vencimientos**: ventana fija de 7 días, con monto pendiente y link al módulo de Facturas o Proveedores según la categoría.
-- La lógica vive en `administracion/reportes.py` (`resolver_periodo_dashboard`, `analitica_dashboard` y las funciones por métrica) y se testea en `administracion/tests_dashboard_analitica.py`.
-- Se mantiene la separación previa de documentos en dos ítems del menú lateral: **Facturas** (`/negocios/documentos/facturas/`, servicios y gastos) y **Proveedores** (`/negocios/documentos/proveedores/`, mercadería, deuda por proveedor y pago FIFO).
-- `python manage.py test --keepdb` → **472 tests OK**. Verificado con Playwright: selector de período, tarjetas, gráfico (tooltip propio con unidades del día), paneles, links, tema oscuro, vista móvil y consola sin errores.
-
-**Para retomar:**
-
-```powershell
-.\venv\Scripts\Activate.ps1
-python manage.py runserver 8000
-python manage.py test --keepdb
-```
-
-Entrar con `admin_barrio` / `kiosco2024` y revisar `/administracion/dashboard/` con los períodos 7, 30, 90 y personalizado.
-
----
-
-## Ideas para seguir agregando
-
-### KPIs y tarjetas para el dashboard
-
-Prioridad sugerida: **Alta** = operación diaria; **Media** = relación con el cliente; **Baja** = analítica.
-
-| # | Idea | Qué mostraría | Prioridad |
-|---|---|---|---|
-| 1 | ~~**Ventas del período**~~ | ✅ Hecho: monto, variación vs. período anterior y gráfico con selector de fechas. | Alta |
-| 2 | **Stock crítico (0 unidades)** | Cantidad de productos con `stock = 0`, en rojo, con link directo al reporte de stock. | Alta |
-| 3 | **Stock actual vs mínimo** | Total de productos con stock > 0 y cuántos están en o por debajo del mínimo (hoy ya existe "Stock bajo", se puede ampliar el detalle). | Alta |
-| 4 | ~~**Clientes FIAR**~~ | ✅ Hecho: cantidad, deuda total, al límite y top 5 por saldo. | Media |
-| 5 | ~~**Pedidos públicos pendientes**~~ | ✅ Hecho: conteo, monto potencial y aviso de pedidos con más de 48 h. | Media |
-| 6 | **Rentabilidad bruta estimada** | Si todos los productos tienen costo y precio: inversión a costo, ganancia potencial si se vende todo y margen % promedio. | Media |
-| 7 | ~~**Rotación de stock**~~ | ✅ Hecho: top 5 más vendidos y top 5 sin ventas en el período. | Baja |
-| 8 | **Estado de turnos** | Turnos abiertos sin cerrar y diferencia de caja del último arqueo (sobrante/faltante). | Baja |
-| 9 | ~~**Ingresos por método de pago**~~ | ✅ Hecho: efectivo / tarjeta / Mercado Pago con total, cantidad y porcentaje; el fiado va aparte. | Baja |
-| 10 | ~~**Próximos vencimientos**~~ | ✅ Hecho: documentos pendientes en los próximos 7 días con monto y link al módulo. | Media |
-
-### Otras mejoras posibles
-
-- **Dashboard por rol:** que el Cajero vea solo su caja y sus ventas del día, no los KPIs de deuda.
-- **Dashboard comparativo para superadmin:** ranking de negocios por ventas, deuda y stock.
-- **Exportar el dashboard:** botón para descargar los KPIs del mes a Excel/PDF.
-- **Alertas configurables:** definir desde la UI los días de anticipación de vencimientos y el umbral de stock bajo por negocio.
-- **Historial de deuda por proveedor:** gráfico de evolución de la deuda y de los pagos FIFO.
-- **Recordatorio de pago:** marcar facturas próximas a vencer y enviar aviso por email.
-- **Tests de la parte visual:** ampliar Playwright a los flujos de alta/edición de facturas y proveedores.
+| Recordatorio automático de vencimiento | Avisar al admin 3 días antes de que venza una factura (email o WhatsApp). |
+| Gastos generales por categoría | App separada de proveedores: sueldos, alquiler, internet, centros de costo. |
+| Histórico de deuda por proveedor | Gráfico de evolución de la deuda y de los pagos FIFO por proveedor. |
