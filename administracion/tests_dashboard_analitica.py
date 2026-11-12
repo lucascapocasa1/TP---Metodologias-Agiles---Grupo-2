@@ -394,3 +394,28 @@ class ResolverPeriodoDashboardTests(TestCase):
         )
         self.assertEqual(periodo, "personalizado")
         self.assertEqual(dias, 3)
+
+
+class ProductosSinMovimientoPrecioTests(BaseDashboardAnalitica):
+    """El 'Aplicar' de precio nuevo daba 500 (filtro de template dentro de un f-string)."""
+
+    def test_aplicar_precio_nuevo(self):
+        url = reverse("administracion:productos_sin_movimiento")
+        resp = self.client.post(
+            url, {"accion": "descuento", "producto_id": self.agua.pk, "nuevo_precio": "39,50"}, follow=True
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.agua.refresh_from_db()
+        self.assertEqual(self.agua.precio, Decimal("39.50"))
+
+    def test_descuento_rapido_y_entradas_invalidas(self):
+        url = reverse("administracion:productos_sin_movimiento")
+        resp = self.client.get(url, {"accion": "desc", "prod": self.gaseosa.pk, "pct": "10"}, follow=True)
+        self.assertEqual(resp.status_code, 200)
+        self.gaseosa.refresh_from_db()
+        self.assertEqual(self.gaseosa.precio, Decimal("90.00"))
+        resp = self.client.post(
+            url, {"accion": "descuento", "producto_id": self.agua.pk, "nuevo_precio": "abc"}, follow=True
+        )
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(self.client.get(url, {"dias": "x"}).status_code, 200)

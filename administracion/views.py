@@ -1,5 +1,5 @@
 from datetime import datetime
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 from django.contrib import messages
 from django.contrib.auth.models import Group, User
@@ -18,6 +18,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 
 from auditoria.utils import registrar_accion
 from usuarios.decorators import rol_requerido
+from usuarios.templatetags.formatos import montos
 from ventas.models import DetalleVenta, Producto
 from negocios.models import Negocio, Documento
 
@@ -266,7 +267,10 @@ def productos_sin_movimiento(request):
     (default 30). Permite editar el precio directamente o dar de baja.
     """
     negocio = request.negocio
-    dias = int(request.GET.get("dias", 30))
+    try:
+        dias = max(1, int(request.GET.get("dias", 30)))
+    except ValueError:
+        dias = 30
 
     # Descuento rápido desde enlaces: ?accion=desc&prod=<id>&pct=<porcentaje>
     accion_get = request.GET.get("accion", "")
@@ -279,7 +283,7 @@ def productos_sin_movimiento(request):
             porcentaje = Decimal(pct_get)
             if porcentaje < 0 or porcentaje > 100:
                 raise ValueError("Porcentaje fuera de rango.")
-            nuevo_precio = producto.precio * (1 - porcentaje / 100)
+            nuevo_precio = (producto.precio * (1 - porcentaje / 100)).quantize(Decimal("0.01"))
             producto.precio = nuevo_precio
             producto.save(update_fields=["precio"])
             registrar_accion(
@@ -290,9 +294,9 @@ def productos_sin_movimiento(request):
             )
             messages.success(
                 request,
-                f"Precio de '{producto.nombre}' reducido un {porcentaje}% a ${nuevo_precio|montos}.",
+                f"Precio de '{producto.nombre}' reducido un {porcentaje}% a ${montos(nuevo_precio)}.",
             )
-        except (Producto.DoesNotExist, ValueError, TypeError):
+        except (Producto.DoesNotExist, ValueError, TypeError, InvalidOperation):
             messages.error(request, "No se pudo aplicar el descuento.")
         return redirect("administracion:productos_sin_movimiento")
 
@@ -324,10 +328,10 @@ def productos_sin_movimiento(request):
 
         elif accion == "descuento":
             try:
-                nuevo_precio = Decimal(request.POST.get("nuevo_precio", "0"))
+                nuevo_precio = Decimal(request.POST.get("nuevo_precio", "0").replace(",", ".")).quantize(Decimal("0.01"))
                 if nuevo_precio < 0:
                     raise ValueError("El precio no puede ser negativo.")
-            except (ValueError, TypeError):
+            except (ValueError, TypeError, InvalidOperation):
                 messages.error(request, "Ingresá un precio válido.")
                 return redirect("administracion:productos_sin_movimiento")
 
@@ -343,7 +347,7 @@ def productos_sin_movimiento(request):
             )
             messages.success(
                 request,
-                f"Precio de '{producto.nombre}' actualizado a ${nuevo_precio|montos}.",
+                f"Precio de '{producto.nombre}' actualizado a ${montos(nuevo_precio)}.",
             )
             return redirect("administracion:productos_sin_movimiento")
 
