@@ -1042,3 +1042,41 @@ class BackfillNegociosTests(TestCase):
         self.assertEqual(
             Pedido.objects.filter(negocio=self.negocio_barrio).count(), 1
         )
+
+class AdjuntosEnBaseTests(TestCase):
+    """Los adjuntos se guardan en la base y se ven solo desde su negocio."""
+
+    def setUp(self):
+        from django.core.files.uploadedfile import SimpleUploadedFile
+
+        self.pdf = b"%PDF-1.4 factura de prueba"
+        grupo, _ = Group.objects.get_or_create(name="Administrador")
+        self.negocio = Negocio.objects.create(nombre="A", slug="a")
+        otro = Negocio.objects.create(nombre="B", slug="b")
+        self.user = User.objects.create_user("adm_a", password="x")
+        self.user.groups.add(grupo)
+        Empleado.objects.create(usuario=self.user, negocio=self.negocio, activo=True)
+        self.ajeno = User.objects.create_user("adm_b", password="x")
+        Empleado.objects.create(usuario=self.ajeno, negocio=otro, activo=True)
+        self.doc = Documento.objects.create(
+            negocio=self.negocio, nombre_proveedor="P", categoria="proveedor",
+            numero_factura="F-1", monto=Decimal("100"), monto_pagado=Decimal("0"),
+            fecha_emision=date(2026, 9, 1), fecha_vencimiento=date(2026, 9, 30),
+            estado="pendiente",
+        )
+        self.client.force_login(self.user)
+        self.client.post(
+            reverse("negocios:subir_adjunto", args=[self.doc.pk]),
+            {"archivo": SimpleUploadedFile("factura.pdf", self.pdf, content_type="application/pdf")},
+        )
+        self.doc.refresh_from_db()
+
+    def test_se_ve_el_adjunto(self):
+        r = self.client.get(self.doc.archivo.url)
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(r.content, self.pdf)
+        self.assertEqual(r["Content-Type"], "application/pdf")
+
+    def test_otro_negocio_no_lo_ve(self):
+        self.client.force_login(self.ajeno)
+        self.assertEqual(self.client.get(self.doc.archivo.url).status_code, 404)

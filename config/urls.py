@@ -26,4 +26,6 @@ urlpatterns = [
     path('administracion/', include('administracion.urls')),
     # Panel de superadmin (solo is_superuser=True).
     path('superadmin/', include('administracion.urls_superadmin')),
+    # Adjuntos guardados en la base (ver negocios/storage.py).
+    path('archivos/<path:nombre>', negocios_views.ver_archivo, name='ver_archivo'),
 ]

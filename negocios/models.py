@@ -419,3 +419,19 @@ class PagoDocumento(models.Model):
 
     def __str__(self):
         return f"Pago ${self.monto} a {self.documento} ({self.fecha})"
+
+
+class ArchivoGuardado(models.Model):
+    """Contenido de los adjuntos (facturas, comprobantes) guardado en la base.
+
+    Render borra el disco en cada deploy, así que los FileField usan
+    `negocios.storage.BaseDeDatosStorage`, que guarda los bytes acá.
+    """
+
+    nombre = models.CharField(max_length=255, unique=True)
+    contenido = models.BinaryField()
+    tipo = models.CharField(max_length=100, blank=True)
+    creado = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.nombre

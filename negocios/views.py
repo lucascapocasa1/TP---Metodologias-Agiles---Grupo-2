@@ -1346,3 +1346,29 @@ def deshacer_pago_grupo(request, grupo_pago):
     if proveedor_id:
         return redirect("negocios:detalle_proveedor", proveedor_id=proveedor_id)
     return redirect("negocios:lista_proveedores")
+
+
+@login_required
+def ver_archivo(request, nombre):
+    """Sirve un adjunto guardado en la base (ver negocios/storage.py).
+
+    Solo lo ve el superadmin o alguien del negocio dueño del documento/pago.
+    """
+    from django.http import Http404, HttpResponse
+
+    from .models import ArchivoGuardado
+
+    dueno = (
+        Documento.objects.filter(archivo=nombre).values_list("negocio_id", flat=True).first()
+        or PagoDocumento.objects.filter(comprobante=nombre).values_list("negocio_id", flat=True).first()
+    )
+    negocio = _negocio_del_usuario(request.user)
+    if not request.user.is_superuser and (dueno is None or negocio is None or negocio.id != dueno):
+        raise Http404
+    archivo = ArchivoGuardado.objects.filter(nombre=nombre).first()
+    if archivo is None:
+        raise Http404
+    respuesta = HttpResponse(bytes(archivo.contenido), content_type=archivo.tipo or "application/octet-stream")
+    respuesta["Content-Disposition"] = f'inline; filename="{nombre.rsplit("/", 1)[-1]}"'
+    respuesta["X-Content-Type-Options"] = "nosniff"
+    return respuesta

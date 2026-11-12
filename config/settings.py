@@ -174,6 +174,12 @@ STATICFILES_DIRS = [BASE_DIR / 'static']
 # Carpeta donde `collectstatic` junta los archivos al publicar el sistema.
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
+# Adjuntos (facturas, comprobantes) en la base: el disco de Render se borra en cada deploy.
+STORAGES = {
+    "default": {"BACKEND": "negocios.storage.BaseDeDatosStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+
 try:
     import whitenoise  # noqa: F401
 except ImportError:
