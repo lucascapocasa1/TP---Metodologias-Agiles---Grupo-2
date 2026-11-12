@@ -522,7 +522,7 @@ def registrar_arqueo(turno, efectivo_fisico, tarjeta_fisico, mercado_pago_fisico
             diferencia_efectivo=efectivo_fisico - totales["total_efectivo"],
             diferencia_tarjeta=tarjeta_fisico - totales["total_tarjeta"],
             diferencia_mercado_pago=mercado_pago_fisico - totales["total_mercado_pago"],
-            observacion=observacion.strip(),
+            observaciones=observacion.strip(),
         )
 
         # Cerrar el turno congelando los totales
