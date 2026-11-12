@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PRD — Documento de Requerimientos de Producto</title>
+<style>
+  :root {
+    --cian: #00ffff;
+    --cian-suave: #00e5ff;
+    --fondo: #0a0a0f;
+    --superficie: #11131e;
+    --superficie-claro: #1a1d2b;
+    --texto: #e8eaf6;
+    --texto-suave: #a9b1c6;
+    --borde: #2a2f40;
+    --exito: #00ff88;
+    --alerta: #ff9800;
+    --peligro: #dc2626;
+    --sombra: 0 8px 24px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    line-height: 1.6;
+    padding: 0;
+  }
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 30px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    box-shadow: var(--sombra);
+  }
+  .page-header {
+    background: linear-gradient(135deg, var(--cian), var(--cian-suave));
+    color: #000;
+    padding: 28px 32px;
+    border-radius: 12px 12px 0 0;
+    margin-bottom: 30px;
+  }
+  .page-header h1 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .page-header .sub {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-top: 6px;
+  }
+  .meta-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+  }
+  .meta-table th, .meta-table td {
+    border: 1px solid var(--borde);
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  .meta-table th {
+    background: var(--superficie-claro);
+    color: var(--cian);
+    font-weight: 700;
+    width: 30%;
+  }
+  .meta-table td {
+    background: rgba(255,255,255,0.02);
+  }
+  h2 {
+    font-size: 19px;
+    color: var(--cian);
+    margin: 34px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--borde);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  h3 {
+    font-size: 15px;
+    color: var(--cian-suave);
+    margin: 24px 0 10px;
+  }
+  p { margin: 10px 0; font-size: 13.5px; }
+  ul, ol { margin: 10px 0 14px 24px; }
+  li { margin-bottom: 6px; font-size: 13.5px; }
+  blockquote {
+    border-left: 4px solid var(--cian);
+    background: rgba(0,255,255,0.05);
+    padding: 12px 18px;
+    margin: 16px 0;
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--texto-suave);
+  }
+  code {
+    background: var(--superficie-claro);
+    color: var(--cian-suave);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    border: 1px solid var(--borde);
+  }
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 12.5px;
+  }
+  table.data th {
+    background: var(--cian);
+    color: #000;
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 800;
+    border: 1px solid var(--cian);
+    text-transform: uppercase;
+    font-size: 11.5px;
+  }
+  table.data td {
+    border: 1px solid var(--borde);
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+  }
+  table.data tr:nth-child(even) td {
+    background: rgba(255,255,255,0.015);
+  }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-ok { background: var(--exito); color: #000; }
+  .badge-parcial { background: var(--alerta); color: #000; }
+  .badge-pendiente { background: var(--borde); color: var(--texto-suave); }
+  .seccion-div {
+    border-top: 1px solid var(--borde);
+    margin: 34px 0;
+    padding-top: 20px;
+  }
+  .footer {
+    margin-top: 40px;
+    padding: 20px 0;
+    border-top: 1px solid var(--borde);
+    font-size: 11.5px;
+    color: var(--texto-suave);
+    text-align: center;
+  }
+  .ok { color: var(--exito); font-weight: 700; }
+  .parcial { color: var(--alerta); font-weight: 700; }
+  .advertencia { color: var(--texto-suave); font-weight: 600; }
+  @media print {
+    body { background: #fff; color: #000; }
+    .page { box-shadow: none; border: none; background: #fff; }
+    .page-header { background: #000; color: #fff; }
+    table.data th { background: #000; color: #fff; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <h1>PRD — Documento de Requerimientos de Producto</h1>
+    <div class="sub">Sistema Kiosco (NorveX) — TP Metodologías Ágiles (UNAB)</div>
+  </div>
+
+  <table class="meta-table">
+    <tr><th>Documento</th><td>PRD v2.8</td></tr>
+    <tr><th>Fecha</th><td>05/11/2026</td></tr>
+    <tr><th>Versión del código documentado</th><td>`main` @ `ef1dd93` (incluye fix: `init_point` también con cuentas de prueba)</td></tr>
+    <tr><th>Proyecto</th><td>Sistema Kiosco (NorveX) — TP Metodologías Ágiles (UNAB)</td></tr>
+    <tr><th>Estado del producto</th><td><span class="badge badge-ok">Sprint 1 OK</span> <span class="badge badge-ok">Sprint 2 OK</span> <span class="badge badge-ok">Sprint 3 OK</span> <span class="badge badge-ok">Sprint 4 OK</span> <span class="badge badge-ok">HU-13 OK</span> <span class="badge badge-ok">HU-14 OK</span> <span class="badge badge-ok">HU-15 OK</span> <span class="badge badge-ok">HU-16 OK</span> <span class="badge badge-ok">Recuperación de contraseña OK</span> <span class="badge badge-ok">Publicación en Render OK</span> <span class="badge badge-ok">472 tests en verde</span></td></tr>
+    <tr><th>Documento relacionado</th><td>ARD — Arquitectura y requerimientos técnicos (ARD.md)</td></tr>
+  </table>
+
+  <div class="seccion-div">
+    <h2>1. Introducción</h2>
+    <h3>1.1 Propósito del documento</h3>
+    <p>Este PRD define <strong>qué</strong> debe hacer el Sistema Kiosco: usuarios, alcance, requerimientos funcionales y no funcionales, criterios de aceptación y restricciones. Es la referencia de producto contra la cual se valida lo que se entrega sprint a sprint. El <strong>cómo</strong> (stack, modelo de datos, endpoints, decisiones de diseño) está en el ARD.</p>
+
+    <h3>1.2 Contexto y problema</h3>
+    <p>Un kiosco de barrio necesita digitalizar su operación diaria: hoy la gestión de productos, precios y cobros se hace de forma manual o con planillas, lo que provoca:</p>
+    <ul>
+      <li>Errores de precio y falta de control sobre quién modificó qué.</li>
+      <li>Sin registro de quién atendió la caja ni de qué se vendió.</li>
+      <li>El dueño no tiene visibilidad de stock ni de lo que más se vende.</li>
+      <li>Cualquier empleado podría entrar a la parte sensible del negocio (costos, reportes) si no hay control de acceso.</li>
+    </ul>
+
+    <h3>1.3 Objetivos del producto</h3>
+    <table class="data">
+      <tr><th>#</th><th>Objetivo</th><th>Medible</th><th>Estado</th></tr>
+      <tr><td>O1</td><td>Acceso restringido por roles (dueño vs. cajero)</td><td>100% de las rutas críticas verificadas server-side (403), con tests</td><td class="ok">OK Alcanzado</td></tr>
+      <tr><td>O2</td><td>Carga y consulta rápida de productos</td><td>Alta/edición/baja y búsqueda sin salir de la interfaz</td><td class="ok">OK Alcanzado (Sprint 2)</td></tr>
+      <tr><td>O3</td><td>Trazabilidad de acciones sensibles</td><td>Login/logout y operaciones sobre usuarios registrados con usuario, fecha e IP</td><td class="ok">OK Alcanzado</td></tr>
+      <tr><td>O4</td><td>Interfaz clara y personalizable para el local</td><td>Identidad propia + modo oscuro, contraste AA</td><td class="ok">OK Alcanzado (estilo neón fijo + dark)</td></tr>
+      <tr><td>O5</td><td>Visibilidad del negocio</td><td>Reportes de ventas, stock, costos y rentabilidad</td><td class="ok">OK Alcanzado (entrega adelantada del Sprint 4)</td></tr>
+      <tr><td>O6</td><td>Base sólida para caja y reportes</td><td>Modelos de venta normalizados y testeados</td><td class="ok">OK Alcanzado (Sprint 3)</td></tr>
+      <tr><td>O7</td><td>Reconocer al cliente frecuente</td><td>Cliente identificado por DNI con historial y puntos acumulados</td><td class="ok">OK Alcanzado</td></tr>
+      <tr><td>O8</td><td>Cobrar sin efectivo ni tarjeta física</td><td>QR de Mercado Pago integrado a la caja, con confirmación automática del pago</td><td class="ok">OK Alcanzado</td></tr>
+      <tr><td>O9</td><td>Poner el sistema en producción sin tocar código</td><td>Publicación con `render.yaml`, variables de entorno y estáticos servidos por WhiteNoise</td><td class="ok">OK Alcanzado</td></tr>
+      <tr><td>O10</td><td>Que el dueño no dependa del soporte para recuperar su cuenta</td><td>Recuperación de contraseña autoservicio por correo electrónico</td><td class="ok">OK Alcanzado</td></tr>
+    </table>
+
+    <h3>1.4 Glosario</h3>
+    <table class="data">
+      <tr><th>Término</th><th>Significado</th></tr>
+      <tr><td>Kiosco</td><td>Comercio minorista de barrio; usuario final del sistema</td></tr>
+      <tr><td>Rol</td><td>Grupo de Django (`Administrador`, `Cajero`) que define qué ve y puede hacer un usuario</td></tr>
+      <tr><td>Categoría</td><td>Agrupación de productos (ej. Golosinas, Bebidas)</td></tr>
+      <tr><td>Baja lógica</td><td>Desactivar un producto (`activo=False`) sin borrar el registro para no romper ventas históricas</td></tr>
+      <tr><td>Stock bajo</td><td>`stock ≤ stock_minimo` (umbral configurable por producto, default 5)</td></tr>
+      <tr><td>Venta / Detalle</td><td>Cabecera de una operación de cobro y sus líneas de producto</td></tr>
+      <tr><td>Cliente</td><td>Consumidor registrado del kiosco (nombre, DNI/CUIT único, teléfono, email) al que se le pueden asociar ventas y acumular puntos</td></tr>
+      <tr><td>Puntos de fidelidad</td><td>Saldo del cliente que suma 1 punto por cada $100 comprados; cada `Venta` guarda los que otorgó</td></tr>
+      <tr><td>Cuenta corriente (FIAR)</td><td>Saldo de deuda de un cliente frecuente con un límite máximo definido por el administrador; lo fiado no entra a la caja hasta que se cobra el pago</td></tr>
+      <tr><td>Catálogo público</td><td>Vista sin login donde los vecinos ven stock (solo "Disponible"/"Agotado") y precios y arman un pedido para retirar, enviado por WhatsApp</td></tr>
+      <tr><td>Deuda otorgada</td><td>Total fiado a cuenta corriente en un turno o rango; se informa aparte porque **no** es plata que entró a la caja</td></tr>
+      <tr><td>Mercado Pago (QR)</td><td>Método de pago digital: la caja genera un link de pago (Checkout Pro) y lo muestra como QR; el cliente lo escanea y paga desde su celular</td></tr>
+      <tr><td>Venta pendiente (QR)</td><td>`Venta` con `finalizada=False`: el stock ya está reservado, pero no cuenta en reportes ni en el turno hasta que el pago se aprueba</td></tr>
+      <tr><td>Webhook</td><td>Aviso que Mercado Pago envía al sistema cuando cambia un pago; el sistema no confía en el aviso y vuelve a consultar el pago a la API</td></tr>
+      <tr><td>OAuth (conectar Mercado Pago)</td><td>Autorización de la cuenta del negocio: el dueño toca "Conectar", autoriza en Mercado Pago y el sistema guarda las credenciales para cobrar a esa cuenta</td></tr>
+      <tr><td>Modo de prueba (QR)</td><td>Sin credenciales de Mercado Pago, el QR abre una pantalla de pago simulado del propio sistema, sin plata real</td></tr>
+      <tr><td>Pantalla del cliente (display)</td><td>Vista en un celular del mostrador que muestra el QR del cobro y se actualiza sola al aprobarse el pago</td></tr>
+      <tr><td>Resend</td><td>Servicio de envío de correo usado para la recuperación de contraseña; en desarrollo, sin API key, el mail se imprime en la consola</td></tr>
+      <tr><td>Publicación</td><td>Despliegue del sistema en un hosting (Render) con `DEBUG=False`, `SECRET_KEY` propia y base PostgreSQL</td></tr>
+      <tr><td>Auditoría</td><td>Registro inmutable de acciones relevantes (usuario, acción, fecha, IP)</td></tr>
+      <tr><td>Sprint</td><td>Iteración con entrega demostrable (4 sprints planificados + consignas nuevas de la cátedra)</td></tr>
+    </table>
+  </div>
+
+  <div class="seccion-div">
+    <h2>2. Alcance</h2>
+    <h3>2.1 Dentro del alcance (entregado)</h3>
+    <table class="data">
+      <tr><th>Bloque</th><th>Contenido</th><th>Sprint</th></tr>
+      <tr><td>Autenticación y roles</td><td>Login/logout, registro público, redirección por rol, denegación 403 server-side</td><td>1</td></tr>
+      <tr><td>Gestión de usuarios</td><td>Dashboard con métricas de usuarios; listar con búsqueda y filtros; crear, editar, eliminar, activar/desactivar, asignar/quitar roles</td><td>2</td></tr>
+      <tr><td>Catálogo de productos</td><td>CRUD completo (alta, edición, baja lógica), código de barras único, costo/precio separados, stock mínimo con alerta, búsqueda en tiempo real con HTMX, solo para Administrador</td><td>2</td></tr>
+      <tr><td>Auditoría</td><td>Registro automático de login/logout con IP; registro de operaciones CRUD de usuarios; lectura en solo lectura vía Django admin</td><td>transversal</td></tr>
+      <tr><td>Reportes de negocio</td><td>Ventas (KPIs, serie de 14 días, top 10, más rentables) y stock (valorizado, bajo, por categoría, margen bajo)</td><td>4 (adelantado)</td></tr>
+      <tr><td>Caja y cobro</td><td>Carrito con lector de código de barras, edición de cantidades, cobro efectivo/tarjeta con vuelto, descuento de stock, comprobante y auditoría de la venta</td><td>3</td></tr>
+      <tr><td>Fidelidad de clientes</td><td>Modelo `Cliente` (DNI/CUIT único y normalizado, baja lógica), CRUD para el Administrador, búsqueda y alta rápida desde el cobro, asociación de la venta al cliente y puntos (1 cada $100) con historial</td><td>4</td></tr>
+      <tr><td>Pedidos online</td><td>Catálogo público sin login (solo "Disponible"/"Agotado"), carrito de pedido, registro del `Pedido` y envío por WhatsApp; panel interno para ver y cambiar el estado</td><td>consigna</td></tr>
+      <tr><td>Cuenta corriente</td><td>Cliente con límite de crédito, cobro fiado desde el POS, saldo de deuda con historial de pagos y deuda otorgada informada aparte de la caja y de los ingresos</td><td>consigna</td></tr>
+      <tr><td>Cobro con QR (Mercado Pago)</td><td>Método `mercado_pago` en la caja: venta pendiente con stock reservado, QR de Checkout Pro (`init_point` siempre), webhook + consulta periódica, cancelación con devolución del stock y "Total Mercado Pago" en el cierre de turno</td><td>extra</td></tr>
+      <tr><td>Pantalla del cliente</td><td>Vista `/ventas/display/` para un celular del mostrador: espera → QR → "¡Pago aprobado!", actualizada sola</td><td>extra</td></tr>
+      <tr><td>Conectar Mercado Pago</td><td>Botón OAuth en Panel → Mercado Pago: el negocio autoriza su cuenta y los cobros le llegan directo; renovación automática del token y desconexión auditada</td><td>extra</td></tr>
+      <tr><td>Recuperación de contraseña</td><td>Flujo completo por correo (pedir enlace → mail con Resend → elegir contraseña nueva), con páginas propias y enlace inválido controlado</td><td>extra</td></tr>
+      <tr><td>Publicación</td><td>`render.yaml` con gunicorn + WhiteNoise, migraciones y `setup_inicial` en el build; `DEBUG`, `SECRET_KEY`, `ALLOWED_HOSTS` y CSRF desde el entorno</td><td>extra</td></tr>
+      <tr><td>Datos de demo</td><td>Comandos `cargar_demo` (56 productos y ventas desde el 20/09/2026 con semilla fija) y `cargar_demo_clientes` (clientes y pedidos); ambos `--limpiar` son **idempotentes** y reponen el stock</td><td>4</td></tr>
+      <tr><td>Experiencia de usuario</td><td>Identidad "toldo de barrio" con estilo neón cian fijo, marca **Norvex**, modo oscuro, responsive, accesibilidad, formato de dinero unificado (`montos`)</td><td>transversal</td></tr>
+    </table>
+
+    <h3>2.2 Estado de lo planificado y fuera del alcance actual</h3>
+    <ul>
+      <li><strong>Sprint 4 — Cierres (entrega 05-11):</strong> ✅ Completo. HU-10 (cierre de turno), HU-11 (top 10 y reportes) y HU-12 (clientes frecuentes) entregadas.</li>
+      <li><strong>Consignas nuevas de la cátedra:</strong> ✅ Completas.
+        <ul>
+          <li><strong>Integración externa (HU-13):</strong> ✅ Completo. Catálogo online público con armado de pedido para retiro ("take away"), pedido registrado en el sistema y envío por WhatsApp al local.</li>
+          <li><strong>Cuenta corriente ("FIAR", HU-14):</strong> ✅ Completo. Saldo de deuda por cliente frecuente con límite máximo definido por el administrador, cobro a cuenta corriente en la pantalla del POS, registro de pagos (solo Administrador) y deuda otorgada excluida de la caja y de los ingresos.</li>
+        </ul>
+      </li>
+      <li><strong>Extras de producto:</strong> ✅ Completos.
+        <ul>
+          <li>Cobro con QR de Mercado Pago (HU-15) y pantalla para el cliente (HU-16); botón "Conectar con Mercado Pago" (OAuth) y publicación en Render; recuperación de contraseña por mail con Resend.</li>
+        </ul>
+      </li>
+      <li><strong>Por definir:</strong> multi-negocio (varias sucursales en una misma instalación), comercio configurable en colores/logo desde la interfaz, facturación electrónica y una interfaz propia para consultar la auditoría. <em>(El logo propio ya está: marca Norvex.)</em></li>
+    </ul>
+
+    <h3>2.3 Restricciones</h3>
+    <ul>
+      <li>Entregas fijas: Sprint 1 (24-09) OK · Sprint 2 (01-10) OK · Sprint 3 (15-10) OK · Sprint 4 (05-11) OK.</li>
+      <li>Aplicación <strong>web</strong> (navegador), sin app nativa; se usa en PC del kiosco y eventualmente en celular/tablet.</li>
+      <li>Trabajo en equipo con merge a `main`; los artefactos deben poder integrarse sin romper los tests existentes (379 en verde).</li>
+      <li>Idioma y formato argentinos: español rioplatense, moneda ARS, horario `America/Argentina/Buenos_Aires`.</li>
+      <li>El servidor de desarrollo corre en el puerto <strong>8001</strong> (conservar ese puerto en todas las máquinas del equipo).</li>
+      <li><strong>Dependencias externas:</strong> PostgreSQL como base principal; Mercado Pago para el cobro con QR (sin credenciales se degrada a modo de prueba) y Resend para el correo (sin API key se imprime en la consola). El sistema no debe romperse si esas credenciales faltan.</li>
+      <li><strong>Publicación:</strong> Render con plan gratis; el sitio "duerme" sin uso y la base gratuita vence a los 30 días.</li>
+    </ul>
+  </div>
+
+  <div class="seccion-div">
+    <h2>3. Usuarios / personas</h2>
+    <table class="data">
+      <tr><th>Persona</th><th>Rol en el sistema</th><th>Qué necesita</th><th>Qué no debe ver</th></tr>
+      <tr><td><strong>Dueño / Administrador</strong></td><td>Grupo `Administrador` (o superuser)</td><td>Gestionar usuarios, cargar y consultar productos, ver reportes, stock, costos y auditoría</td><td>— (acceso total)</td></tr>
+      <tr><td><strong>Cajero</strong></td><td>Grupo `Cajero`</td><td>Entrar al sistema y usar la pantalla de cobro</td><td>Costos, precios de compra, catálogo, reportes, administración de usuarios (recibe 403)</td></tr>
+      <tr><td><strong>Usuario sin rol</strong></td><td>Autenticado sin grupo</td><td>Ver un aviso de que aún no tiene permisos</td><td>Cualquier pantalla operativa</td></tr>
+      <tr><td><strong>Cliente frecuente</strong></td><td>Registro en `clientes` (no es usuario del sistema, no inicia sesión)</td><td>Ser identificado en el cobro por DNI, acumular puntos y (si tiene cuenta corriente) llevarse productos fiados hasta su límite</td><td>No accede a ninguna pantalla; solo existe como registro asociado a ventas</td></tr>
+      <tr><td><strong>Público (no autenticado)</strong></td><td>—</td><td>Ver el catálogo público y armar un pedido para retirar (HU-13); el resto lo redirige al login</td><td>Todo el resto (redirigido al login)</td></tr>
+    </table>
+  </div>
+
+  <div class="seccion-div">
+    <h2>4. Requerimientos funcionales</h2>
+    <p>Prioridad: <strong>M</strong> = Must (imprescindible), <strong>S</strong> = Should, <strong>C</strong> = Could.<br>
+    Estado verificado contra el código (`main` @ `ef1dd93`).</p>
+
+    <h3>4.1 Autenticación y control de acceso</h3>
+    <table class="data">
+      <tr><th>ID</th><th>Requerimiento</th><th>Prioridad</th><th>HU</th><th>Estado</th></tr>
+      <tr><td>RF-01</td><td>Login con usuario y contraseña; error claro con credenciales inválidas</td><td>M</td><td>HU-01</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-02</td><td>Logout seguro (solo POST) que destruye la sesión</td><td>M</td><td>HU-01</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-03</td><td>Registro público de cuentas; el usuario nace <strong>sin rol</strong></td><td>S</td><td>—</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-04</td><td>Redirección post-login según rol: admin → dashboard, cajero → cobro, sin rol → aviso `sin_rol`</td><td>M</td><td>—</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-05</td><td>Restricción <strong>server-side</strong> por rol: las URLs fuera del rol devuelven 403 (no basta ocultar botones)</td><td>M</td><td>HU-02</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-06</td><td>El Administrador accede tanto al panel de administración como a la pantalla de cobro</td><td>M</td><td>HU-03</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-07</td><td>Todo acceso a pantallas operativas exige login (anónimos → redirect al login)</td><td>M</td><td>HU-01/02</td><td class="ok">OK Hecho</td></tr>
+    </table>
+
+    <h3>4.2 Gestión de usuarios (solo Administrador)</h3>
+    <table class="data">
+      <tr><th>ID</th><th>Requerimiento</th><th>Prioridad</th><th>Estado</th></tr>
+      <tr><td>RF-08</td><td>Listar usuarios con búsqueda por nombre/usuario/email</td><td>M</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-09</td><td>Filtrar la lista por estado (activo/inactivo) y por rol</td><td>S</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-10</td><td>Crear usuario con contraseña y rol asignado</td><td>M</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-11</td><td>Editar datos del usuario, con contraseña opcional</td><td>M</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-12</td><td>Activar/desactivar usuarios sin borrar la cuenta</td><td>S</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-13</td><td>Eliminar usuario con paso de confirmación</td><td>S</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-14</td><td>Asignar/quitar roles (grupos) desde la interfaz</td><td>M</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-15</td><td>Protecciones: no se puede eliminar ni desactivar la cuenta propia ni un superusuario</td><td>M</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-16</td><td>Dashboard con métricas de usuarios (total, activos, inactivos, por rol, sin rol)</td><td>S</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-17</td><td>Paginación de listados largos</td><td>C</td><td class="parcial">Parcial (tag `{% paginacion %}` existe; los templates aún listan todo de una vez)</td></tr>
+      <tr><td>RF-18</td><td>Cada operación de escritura sobre usuarios queda auditada</td><td>S</td><td class="ok">OK Hecho</td></tr>
+    </table>
+
+    <h3>4.3 Catálogo de productos (solo Administrador)</h3>
+    <table class="data">
+      <tr><th>ID</th><th>Requerimiento</th><th>Prioridad</th><th>HU</th><th>Estado</th></tr>
+      <tr><td>RF-19</td><td>Modelos de Categoría y Producto con precio, costo, stock y estado activo</td><td>M</td><td>HU-04</td><td class="ok">OK Hecho (migraciones 0001-0003)</td></tr>
+      <tr><td>RF-20</td><td><strong>Alta</strong> de producto con `ProductoForm` y creación/reuso de categoría nueva</td><td>M</td><td>HU-04</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-21</td><td><strong>Edición</strong> de producto desde la interfaz</td><td>M</td><td>HU-04</td><td class="ok">OK Hecho (`productos/<id>/editar/`)</td></tr>
+      <tr><td>RF-22</td><td><strong>Baja lógica</strong> reversible (`activo=False`), sin romper ventas históricas</td><td>M</td><td>HU-04</td><td class="ok">OK Hecho (`productos/<id>/eliminar/`)</td></tr>
+      <tr><td>RF-23</td><td>Código de barras con <strong>validación de duplicado</strong> (error si ya existe)</td><td>M</td><td>HU-04</td><td class="ok">OK Hecho (`unique` + `clean_codigo_barras`)</td></tr>
+      <tr><td>RF-24</td><td>Precio de costo y precio de venta separados; el costo <strong>solo lo ve el admin</strong></td><td>M</td><td>HU-04</td><td class="ok">OK Hecho (403 al cajero con test)</td></tr>
+      <tr><td>RF-25</td><td>Stock mínimo por producto (default 5)</td><td>S</td><td>HU-04</td><td class="ok">OK Hecho (`stock_minimo`)</td></tr>
+      <tr><td>RF-26</td><td><strong>Lista de productos con búsqueda en tiempo real sin recarga (HTMX)</strong> por nombre, descripción o código</td><td>M</td><td>HU-05</td><td class="ok">OK Hecho (debounce 300 ms + partial `_productos_tabla.html`)</td></tr>
+      <tr><td>RF-27</td><td><strong>Alerta de stock bajo</strong> con marca de color (`stock ≤ stock_minimo`)</td><td>S</td><td>HU-06</td><td class="ok">OK Hecho (`stock_bajo` + `.badge-stock-bajo`)</td></tr>
+      <tr><td>RF-28</td><td>Las 4 vistas del catálogo exigen rol Administrador (cajero → 403)</td><td>M</td><td>HU-02</td><td class="ok">OK Hecho</td></tr>
+      <tr><td>RF-29</td><td>Mensajes de éxito/error (`django.messages`) en cada operación</td><td>S</td><td>—</td><td class="ok">OK Hecho</td></tr>
+    </table>
+
+    <div class="footer">
+      PRD v2.8 — Sistema Kiosco (NorveX) — TP Metodologías Ágiles (UNAB)
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

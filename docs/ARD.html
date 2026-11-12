@@ -1,0 +1,543 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ARD — Arquitectura y Requerimientos Técnicos</title>
+<style>
+  :root {
+    --cian: #00ffff;
+    --cian-suave: #00e5ff;
+    --fondo: #0a0a0f;
+    --superficie: #11131e;
+    --superficie-claro: #1a1d2b;
+    --texto: #e8eaf6;
+    --texto-suave: #a9b1c6;
+    --borde: #2a2f40;
+    --exito: #00ff88;
+    --alerta: #ff9800;
+    --peligro: #dc2626;
+    --sombra: 0 8px 24px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    line-height: 1.6;
+    padding: 0;
+  }
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 30px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    box-shadow: var(--sombra);
+  }
+  .page-header {
+    background: linear-gradient(135deg, var(--cian), var(--cian-suave));
+    color: #000;
+    padding: 28px 32px;
+    border-radius: 12px 12px 0 0;
+    margin-bottom: 30px;
+  }
+  .page-header h1 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .page-header .sub {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-top: 6px;
+  }
+  .meta-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+  }
+  .meta-table th, .meta-table td {
+    border: 1px solid var(--borde);
+    padding: 10px 14px;
+    font-size: 13px;
+  }
+  .meta-table th {
+    background: var(--superficie-claro);
+    color: var(--cian);
+    font-weight: 700;
+    width: 30%;
+  }
+  .meta-table td {
+    background: rgba(255,255,255,0.02);
+  }
+  h2 {
+    font-size: 19px;
+    color: var(--cian);
+    margin: 34px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--borde);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  h3 {
+    font-size: 15px;
+    color: var(--cian-suave);
+    margin: 24px 0 10px;
+  }
+  p { margin: 10px 0; font-size: 13.5px; }
+  ul, ol { margin: 10px 0 14px 24px; }
+  li { margin-bottom: 6px; font-size: 13.5px; }
+  blockquote {
+    border-left: 4px solid var(--cian);
+    background: rgba(0,255,255,0.05);
+    padding: 12px 18px;
+    margin: 16px 0;
+    font-style: italic;
+    font-size: 12.5px;
+    color: var(--texto-suave);
+  }
+  code {
+    background: var(--superficie-claro);
+    color: var(--cian-suave);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    border: 1px solid var(--borde);
+  }
+  pre code {
+    display: block;
+    padding: 14px 18px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 12.5px;
+  }
+  table.data th {
+    background: var(--cian);
+    color: #000;
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 800;
+    border: 1px solid var(--cian);
+    text-transform: uppercase;
+    font-size: 11.5px;
+  }
+  table.data td {
+    border: 1px solid var(--borde);
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+  }
+  table.data tr:nth-child(even) td {
+    background: rgba(255,255,255,0.015);
+  }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-ok { background: var(--exito); color: #000; }
+  .badge-parcial { background: var(--alerta); color: #000; }
+  .seccion-div {
+    border-top: 1px solid var(--borde);
+    margin: 34px 0;
+    padding-top: 20px;
+  }
+  .footer {
+    margin-top: 40px;
+    padding: 20px 0;
+    border-top: 1px solid var(--borde);
+    font-size: 11.5px;
+    color: var(--texto-suave);
+    text-align: center;
+  }
+  .ok { color: var(--exito); font-weight: 700; }
+  .diagrama {
+    background: var(--superficie-claro);
+    border: 1px solid var(--borde);
+    border-radius: 8px;
+    padding: 16px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 11px;
+    color: var(--texto-suave);
+    overflow-x: auto;
+    margin: 16px 0;
+    white-space: pre;
+  }
+  @media print {
+    body { background: #fff; color: #000; }
+    .page { box-shadow: none; border: none; background: #fff; }
+    .page-header { background: #000; color: #fff; }
+    table.data th { background: #000; color: #fff; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <h1>ARD — Arquitectura y Requerimientos Técnicos</h1>
+    <div class="sub">Sistema Kiosco — TP Metodologías Ágiles (UNAB)</div>
+  </div>
+
+  <table class="meta-table">
+    <tr><th>Documento</th><td>ARD v2.8</td></tr>
+    <tr><th>Fecha</th><td>05/11/2026</td></tr>
+    <tr><th>Versión del código documentado</th><td>`main` @ `HEAD` · 472 tests OK</td></tr>
+    <tr><th>Documento relacionado</th><td>PRD — Documento de Requerimientos de Producto (PRD.md)</td></tr>
+  </table>
+
+  <blockquote>
+    El PRD define el <strong>qué</strong>; este documento define el <strong>cómo</strong>: stack, estructura, modelo de datos, superficie de endpoints, decisiones de diseño y requerimientos técnicos de calidad. v2.0-v2.6 agregan CRUD + HTMX, cobro del Sprint 3, app `clientes/` + `cargar_demo`, cierre de turno, app `pedidos/`, cuenta corriente "FIAR" y el núcleo de venta compartido con <strong>entregar es cobrar</strong>. v2.7 suma QR de Mercado Pago + display + OAuth + Resend + Render. v2.8 suma el fix `ef1dd93` (`init_point` también en sandbox) y la documentación de cuentas sandbox.
+  </blockquote>
+
+  <div class="seccion-div">
+    <h2>1. Visión general de la arquitectura</h2>
+    <p>Estilo: <strong>monolito web MVC/MVT</strong> de Django, server-side rendering con Django Template Language + HTMX para parciales, sin API JSON ni SPA. Cinco aplicaciones internas por dominio, una base de datos relacional y un módulo transversal de auditoría acoplado por señales.</p>
+    <div class="diagrama">flowchart LR
+    B[Navegador<br/>PC del kiosco / móvil] -- HTTP --> M[Django Middleware<br/>sessions, messages, CSRF, auth]
+
+    subgraph Django["Proyecto Django (config/)"]
+        M --> U[Routers de URLs]
+        U --> V1[usuarios<br/>login · registro · post_login]
+        U --> V2[administracion<br/>dashboard · CRUD usuarios · reportes]
+        U --> V3[ventas<br/>cobro · catálogo CRUD · cierre de turno]
+        U --> V4[clientes<br/>fidelidad · puntos · cuenta corriente]
+        U --> V5[pedidos<br/>catálogo público · pedido por WhatsApp]
+        V1 --> D1[usuarios/decorators.py<br/>@rol_requerido]
+        V2 --> D1
+        V3 --> D1
+        V4 --> D1
+        V5 --solo el panel--> D1
+        V2 --> R[administracion/reportes.py<br/>resumen_ventas · top_productos · deuda_otorgada]
+        V4 --> SC[clientes/services.py<br/>puntos · cliente en sesión · validar_fiado · registrar_pago]
+        V5 --> SP[pedidos/services.py<br/>carrito de pedido en sesión]
+        V5 --> CFG[pedidos/config.py<br/>KIOSCO_WHATSAPP · KIOSCO_NOMBRE]
+        V3 --> QR[ventas/cobro_qr.py<br/>iniciar · aprobar · cancelar cobro QR]
+        QR --> MP[ventas/mercadopago.py<br/>Checkout Pro · OAuth]
+        V3 --> MP
+        V1 --> MB[usuarios/email_backend.py<br/>ResendEmailBackend]
+        V1 & V2 & V3 & V4 & V5 --> T[Django Templates<br/>base.html + parciales HTMX]
+        T --> CSS[static/css/styles.css<br/>tokens · neón fijo · dark mode]
+    end
+
+    V1 & V2 & V3 & V4 & V5 --> DB[(PostgreSQL<br/>fallback SQLite)]
+    V1 -.señales user_logged_in/out.-> A[auditoria<br/>RegistroAuditoria]
+    V2 --registrar_accion()--> A
+    V3 --registrar_accion()--> A
+    V4 --registrar_accion()--> A
+    V5 --registrar_accion()--> A
+    A --> DB
+    A --> ADM[Django admin<br/>solo lectura]
+
+    DB --> R
+    DB --> P[python manage.py<br/>setup_inicial · cargar_demo · migrate · test]
+    B -.hx-get / hx-post.-> T
+    B -.click "Enviar por WhatsApp".-> W[wa.me<br/>WhatsApp del local]
+    MP -.https.-> MPAPI[Mercado Pago API<br/>preferencias · pagos · OAuth]
+    MB -.https.-> RS[Resend API<br/>correo transaccional]
+    MPAPI -.webhook / consulta.-> V3</div>
+
+    <p><strong>Flujo de una petición típica:</strong></p>
+    <ol>
+      <li>El navegador envía la petición → middleware (sesión, CSRF, mensajes).</li>
+      <li>El router de <code>config/urls.py</code> la deriva al <code>app_name</code> correspondiente.</li>
+      <li>El decorador de autorización valida login + rol (403 o <code>login_required</code>).</li>
+      <li>La vista consulta el ORM; si la petición trae cabecera <code>HX-Request</code>, devuelve <strong>solo un partial</strong> (ej. <code>_productos_tabla.html</code>); si no, la página completa.</li>
+      <li>Si la acción es sensible, se escribe un <code>RegistroAuditoria</code>.</li>
+      <li>Django responde HTML; los static se sirven desde <code>static/</code>.</li>
+      <li>Fuera del ciclo normal, <strong>Mercado Pago</strong> avisa un pago por webhook y el sistema, en vez de creerle, vuelve a consultar el pago a la API; si el sistema no está publicado, la caja consulta el estado cada pocos segundos (ver ADN-19).</li>
+    </ol>
+
+    <blockquote>
+      <strong>Consignas de la cátedra:</strong> ambas ✅ <strong>completas.</strong> El <strong>catálogo público con pedido por WhatsApp</strong> (HU-13) es la app <code>pedidos/</code> (vista sin decorador de rol, ruta nueva en <code>config/urls.py</code> y modelo <code>Pedido</code>); la <strong>cuenta corriente "FIAR"</strong> (HU-14) extiende <code>clientes.Cliente</code> (<code>limite_credito</code>, <code>saldo_deuda</code>), agrega <code>PagoCuentaCorriente</code> y suma el método de pago <code>cuenta_corriente</code> a <code>Venta</code>.
+      <br><br><strong>Extras de producto (v2.7):</strong> el cobro con QR vive en <code>ventas/</code> (<code>cobro_qr.py</code> + <code>mercadopago.py</code> + <code>views_qr.py</code>), el OAuth en <code>views_conexion.py</code>, el correo en <code>usuarios/email_backend.py</code> y la publicación en <code>render.yaml</code> + <code>config/settings.py</code>.
+    </blockquote>
+  </div>
+
+  <div class="seccion-div">
+    <h2>2. Stack tecnológico</h2>
+    <table class="data">
+      <tr><th>Capa</th><th>Elección</th><th>Versión</th><th>Justificación</th></tr>
+      <tr><td>Framework web</td><td>Django (MVT)</td><td>6.1.1</td><td>Auth, ORM, forms, mensajes y admin incluidos; ideal para CRUD intensivo con poco equipo</td></tr>
+      <tr><td>Lenguaje</td><td>Python</td><td>3.10+</td><td>Consistente con Django; fácil de leer para el equipo</td></tr>
+      <tr><td>Base de datos</td><td>PostgreSQL (principal) · SQLite (fallback)</td><td>—</td><td>Robustez, integridad referencial y tipos `Decimal` para dinero; SQLite permite demo sin instalación</td></tr>
+      <tr><td>Configuración</td><td>`django-environ` + `.env`</td><td>0.14.0</td><td>Secretos fuera del repo (`DATABASE_URL`)</td></tr>
+      <tr><td>Driver</td><td>psycopg2-binary</td><td>2.9.12</td><td>Conector oficial de PostgreSQL</td></tr>
+      <tr><td>Templates</td><td>Django Template Language</td><td>—</td><td>Server-side rendering, sin build step ni Node</td></tr>
+      <tr><td>Interactividad</td><td><b>HTMX</b> (CDN)</td><td>1.9.12</td><td>Búsqueda en tiempo real y futuras acciones del carrito sin JS manual</td></tr>
+      <tr><td>UI framework</td><td>Bootstrap 5.3.3 + Bootstrap Icons (CDN)</td><td>—</td><td>Grid y utilidades sin herramientas de build</td></tr>
+      <tr><td>Tipografía</td><td>Google Fonts CDN (Righteous, Space Grotesk)</td><td>—</td><td>Identidad visual (neón cian)</td></tr>
+      <tr><td>CSS</td><td>`static/css/styles.css` con custom properties (~3.400 líneas)</td><td>—</td><td>Design tokens, estilo neón y modo oscuro sin preprocesador</td></tr>
+      <tr><td>Tests</td><td>Django test runner (`manage.py test`; se usa `--keepdb`)</td><td>—</td><td>379 tests, sin dependencias extra</td></tr>
+      <tr><td>Cierre de turno</td><td>Modelo `Turno` + `services` de apertura/cierre (snapshot)</td><td>—</td><td>HU-10: totales de caja por método (incluye Mercado Pago) y responsable</td></tr>
+      <tr><td>Catálogo público</td><td>App `pedidos/`: vistas sin login + `wa.me` del lado del navegador</td><td>—</td><td>HU-13: vitrina y pedido para retirar; la config del local sale de `.env`</td></tr>
+      <tr><td>Cuenta corriente</td><td>Campos en `Cliente` + `PagoCuentaCorriente` + `services` transaccionales</td><td>—</td><td>HU-14: límite y deuda por cliente; lo fiado queda fuera de caja e ingresos</td></tr>
+      <tr><td>Cobro con QR</td><td>Cliente de Mercado Pago con <b>`urllib`</b> (Checkout Pro + OAuth)</td><td>—</td><td>HU-15: sin SDK ni dependencias nuevas; `PagoMercadoPago` y modo de prueba</td></tr>
+      <tr><td>Correo transaccional</td><td><b>Resend</b> (`resend` 2.51.0) vía backend propio</td><td>2.51.0</td><td>Recuperación de contraseña; sin API key cae a consola</td></tr>
+      <tr><td>Publicación</td><td><b>gunicorn</b> 26.2.0 + <b>WhiteNoise</b> 6.12.0</td><td>—</td><td>Servir el sitio en Render con estáticos sin servidor web aparte</td></tr>
+      <tr><td>Auditoría</td><td>Señales de Django (`user_logged_in/out`)</td><td>—</td><td>Sin tocar las vistas de login</td></tr>
+      <tr><td>Datos de demo</td><td>Management command `cargar_demo` (semilla fija)</td><td>—</td><td>Carga reproducible de 56 productos y ventas desde el 20/09/2026</td></tr>
+    </table>
+
+    <p><strong>No se usa:</strong> DRF, Celery, Redis, Docker, CI, bundler/`package.json`.</p>
+
+    <p><strong>Frontend (detalle):</strong> Django Templates + Bootstrap 5.3.3 + Icons por CDN, HTMX 1.9.12 para parciales sin recarga, CSS puro con custom properties (`styles.css` + `cobro_qr.css`) y JS vanilla (polling QR/display, tema en `localStorage`). Sin build ni Node.<br>
+    <strong>Backend (detalle):</strong> Python + Django 6.1.1, PostgreSQL (`psycopg2-binary`) con `DATABASE_URL` y fallback SQLite, `django-environ` para `.env`, auditoría por señales, Resend para correo y cliente de Mercado Pago con `urllib`. Producción: gunicorn + WhiteNoise en Render.<br>
+    <strong>Cuentas sandbox (facultad):</strong> ver PRD §4.13 y README — vendedor 3809513042 / `TESTUSER4734636893281846594` / `x7CWpT5XWB` (verificación 513042) conecta por OAuth; comprador 3809513038 / `TESTUSER5602888735222767984` / `QX5FnVgdxg` (verificación 513038) paga. Siempre `init_point` (fix `ef1dd93`).</p>
+  </div>
+
+  <div class="seccion-div">
+    <h2>3. Estructura de módulos</h2>
+    <pre><code>kiosco_sprint1/
+├── config/              # Proyecto: settings (BD, auth, es-ar, MP/Resend, deploy),
+│                        #   urls raíz, wsgi/asgi
+├── usuarios/            # Auth: login/logout, registro, post_login, decoradores de rol,
+│                        #   recuperación de contraseña (urls + templates propios),
+│                        #   email_backend.py (Resend con HTML + texto),
+│                        #   templatetags (paginación/buscador/formatos), comando setup_inicial
+├── administracion/      # Panel del dueño: dashboard, CRUD de usuarios y reportes
+│                        #   (reportes.py: KPIs de ventas y stock)
+├── ventas/              # Dominio: Categoria, Producto, Venta, DetalleVenta, Turno,
+│                        #   PagoMercadoPago, ConexionMercadoPago, ProductoForm,
+│                        #   services.py (carrito/cobro/cierre de turno),
+│                        #   cobro_qr.py + mercadopago.py (QR de Mercado Pago),
+│                        #   views_qr.py (estado/display/webhook/pago simulado),
+│                        #   views_conexion.py (OAuth) y POS
+├── clientes/            # Fidelidad (HU-12) + cuenta corriente (HU-14): Cliente,
+│                        #   PagoCuentaCorriente, ClienteForm, services.py
+│                        #   (puntos, cliente en sesión, validar_fiado,
+│                        #   registrar_pago, buscar_clientes, cliente_bloqueado),
+│                        #   demo_data.py + comando cargar_demo_clientes
+│                        #   y CRUD + asociación en el cobro + cobro de pagos
+├── pedidos/             # Integración externa (HU-13): catálogo público sin login,
+│                        #   Pedido/ItemPedido, services.py (carrito de pedido en
+│                        #   sesión y registrar_entrega)
+│                        #   y config.py (KIOSCO_NOMBRE/KIOSCO_WHATSAPP desde .env)
+├── auditoria/           # Transversal: RegistroAuditoria + signals + utils (sin urls)
+├── templates/           # base.html, 403/404, templates por app (incl. parciales HTMX),
+│                        #   usuarios/password_reset_* (form/done/confirm/complete + mail)
+├── static/              # css/styles.css, img/favicon.svg
+├── docs/                # PRD.md y ARD.md (este documento)
+├── .env.example         # Plantilla de configuración (BD, WhatsApp, Mercado Pago, Resend)
+├── render.yaml          # Blueprint de publicación en Render (gunicorn + PostgreSQL)
+├── manage.py
+└── requirements.txt</code></pre>
+
+    <table class="data">
+      <tr><th>Módulo</th><th>Responsabilidad</th><th>Modelos</th><th>Endpoints</th><th>Tests</th></tr>
+      <tr><td>`config`</td><td>Configuración y ruteo raíz</td><td>—</td><td>`/admin/`, `/` → post_login</td><td>—</td></tr>
+      <tr><td>`usuarios`</td><td>Identidad, sesiones, autorización por rol y recuperación de contraseña</td><td>— (usa `auth.User`)</td><td>9</td><td>13</td></tr>
+      <tr><td>`administracion`</td><td>Gestión de usuarios, dashboard y <b>reportes</b></td><td>— (usa `auth.User`/`Group`)</td><td>9</td><td>24 + 65</td></tr>
+      <tr><td>`ventas`</td><td>Catálogo CRUD, cobro (POS + QR de Mercado Pago) y cierre de turno</td><td>`Categoria`, `Producto`, `Venta`, `DetalleVenta`, `Turno`, `PagoMercadoPago`, `ConexionMercadoPago`</td><td>21</td><td>141</td></tr>
+      <tr><td>`clientes`</td><td>Fidelidad y cuenta corriente: identificación y fiado en el cobro</td><td>`Cliente`, `PagoCuentaCorriente`</td><td>10</td><td>83</td></tr>
+      <tr><td>`pedidos`</td><td>Integración externa: vitrina pública y pedido por WhatsApp</td><td>`Pedido`, `ItemPedido`</td><td>9</td><td>53</td></tr>
+      <tr><td>`auditoria`</td><td>Trazabilidad de acciones</td><td>`RegistroAuditoria`</td><td>— (solo Django admin)</td><td>0</td></tr>
+    </table>
+
+    <p>Reglas estructurales:</p>
+    <ul>
+      <li>Cada app define <code>app_name</code> y sus URLs con nombre (`ventas:lista_productos`, `clientes:buscar`, `administracion:reportes_ventas`…), lo que permite <code>redirect()</code> y <code>reverse()</code> sin rutas duras.</li>
+      <li>`usuarios` y `administracion` no tienen modelos: reutilizan <code>auth.User</code>, <code>auth.Group</code> y las funciones puras de <code>administracion/reportes.py</code> (consultas ORM sin estado).</li>
+      <li>La auditoría <strong>no expone URLs</strong>: es un módulo de servicio consumido por señales y por llamadas directas <code>registrar_accion()</code>.</li>
+      <li>La lógica de catálogo valida en <strong>forms</strong> (<code>ventas/forms.py::ProductoForm</code>), no en las vistas; igual en clientes (<code>clientes/forms.py::ClienteForm</code>).</li>
+      <li><code>clientes</code> es la única app con reglas de negocio fuera de ventas: la puntuación (<code>PUNTOS_POR_PESO</code>), el cliente asociado a la sesión de cobro y la cuenta corriente (<code>validar_fiado</code>, <code>sumar_deuda</code>, <code>registrar_pago</code>) viven en <code>clientes/services.py</code>. <code>ventas/services.py</code> la consume como proveedor de fidelidad dentro de la transacción de cobro, sin importar <code>clientes</code> desde el módulo de ventas más allá de eso.</li>
+      <li><strong>El núcleo de venta es uno solo</strong>: <code>ventas/services.py::registrar_venta_desde_items</code> (descuento de stock, puntos y fiado) lo usan el POS (<code>confirmar_venta</code>) y la entrega de un pedido (<code>pedidos/services.py::registrar_entrega</code>). <code>pedidos</code> <strong>no</strong> reimplementa el cobro: si mañana cambia la regla de puntos o de fiado, cambia en un solo lugar (ADN-18).</li>
+      <li>La <strong>búsqueda de clientes</strong> (<code>clientes/services.py::buscar_clientes</code>) también es una sola: la usan el POS y el panel de pedidos, e <strong>ignora los acentos</strong> (en el mostrador nadie escribe tildes).</li>
+      <li><strong>El cobro con QR reusa el núcleo de venta</strong>: <code>ventas/cobro_qr.py</code> crea la <code>Venta</code> con <code>services._crear_venta(..., finalizada=False)</code> (stock reservado, sin puntos todavía) y, al aprobarse el pago, la finaliza y suma los puntos. <code>mercadopago.py</code> es el único módulo que habla con la API (Checkout Pro y OAuth) y usa <code>urllib</code> de la biblioteca estándar: no agrega dependencias.</li>
+      <li><strong>El correo tiene un backend propio</strong>: <code>usuarios/email_backend.py</code> implementa <code>ResendEmailBackend</code> sobre <code>django.core.mail</code>; <code>config/settings.py</code> lo elige solo si hay <code>RESEND_API_KEY</code> y, si no, usa el backend de consola. Los templates del mail viven en <code>templates/usuarios/</code> con el namespace <code>usuarios:</code> en el enlace, para no depender de los de <code>django.contrib.admin</code>.</li>
+      <li><strong>La publicación no cambia el código</strong>: <code>render.yaml</code> ejecuta <code>collectstatic</code>, <code>migrate</code> y <code>setup_inicial</code> en el build y arranca con gunicorn; WhiteNoise se activa solo si está instalado.</li>
+    </ul>
+  </div>
+
+  <div class="seccion-div">
+    <h2>4. Modelo de datos</h2>
+    <div class="diagrama">erDiagram
+    User ||--o{ Group : "pertenece (grupos)"
+    User ||--o{ RegistroAuditoria : "genera"
+
+    Categoria ||--o{ Producto : "agrupa"
+    Producto ||--o{ DetalleVenta : "se vende en"
+    Venta ||--|{ DetalleVenta : "contiene"
+    User ||--o{ Venta : "cobra"
+    Cliente ||--o{ Venta : "compra (opcional)"
+    Cliente ||--o{ PagoCuentaCorriente : "paga su deuda"
+    User ||--o{ Turno : "está a cargo"
+    Pedido ||--|{ ItemPedido : "contiene"
+    Producto ||--o{ ItemPedido : "se pide (opcional)"
+    Pedido }o--o| Cliente : "se cobra a (opcional)"
+    Pedido }o--o| Venta : "genera al entregar (opcional)"
+    Venta ||--o| PagoMercadoPago : "se cobra con QR (opcional)"
+    User ||--o{ ConexionMercadoPago : "conecta la cuenta (opcional)"
+
+    Categoria {
+        int id PK
+        varchar(100) nombre
+        text descripcion "nullable"
+    }
+    Producto {
+        int id PK
+        varchar(150) nombre
+        text descripcion "nullable"
+        varchar(50) codigo_barras "unique, nullable"
+        decimal(10,2) precio "venta"
+        decimal(10,2) costo "compra, default 0"
+        int stock "default 0"
+        int stock_minimo "default 5"
+        bool activo "default true (baja lógica)"
+        int categoria_id FK
+    }
+    Venta {
+        int id PK
+        datetime fecha "auto_now_add"
+        decimal(10,2) total "default 0"
+        bool finalizada "default false"
+        varchar(20) metodo_pago "efectivo|tarjeta|cuenta_corriente|mercado_pago, default efectivo"
+        int usuario_id FK "SET_NULL, null, cajero responsable"
+        decimal(10,2) monto_entregado "nullable"
+        decimal(10,2) vuelto "nullable"
+        int cliente_id FK "SET_NULL, null, fidelidad"
+        int puntos_ganados "default 0, 1 cada 100"
+    }
+    DetalleVenta {
+        int id PK
+        int cantidad "default 1"
+        decimal(10,2) precio_unitario "congelado"
+        decimal(10,2) costo_unitario "congelado, default 0"
+        int venta_id FK
+        int producto_id FK
+    }
+    Cliente {
+        int id PK
+        varchar(100) nombre
+        varchar(100) apellido
+        varchar(20) dni "unique, normalizado"
+        varchar(30) telefono "nullable"
+        varchar(254) email "nullable"
+        datetime fecha_registro "auto_now_add"
+        int puntos "default 0"
+        decimal(10,2) limite_credito "default 0 = sin cuenta corriente"
+        decimal(10,2) saldo_deuda "default 0, deuda vigente"
+        bool activo "default true (baja lógica)"
+    }
+    PagoCuentaCorriente {
+        int id PK
+        int cliente_id FK "CASCADE"
+        decimal(10,2) monto
+        datetime fecha "auto_now_add"
+        int usuario_id FK "SET_NULL, null, quién cobró"
+        varchar(200) observacion "nullable"
+    }
+    Turno {
+        int id PK
+        int usuario_id FK "SET_NULL, null, a cargo"
+        datetime fecha_apertura "auto_now_add"
+        datetime fecha_cierre "nullable, vacío = abierto"
+        decimal(10,2) total_efectivo "snapshot al cerrar"
+        decimal(10,2) total_tarjeta "snapshot al cerrar"
+        decimal(10,2) total_mercado_pago "snapshot al cerrar"
+        decimal(10,2) deuda_otorgada "snapshot al cerrar, no entra a la caja"
+        int cantidad_operaciones "snapshot al cerrar"
+    }
+    Pedido {
+        int id PK
+        varchar(120) nombre_cliente
+        varchar(30) telefono "nullable"
+        text comentario "nullable"
+        varchar(10) estado "pendiente|entregado|cancelado"
+        decimal(10,2) total "congelado al confirmar"
+        datetime fecha "auto_now_add"
+        int cliente_id FK "SET_NULL, null, se llena al cobrar"
+        int venta_id FK "SET_NULL, null, la venta del cobro"
+    }
+    ItemPedido {
+        int id PK
+        int pedido_id FK "CASCADE"
+        int producto_id FK "SET_NULL, null"
+        varchar(150) nombre_producto "congelado"
+        int cantidad "default 1"
+        decimal(10,2) precio_unitario "congelado"
+    }
+    PagoMercadoPago {
+        int id PK
+        int venta_id FK "OneToOne CASCADE"
+        uuid token "unique, link del pago simulado"
+        varchar(100) preference_id "nullable, Checkout Pro"
+        varchar(500) link_pago
+        bool simulado "default false, sin credenciales"
+        varchar(20) estado "pendiente|aprobado|cancelado"
+        varchar(50) payment_id "nullable, id en Mercado Pago"
+        datetime creado "auto_now_add"
+        datetime actualizado "auto_now"
+    }
+    ConexionMercadoPago {
+        int id PK
+        varchar(255) access_token "secreto, no se muestra"
+        varchar(255) refresh_token "nullable"
+        datetime expira "nullable, vencimiento del token"
+        varchar(50) mp_user_id
+        varchar(200) nombre_cuenta "nullable, para el panel"
+        bool produccion "default false = sandbox"
+        int conectada_por_id FK "SET_NULL, null, quién autorizó"
+        datetime conectada "auto_now_add"
+        datetime actualizada "auto_now"
+    }
+    RegistroAuditoria {
+        int id PK
+        int usuario_id FK "SET_NULL, null"
+        varchar(255) accion
+        text detalle
+        datetime fecha "auto_now_add"
+        ip ip "nullable"
+    }</div>
+
+    <p>Migraciones de <code>ventas</code>: <code>0001_initial</code> (catálogo base) · <code>0002_...costo...</code> (costo de producto y <code>costo_unitario</code> de detalle) · <code>0003_...codigo_barras...stock_minimo</code> · <code>0004_...metodo_pago...monto_entregado...</code> (Sprint 3: método de pago, cajero, monto entregado y vuelto) · <code>0005_venta_cliente_venta_puntos_ganados</code> (HU-12: <code>Venta.cliente</code> y <code>Venta.puntos_ganados</code>) · <code>0006_turno</code> (HU-10: modelo <code>Turno</code>) · <code>0007_turno_deuda_otorgada_alter_venta_metodo_pago</code> (HU-14: <code>Turno.deuda_otorgada</code> y <code>Venta.metodo_pago</code> ampliado a 20 para <code>cuenta_corriente</code>) · <code>0008_mercadopago_qr</code> (HU-15: <code>Venta.metodo_pago</code> con <code>mercado_pago</code>, <code>Turno.total_mercado_pago</code> y modelo <code>PagoMercadoPago</code>) · <code>0009_conexion_mercadopago</code> (OAuth: modelo <code>ConexionMercadoPago</code>, una por instalación).<br>
+    <code>clientes</code>: <code>0001_initial</code> (modelo <code>Cliente</code>) · <code>0002_cliente_limite_credito_cliente_saldo_deuda_and_more</code> (HU-14: <code>Cliente.limite_credito</code>, <code>Cliente.saldo_deuda</code> y modelo <code>PagoCuentaCorriente</code>).<br>
+    <code>pedidos</code>: <code>0001_initial</code> (HU-13: modelos <code>Pedido</code> e <code>ItemPedido</code>) · <code>0002_pedido_cliente_pedido_venta</code> (cierre de HU-13: <code>Pedido.cliente</code> y <code>Pedido.venta</code>, con dependencia de <code>clientes 0002</code> y <code>ventas 0007</code>).</p>
+
+    <p>Notas de diseño:</p>
+    <ul>
+      <li><strong>Dinero en `Decimal(10,2)`</strong>, nunca <code>Float</code>: evita errores de redondeo.</li>
+      <li><strong>`precio_unitario` y `costo_unitario` en `DetalleVenta`</strong> congelan precio y costo al momento de la venta: el margen histórico no cambia si mañana se actualiza el producto.</li>
+      <li><strong>`Producto.activo`</strong> permite "borrar" del catálogo sin perder la referencia en ventas pasadas (baja lógica, reversible desde editar).</li>
+      <li><strong>`codigo_barras` unique</strong> a nivel de BD + <code>clean_codigo_barras</code> en el form: la restricción se defiende en dos capas.</li>
+      <li><strong>`stock_minimo`</strong> por producto (default 5) alimenta la property <code>stock_bajo</code> (<code>stock ≤ stock_minimo</code>), usada por la tabla y por los reportes.</li>
+      <li>Properties de negocio en <code>Producto</code>: <code>margen_unitario</code>, <code>margen_porcentual</code>, <code>valor_stock_costo</code>, <code>valor_stock_venta</code>; en <code>DetalleVenta</code>: <code>subtotal()</code>, <code>costo_total()</code>, <code>ganancia()</code>.</li>
+      <li><strong>`RegistroAuditoria.usuario` con `SET_NULL`</strong>: si se borra el usuario, el registro se conserva.</li>
+      <li><strong>`ItemPedido.nombre_producto` y `precio_unitario` congelados</strong>: igual que <code>DetalleVenta</code>, el pedido público conserva lo que el cliente vio al armarlo, aunque después cambie el precio o se dé de baja el producto (<code>producto</code> queda con <code>SET_NULL</code>).</li>
+      <li><strong>El pedido público no es una venta</strong>: el catálogo genera un <code>Pedido</code>, no una <code>Venta</code>. La venta real (y el descuento de stock) siguen ocurriendo en el POS cuando el cliente pasa por el local a retirar.</li>
+      <li><strong>Entregar es cobrar</strong> (cierre de HU-13): <code>Pedido.cliente</code> y <code>Pedido.venta</code> (ambos <code>SET_NULL</code>) son el vínculo entre el pedido de WhatsApp y el cobro real en el mostrador. La referencia va <strong>de `pedidos` hacia `ventas.Venta`</strong> (y no al revés) para no crear una dependencia circular de migraciones: <code>ventas</code> no sabe nada de <code>pedidos</code>. Ver ADN-18.</li>
+      <li><strong>El precio del pedido manda</strong>: al entregar se cobra el <code>ItemPedido.precio_unitario</code> congelado (lo que el cliente vio), no el <code>Producto.precio</code> del momento.</li>
+      <li><strong>Campos del Sprint 3</strong> (PRD RF-41, riesgo R-04 ✅): <code>Venta.metodo_pago</code> (choices <code>efectivo</code>/<code>tarjeta</code>/<code>cuenta_corriente</code>/<code>mercado_pago</code>), <code>Venta.usuario</code> (<code>SET_NULL</code>, cajero responsable), <code>monto_entregado</code> y <code>vuelto</code>.</li>
+      <li><strong>Fidelidad (HU-12, Sprint 4)</strong>: <code>Cliente</code> con <code>dni</code> único y normalizado por el form; <code>Venta.cliente</code> con <code>SET_NULL</code> (borrar un cliente no rompe la venta histórica) y <code>Venta.puntos_ganados</code>, que <strong>congela la regla de puntos</strong> vigente al momento de la venta (hoy 1 cada $100 en <code>clientes/services.py::PUNTOS_POR_PESO</code>).</li>
+      <li><strong>`Cliente.activo`</strong> aplica la misma baja lógica que <code>Producto</code>: el cliente dado de baja conserva su historial y sus puntos, pero no puede asociarse a ventas nuevas.</li>
+      <li><strong>`|montos`</strong> (ADN-12) es el único formato de dinero válido en templates, mensajes y auditoría.</li>
+      <li><strong>Cierre de turno (HU-10, Sprint 4)</strong>: <code>Turno</code> guarda <code>usuario</code> (<code>SET_NULL</code>), <code>fecha_apertura</code>, <code>fecha_cierre</code> (vacía = abierto) y el <strong>snapshot</strong> de <code>total_efectivo</code>, <code>total_tarjeta</code>, <code>deuda_otorgada</code> y <code>cantidad_operaciones</code>. Los totales se congelan al cerrar para que el histórico no cambie si después se registran más ventas (ver ADN-15).</li>
+      <li><strong>Cuenta corriente (HU-14, consigna)</strong>: <code>Cliente.limite_credito</code> (<code>default 0</code> = sin cuenta corriente) y <code>Cliente.saldo_deuda</code> (deuda vigente) persistidos en el cliente; <code>PagoCuentaCorriente</code> guarda el historial de pagos (<code>monto</code>, <code>fecha</code>, <code>usuario</code> y <code>observacion</code>) y sobrevive a la baja lógica del cliente. <code>Venta.metodo_pago</code> suma el choice <code>cuenta_corriente</code> (por eso <code>max_length</code> pasó a 20) y la deuda <strong>no</strong> entra a la caja: se informa aparte como <em>deuda otorgada</em> (ver ADN-17).</li>
+      <li>Las consignas nuevas de la cátedra quedaron <strong>completas</strong>: el <strong>catálogo público (HU-13)</strong> tiene modelos propios (<code>Pedido</code>/<code>ItemPedido</code> en la app <code>pedidos</code>) y se vincula a la <code>Venta</code> del cobro <strong>desde `pedidos`</strong> (<code>Pedido.venta</code>), sin que <code>ventas</code> dependa de <code>pedidos</code>; la <strong>cuenta corriente (HU-14)</strong> vive en <code>clientes</code> + <code>ventas</code> y no agrega tablas nuevas fuera de <code>PagoCuentaCorriente</code>.</li>
+      <li><strong>Cobro con QR (HU-15, v2.7)</strong>: <code>Venta.finalizada</code> distingue la venta <strong>pendiente</strong> (stock reservado, fuera de reportes y del turno) de la cobrada; <code>PagoMercadoPago</code> es un <strong>OneToOne</strong> con la venta (<code>CASCADE</code>) que guarda el <code>token</code> público, la preferencia, el <code>link_pago</code>, si fue <code>simulado</code>, el estado (<code>pendiente</code>/<code>aprobado</code>/<code>cancelado</code>) y el <code>payment_id</code>. La <code>Venta</code> no se borra al cancelar el cobro: se devuelve el stock y se elimina/cierra el pago. El cierre de turno congela además <code>Turno.total_mercado_pago</code> (ver ADN-19).</li>
+      <li><strong>Una cuenta de Mercado Pago por instalación</strong>: <code>ConexionMercadoPago</code> guarda <code>access_token</code>/<code>refresh_token</code> (secretos, fuera de pantallas y del admin), <code>expira</code>, <code>mp_user_id</code>, <code>nombre_cuenta</code>, <code>produccion</code> y quién la conectó (<code>SET_NULL</code>). No hay FK a un "negocio" porque cada instalación es de un solo kiosco; si el sistema pasa a multi-negocio se agrega el FK acá.</li>
+      <li><strong>Recuperación de contraseña</strong>: no agrega modelos (usa <code>auth.User</code> y el token firmado de Django). El backend de Resend manda el HTML cuando existe y el texto plano siempre; sin <code>RESEND_API_KEY</code> el backend es el de consola.</li>
+      <li><strong>Demo idempotente</strong> (RNF-18): <code>cargar_demo --limpiar</code> borra <strong>solo sus ventas anónimas</strong> (<code>cliente__isnull=True</code>, <code>pedidos__isnull=True</code>) y <code>cargar_demo_clientes --limpiar</code> repone el stock desde las ventas de pedidos y, si la venta ya no está, desde <code>ItemPedido</code>. Recargar la demo dos veces deja el mismo stock y los mismos totales.</li>
+      <li><strong>La entrega de pedidos no ofrece QR</strong>: <code>pedidos</code> filtra los métodos por <code>ventas.services.METODOS_PAGO_VALIDOS</code> (<code>efectivo</code>, <code>tarjeta</code>, <code>cuenta_corriente</code>), porque en la entrega se cobra en el acto.</li>
+      <li><code>usuarios</code> y <code>administracion</code> no agregan tablas: usan <code>auth_user</code>, <code>auth_group</code> y <code>auth_user_groups</code>.</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    ARD v2.8 — Sistema Kiosco (NorveX) — TP Metodologías Ágiles (UNAB)
+  </div>
+</div>
+</body>
+</html>

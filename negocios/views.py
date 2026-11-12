@@ -63,6 +63,7 @@ ORDEN_DOCUMENTOS = {
     "pendiente": "saldo_pendiente",
     "vencimiento": "fecha_vencimiento",
     "estado": "estado",
+    "dias_restantes": "fecha_vencimiento",
 }
 
 COLUMNAS_DOCUMENTOS = [
@@ -74,6 +75,7 @@ COLUMNAS_DOCUMENTOS = [
     ("pendiente", "Pendiente"),
     ("vencimiento", "Vencimiento"),
     ("estado", "Estado"),
+    ("dias_restantes", "Días Restantes"),
 ]
 
 DOCUMENTOS_POR_PAGINA = 10

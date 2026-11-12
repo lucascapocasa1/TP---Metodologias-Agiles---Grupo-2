@@ -3,6 +3,7 @@ from decimal import Decimal
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -401,9 +402,14 @@ def lista_productos(request):
             | Q(codigo_barras__icontains=busqueda)
         )
 
-    # Calcular margen de cada producto
+    # Paginación: de a 10 productos por página.
+    paginador = Paginator(productos, 10)
+    pagina = paginador.get_page(request.GET.get("page"))
+    productos_pagina = pagina.object_list
+
+    # Calcular margen de cada producto (solo los de la página actual).
     productos_con_margen = []
-    for p in productos:
+    for p in productos_pagina:
         margen_unitario = p.precio - p.costo
         margen_porcentual = (margen_unitario / p.costo * 100) if p.costo else 0
         productos_con_margen.append({
@@ -414,7 +420,9 @@ def lista_productos(request):
 
     contexto = {
         "productos_con_margen": productos_con_margen,
-        "productos": productos,
+        "productos": productos_pagina,
+        "pagina": pagina,
+        "paginador": paginador,
         "busqueda": busqueda,
         "orden": orden,
         "direccion": direccion,

@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Manual de Usuario — Norvex</title>
+<style>
+  :root {
+    --cian: #00ffff;
+    --cian-suave: #00e5ff;
+    --fondo: #0a0a0f;
+    --superficie: #11131e;
+    --superficie-claro: #1a1d2b;
+    --texto: #e8eaf6;
+    --texto-suave: #a9b1c6;
+    --borde: #2a2f40;
+    --exito: #00ff88;
+    --alerta: #ff9800;
+    --peligro: #dc2626;
+    --sombra: 0 8px 24px rgba(0,0,0,0.35);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: var(--fondo);
+    color: var(--texto);
+    line-height: 1.6;
+    padding: 0;
+  }
+  .page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 40px 30px;
+    background: var(--superficie);
+    border: 1px solid var(--borde);
+    box-shadow: var(--sombra);
+  }
+  .page-header {
+    background: linear-gradient(135deg, var(--cian), var(--cian-suave));
+    color: #000;
+    padding: 28px 32px;
+    border-radius: 12px 12px 0 0;
+    margin-bottom: 30px;
+  }
+  .page-header h1 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+  .page-header .sub {
+    font-size: 13px;
+    opacity: 0.85;
+    margin-top: 6px;
+  }
+  h2 {
+    font-size: 19px;
+    color: var(--cian);
+    margin: 34px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--borde);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+  }
+  h3 {
+    font-size: 15px;
+    color: var(--cian-suave);
+    margin: 24px 0 10px;
+  }
+  p { margin: 10px 0; font-size: 13.5px; }
+  ul, ol { margin: 10px 0 14px 24px; }
+  li { margin-bottom: 6px; font-size: 13.5px; }
+  table.data {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 18px 0;
+    font-size: 12.5px;
+  }
+  table.data th {
+    background: var(--cian);
+    color: #000;
+    text-align: left;
+    padding: 10px 12px;
+    font-weight: 800;
+    border: 1px solid var(--cian);
+    text-transform: uppercase;
+    font-size: 11.5px;
+  }
+  table.data td {
+    border: 1px solid var(--borde);
+    padding: 8px 12px;
+    background: rgba(255,255,255,0.03);
+  }
+  table.data tr:nth-child(even) td {
+    background: rgba(255,255,255,0.015);
+  }
+  code {
+    background: var(--superficie-claro);
+    color: var(--cian-suave);
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 12px;
+    border: 1px solid var(--borde);
+  }
+  pre code {
+    display: block;
+    padding: 14px 18px;
+    overflow-x: auto;
+    margin: 14px 0;
+  }
+  .badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .badge-ok { background: var(--exito); color: #000; }
+  .badge-alerta { background: var(--alerta); color: #000; }
+  .seccion-div {
+    border-top: 1px solid var(--borde);
+    margin: 34px 0;
+    padding-top: 20px;
+  }
+  .footer {
+    margin-top: 40px;
+    padding: 20px 0;
+    border-top: 1px solid var(--borde);
+    font-size: 11.5px;
+    color: var(--texto-suave);
+    text-align: center;
+  }
+  .ok { color: var(--exito); font-weight: 700; }
+  .advertencia { color: var(--texto-suave); font-weight: 600; }
+  @media print {
+    body { background: #fff; color: #000; }
+    .page { box-shadow: none; border: none; background: #fff; }
+    .page-header { background: #000; color: #fff; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="page-header">
+    <h1>Manual de Usuario — Norvex</h1>
+    <div class="sub">Guía rápida para el uso diario del sistema. Dirigido a dueños (Administrador) y cajeros.</div>
+  </div>
+
+  <div class="seccion-div">
+    <h2>1. Primeros pasos</h2>
+    <h3>1.1 Acceder al sistema</h2>
+    <ul>
+      <li>URL local: <code>http://127.0.0.1:8000/</code></li>
+      <li>URL en producción: <code>https://norvex.onrender.com/</code></li>
+    </ul>
+    <p>Al entrar, se te pedirá iniciar sesión con usuario y contraseña.</p>
+
+    <h3>1.2 Usuarios de prueba (datos de demo)</h3>
+    <table class="data">
+      <tr><th>Usuario</th><th>Contraseña</th><th>Rol</th><th>Puede hacer</th></tr>
+      <tr><td>`admin`</td><td>(se pasa por privado)</td><td>Superadmin</td><td>Todo: crear negocios, empleados, ver todos los comercios</td></tr>
+      <tr><td>`admin_barrio`</td><td>(se pasa por privado)</td><td>Administrador</td><td>Kiosco De Barrio: gestionar su negocio completo</td></tr>
+      <tr><td>`cajero_barrio_1`</td><td>(se pasa por privado)</td><td>Cajero</td><td>Kiosco De Barrio: solo pantalla de cobro</td></tr>
+      <tr><td>`admin_martillito`</td><td>(se pasa por privado)</td><td>Administrador</td><td>Ferretería Martillito: gestionar su negocio completo</td></tr>
+      <tr><td>`cajero_martillito_1`</td><td>(se pasa por privado)</td><td>Cajero</td><td>Ferretería Martillito: solo pantalla de cobro</td></tr>
+      <tr><td>`admin_natural`</td><td>(se pasa por privado)</td><td>Administrador</td><td>Dietética Natural: gestionar su negocio completo</td></tr>
+      <tr><td>`cajero_natural_1`</td><td>(se pasa por privado)</td><td>Cajero</td><td>Dietética Natural: solo pantalla de cobro</td></tr>
+    </table>
+  </div>
+
+  <div class="seccion-div">
+    <h2>2. Pantalla de cobro (POS)</h2>
+    <p>Es la pantalla principal del cajero. Desde aquí se hacen las ventas del día.</p>
+
+    <h3>2.1 Vender un producto</h3>
+    <ol>
+      <li>Ingresá con un usuario de rol <strong>Cajero</strong> o <strong>Administrador</strong>.</li>
+      <li>En la pantalla de cobro, escribí el <strong>código de barras</strong> o el <strong>nombre del producto</strong> en el buscador.</li>
+      <li>Seleccioná el producto de la lista de sugerencias.</li>
+      <li>Si necesitás cambiar la cantidad, usá los botones <code>+</code> y <code>-</code> al lado del ítem en el carrito.</li>
+      <li>Elegí el <strong>método de pago</strong>: Efectivo, Tarjeta o Cuenta Corriente (FIAR).
+        <ul>
+          <li>Si pagó en <strong>efectivo</strong>, ingresá el monto entregado y el sistema calculará el vuelto automáticamente.</li>
+        </ul>
+      </li>
+      <li>Hacé clic en <strong>Confirmar venta</strong>.</li>
+      <li>El sistema descuenta el stock, registra la venta y muestra el comprobante.</li>
+    </ol>
+
+    <h3>2.2 Cobrar a cuenta corriente (FIAR)</h3>
+    <p>Solo para clientes registrados con cuenta corriente habilitada:</p>
+    <ol>
+      <li>En el carrito, asociá un cliente (buscá por DNI o nombre).</li>
+      <li>Elegí <strong>Cuenta Corriente</strong> como método de pago.</li>
+      <li>El sistema validará que el monto no supere el límite de crédito del cliente.</li>
+      <li>Confirmá la venta. La deuda queda registrada en la ficha del cliente.</li>
+    </ol>
+
+    <h3>2.3 Cobro con QR de Mercado Pago</h3>
+    <ol>
+      <li>Elegí <strong>Mercado Pago (QR)</strong> como método de pago.</li>
+      <li>El sistema genera un QR que el cliente puede escanear con su celular.</li>
+      <li>La venta queda como <strong>pendiente</strong> hasta que el pago se apruebe.</li>
+      <li>Cuando el pago se confirma, la venta se finaliza automáticamente y se muestra el comprobante.</li>
+      <li>Si se cancela, el stock vuelve y los productos regresan al carrito.</li>
+    </ol>
+  </div>
+
+  <div class="seccion-div">
+    <h2>3. Gestión de productos (solo Administrador)</h2>
+
+    <h3>3.1 Alta de producto</h3>
+    <ol>
+      <li>Ve a <strong>Gestionar productos</strong> (menú lateral).</li>
+      <li>Hacé clic en <strong>Nuevo producto</strong>.</li>
+      <li>Completá: nombre, categoría, código de barras, precio de venta, precio de costo, stock y stock mínimo.</li>
+      <li>Guardá.</li>
+    </ol>
+
+    <h3>3.2 Editar y dar de baja</h3>
+    <ul>
+      <li>Desde la lista de productos podés editar cualquier dato o dar de baja un producto (<strong>baja lógica</strong>: desaparece del catálogo pero se conserva en ventas históricas).</li>
+      <li>Los productos con <strong>stock bajo</strong> (igual o menor al stock mínimo) se marcan automáticamente.</li>
+    </ul>
+  </div>
+
+  <div class="seccion-div">
+    <h2>4. Cierre de turno (arqueo de caja)</h2>
+    <p>Al final del día, el cajero o administrador cierra el turno:</p>
+    <ol>
+      <li>Ve a <strong>Cierre de turno</strong> (menú lateral).</li>
+      <li>Ingresá los montos físicos contados: <strong>efectivo, tarjeta y Mercado Pago</strong>.</li>
+      <li>El sistema compara con los totales registrados y calcula la diferencia (sobrante o faltante).</li>
+      <li>Guardá el arqueo. Queda registrado vinculado al turno.</li>
+    </ol>
+  </div>
+
+  <div class="seccion-div">
+    <h2>5. Gestión de clientes y cuenta corriente FIAR</h2>
+
+    <h3>5.1 Clientes frecuentes</h3>
+    <p>Desde <strong>Gestionar clientes</strong> podés crear, editar y buscar clientes por DNI o nombre.</p>
+
+    <h3>5.2 Cuenta corriente (FIAR)</h3>
+    <p>En la ficha de cada cliente podés:</p>
+    <ul>
+      <li>Ver su <strong>límite de crédito</strong> y su <strong>deuda actual</strong>.</li>
+      <li>Registrar pagos de su deuda (pago parcial o total).</li>
+      <li>Ver el historial de pagos y compras fiadas.</li>
+    </ul>
+    <p>Desde el POS, al cobrar con <strong>Cuenta Corriente</strong>, la deuda del cliente aumenta automáticamente dentro del límite asignado.</p>
+  </div>
+
+  <div class="seccion-div">
+    <h2>6. Facturas y Proveedores (módulo separado)</h2>
+    <p>El sistema tiene dos módulos separados en el menú lateral: <strong>Facturas</strong> y <strong>Proveedores</strong>.</p>
+
+    <h3>6.1 Facturas (servicios y gastos)</h3>
+    <p>Sirve para luz, gas, seguridad e higiene, y otros gastos del negocio.</p>
+    <ul>
+      <li><strong>Crear factura:</strong> completá monto, fecha de vencimiento, categoría y opcionalmente un archivo adjunto (PDF o imagen).</li>
+      <li><strong>Registrar pago:</strong> podés hacer un pago parcial o total. El saldo se actualiza automáticamente.</li>
+      <li><strong>Anular:</strong> si una factura se anuló, podés anularla para que deje de contar como deuda.</li>
+      <li><strong>Vencimientos:</strong> las facturas vencidas se muestran en rojo; las que vencen en 7 días o menos se marcan con alerta.</li>
+    </ul>
+
+    <h3>6.2 Proveedores (cuentas corrientes de mercadería)</h3>
+    <p>Sirve para llevar la deuda con proveedores de mercadería.</p>
+    <ul>
+      <li><strong>Crear proveedor:</strong> desde el módulo Proveedores podés dar de alta un proveedor nuevo.</li>
+      <li><strong>Ver deuda:</strong> cada proveedor muestra su saldo pendiente, cuánto está vencido y cuál es el próximo vencimiento.</li>
+      <li><strong>Pagar a proveedor (FIFO):</strong> al registrar un pago, el sistema lo aplica automáticamente a las facturas más antiguas primero. Antes de confirmar, se muestra una <strong>previsualización</strong> de cómo se repartirá el pago.</li>
+      <li><strong>Convertir en proveedor:</strong> si tenés facturas viejas con el nombre del proveedor escrito a mano, podés convertir ese nombre en un proveedor registrado de a uno, con confirmación.</li>
+      <li><strong>Historial de pagos:</strong> en la ficha de cada proveedor ves todos los pagos realizados, agrupados por operación.</li>
+    </ul>
+  </div>
+
+  <div class="seccion-div">
+    <h2>7. Reportes y dashboard</h2>
+    <p>Desde el <strong>Dashboard</strong> (menú lateral) podés ver:</p>
+    <ul>
+      <li>Ventas del período con variación contra el período anterior.</li>
+      <li>Clientes con cuenta corriente (FIAR) y su deuda.</li>
+      <li>Pedidos pendientes con más de 48 horas.</li>
+      <li>Productos más vendidos y productos sin movimiento.</li>
+      <li>Ingresos por medio de pago (efectivo, tarjeta, Mercado Pago).</li>
+      <li>Próximos vencimientos de facturas.</li>
+    </ul>
+    <p>También podés exportar el <strong>stock a Excel</strong> desde el reporte de stock.</p>
+  </div>
+
+  <div class="seccion-div">
+    <h2>8. Tienda online pública</h2>
+    <p>Cada negocio tiene su propia tienda online en <code>/t/&lt;slug&gt;/</code> (por ejemplo, <code>/t/kiosco-de-barrio/</code>).</p>
+    <ul>
+      <li>Los clientes pueden ver el catálogo sin iniciar sesión.</li>
+      <li>Pueden armar un pedido y enviarlo por WhatsApp al local.</li>
+      <li>El dueño ve el pedido en su panel y lo cobra al retirar.</li>
+    </ul>
+  </div>
+
+  <div class="seccion-div">
+    <h2>9. Comandos útiles (para el administrador del sistema)</h2>
+    <p>Desde la terminal del proyecto:</p>
+    <pre><code>powershell
+# Crear usuarios iniciales
+python manage.py setup_inicial
+
+# Cargar datos de demo (50+ productos y ventas)
+python manage.py cargar_demo --limpiar
+
+# Cargar clientes y pedidos de WhatsApp
+python manage.py cargar_demo_clientes --limpiar
+
+# Correr todos los tests
+python manage.py test
+
+# Ejecutar el servidor
+python manage.py runserver 8000</code></pre>
+  </div>
+
+  <div class="seccion-div">
+    <h2>10. Soporte y soporte técnico</h2>
+    <ul>
+      <li>Si el cajero no ve alguna pantalla, es porque no tiene el rol necesario (recibe 403).</li>
+      <li>Si olvidaste la contraseña, usá el enlace "¿Olvidaste tu contraseña?" en el login.</li>
+      <li>Los datos se guardan en PostgreSQL; el sistema está publicado en Render (<code>https://norvex.onrender.com/</code>).</li>
+    </ul>
+  </div>
+
+  <div class="footer">
+    Última actualización: 11 de noviembre de 2026 &nbsp;|&nbsp; Versión: 1.0
+  </div>
+</div>
+</body>
+</html>

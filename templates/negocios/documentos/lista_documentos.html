@@ -126,11 +126,6 @@
                 <tr>
                     <td class="celda-factura">
                         <strong>{{ documento.numero_factura|default:documento.nombre_proveedor }}</strong>
-                        {% if documento.archivo %}
-                        <a href="{{ documento.archivo.url }}" target="_blank" class="texto-suave" title="Ver adjunto">
-                            <i class="{{ documento.icono_archivo }}"></i>
-                        </a>
-                        {% endif %}
                         <br><span class="texto-suave">{{ documento.get_categoria_display }}</span>
                     </td>
                     <td class="texto-suave">{{ documento.get_categoria_display }}</td>
@@ -161,19 +156,6 @@
                     <td class="celda-vencimiento">
                         <span class="texto-suave">{{ documento.fecha_vencimiento|date:"d/m/Y" }}</span>
                     </td>
-                    <td class="celda-dias-restantes">
-                        {% if documento.estado == "pendiente" and documento.esta_vencida %}
-                        <span class="dias-restantes dias-restantes-vencida">{{ documento.dias_vencida }} días vencida</span>
-                        {% elif documento.esta_por_vencer %}
-                        <span class="dias-restantes dias-restantes-por-vencer">{{ documento.dias_restantes }} días</span>
-                        {% elif documento.esta_por_vencer_lejos %}
-                        <span class="dias-restantes dias-restantes-por-vencer-lejos">{{ documento.dias_restantes }} días</span>
-                        {% elif documento.estado == "pendiente" %}
-                        <span class="dias-restantes dias-restantes-pendiente">{{ documento.dias_restantes }} días</span>
-                        {% else %}
-                        <span class="texto-suave">—</span>
-                        {% endif %}
-                    </td>
                     <td class="celda-estado">
                         {% if documento.estado == "anulada" %}
                         <span class="badge-estado badge-estado-anulada">Anulada</span>
@@ -195,7 +177,25 @@
                         <span class="badge-estado badge-estado-pendiente">Pendiente</span>
                         {% endif %}
                     </td>
+                    <td class="celda-dias-restantes">
+                        {% if documento.estado == "pendiente" and documento.esta_vencida %}
+                        <span class="dias-restantes dias-restantes-vencida">{{ documento.dias_vencida }} días vencida</span>
+                        {% elif documento.esta_por_vencer %}
+                        <span class="dias-restantes dias-restantes-por-vencer">{{ documento.dias_restantes }} días</span>
+                        {% elif documento.esta_por_vencer_lejos %}
+                        <span class="dias-restantes dias-restantes-por-vencer-lejos">{{ documento.dias_restantes }} días</span>
+                        {% elif documento.estado == "pendiente" %}
+                        <span class="dias-restantes dias-restantes-pendiente">{{ documento.dias_restantes }} días</span>
+                        {% else %}
+                        <span class="texto-suave">—</span>
+                        {% endif %}
+                    </td>
                     <td class="text-end celda-acciones">
+                        {% if documento.archivo %}
+                        <a href="{{ documento.archivo.url }}" target="_blank" class="btn btn-outline btn-sm" title="Ver adjunto">
+                            <i class="{{ documento.icono_archivo }}"></i>
+                        </a>
+                        {% endif %}
                         <div class="acciones-grupo">
                             <button class="btn btn-outline btn-menu-acciones" aria-label="Más acciones para {{ documento.numero_factura|default:documento.nombre_proveedor }}">
                                 <i class="bi bi-three-dots-vertical"></i>
