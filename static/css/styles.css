@@ -1747,28 +1747,23 @@ strong {
   margin: 0 auto;
 }
 
-/* Listados de facturas/proveedores: usan todo el ancho disponible para
-   que la tabla de documentos no genere barra de desplazamiento horizontal. */
-body.con-menu-lateral.documentos-panel-ancho .kiosco-main {
-  max-width: none;
-  padding-inline: 1rem;
-}
-body.con-menu-lateral.documentos-panel-ancho .admin-panel {
+/* Todo el panel privado usa el ancho disponible de la pantalla. */
+body.con-menu-lateral .admin-panel {
   max-width: none;
 }
 
 /* En pantallas donde el ancho disponible todavía no alcanza, la tabla
    de documentos se compacta un poco para evitar el scroll horizontal. */
 @media (max-width: 1600px) {
-  body.con-menu-lateral.documentos-panel-ancho .tabla-documentos th,
-  body.con-menu-lateral.documentos-panel-ancho .tabla-documentos td {
+  body.con-menu-lateral .tabla-documentos th,
+  body.con-menu-lateral .tabla-documentos td {
     padding-left: 0.5rem;
     padding-right: 0.5rem;
   }
-  body.con-menu-lateral.documentos-panel-ancho .tabla-documentos th {
+  body.con-menu-lateral .tabla-documentos th {
     font-size: 0.75rem;
   }
-  body.con-menu-lateral.documentos-panel-ancho .tabla-documentos td {
+  body.con-menu-lateral .tabla-documentos td {
     font-size: 0.85rem;
   }
 }
@@ -5370,10 +5365,10 @@ a.stat-card-link:hover {
 /* El contenido privado se corre para no quedar debajo del menú. */
 body.con-menu-lateral .kiosco-main {
   width: auto;
-  max-width: 1280px;
+  max-width: none;
   margin-left: 260px;
   margin-right: auto;
-  padding-inline: 1.25rem;
+  padding-inline: 1rem;
 }
 
 /* El botón hamburguesa solo aparece en pantallas chicas. */
