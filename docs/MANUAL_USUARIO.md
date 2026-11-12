@@ -17,13 +17,13 @@ Al entrar, se te pedirá iniciar sesión con usuario y contraseña.
 
 | Usuario | Contraseña | Rol | Puede hacer |
 |---------|-----------|-----|-------------|
-| `admin` | `kiosco2024` | Superadmin | Todo: crear negocios, empleados, ver todos los comercios |
-| `admin_barrio` | `kiosco2024` | Administrador | Kiosco De Barrio: gestionar su negocio completo |
-| `cajero_barrio_1` | `kiosco2024` | Cajero | Kiosco De Barrio: solo pantalla de cobro |
-| `admin_martillito` | `kiosco2024` | Administrador | Ferretería Martillito: gestionar su negocio completo |
-| `cajero_martillito_1` | `kiosco2024` | Cajero | Ferretería Martillito: solo pantalla de cobro |
-| `admin_natural` | `kiosco2024` | Administrador | Dietética Natural: gestionar su negocio completo |
-| `cajero_natural_1` | `kiosco2024` | Cajero | Dietética Natural: solo pantalla de cobro |
+| `admin` | (se pasa por privado) | Superadmin | Todo: crear negocios, empleados, ver todos los comercios |
+| `admin_barrio` | (se pasa por privado) | Administrador | Kiosco De Barrio: gestionar su negocio completo |
+| `cajero_barrio_1` | (se pasa por privado) | Cajero | Kiosco De Barrio: solo pantalla de cobro |
+| `admin_martillito` | (se pasa por privado) | Administrador | Ferretería Martillito: gestionar su negocio completo |
+| `cajero_martillito_1` | (se pasa por privado) | Cajero | Ferretería Martillito: solo pantalla de cobro |
+| `admin_natural` | (se pasa por privado) | Administrador | Dietética Natural: gestionar su negocio completo |
+| `cajero_natural_1` | (se pasa por privado) | Cajero | Dietética Natural: solo pantalla de cobro |
 
 ---
 

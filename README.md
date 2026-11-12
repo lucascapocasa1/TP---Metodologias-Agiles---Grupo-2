@@ -145,6 +145,7 @@ python manage.py cargar_demo_clientes --limpiar
 | `admin_natural` | `kiosco2024` | Administrador | Dietética Natural |
 | `cajero_natural_1` | `kiosco2024` | Cajero | Dietética Natural |
 | `cajero_natural_2` | `kiosco2024` | Cajero | Dietética Natural |
+> Esas claves valen en la base **local**. En `norvex.onrender.com` cada usuario tiene su propia clave (migración `usuarios/0002_rotar_claves_demo`) y se pasan por privado.
 
 ### Correr los tests
 
