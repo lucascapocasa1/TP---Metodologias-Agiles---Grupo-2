@@ -167,6 +167,16 @@ def crear_pedido(
         raise ErrorPedido("Todavía no agregaste ningún producto al pedido.")
 
     total = total_del_pedido(items) + costo_envio
+
+    # El catálogo general (/catalogo/) no viene de /t/<slug>/ y no trae
+    # negocio: se lo asigno si todos los productos son del mismo comercio.
+    # Si mezcla negocios (o los productos no tienen) queda sin negocio, y el
+    # panel lo muestra igual para que no se pierda (ver views._pedidos_visibles).
+    if negocio is None:
+        negocios = {item["producto"].negocio_id for item in items}
+        if len(negocios) == 1:
+            negocio = items[0]["producto"].negocio
+
     pedido = Pedido.objects.create(
         nombre_cliente=nombre_cliente[:120],
         telefono=(telefono or "").strip()[:30],
@@ -334,8 +344,13 @@ def registrar_entrega(pedido, cliente, metodo_pago, usuario, monto_entregado=Non
         # definitivamente en la Venta.
         pedido.reservas_stock.filter(estado="reservada").update(estado="convertida")
 
-        # La venta hereda el negocio del pedido para aislamiento multiempresa.
-        if venta.negocio_id is None and pedido.negocio_id is not None:
+        # La venta queda en el negocio del pedido (si lo tiene); si el pedido
+        # es del catálogo general, se conserva el negocio del empleado que
+        # entregó, que _crear_venta ya le asignó.
+        if (
+            pedido.negocio_id is not None
+            and venta.negocio_id != pedido.negocio_id
+        ):
             venta.negocio = pedido.negocio
             venta.save(update_fields=["negocio"])
 

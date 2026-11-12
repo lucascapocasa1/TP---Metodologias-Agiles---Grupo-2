@@ -986,6 +986,34 @@ class CierreTurnoTests(TestCase):
             finalizada=finalizada,
         )
 
+    def test_venta_del_pos_guarda_el_negocio_del_cajero(self):
+        """Regresión: _crear_venta tiene que asignar el negocio del empleado.
+
+        Sin esto toda venta del POS quedaba con negocio=None: no aparecía en
+        los reportes, en el detalle ni en el cierre de turno (totales en $0)
+        de cualquier usuario con negocio asignado.
+        """
+        from . import services
+
+        self.login_cajero()
+        self.abrir()
+        self.client.post(
+            reverse("ventas:cobro_agregar"), {"codigo": "7790000000001"}
+        )
+        self.client.post(
+            reverse("ventas:cobro_confirmar"),
+            {"metodo_pago": "efectivo", "monto_entregado": "10000"},
+        )
+
+        venta = Venta.objects.get()
+        self.assertEqual(venta.negocio, self.negocio)
+
+        turno = Turno.objects.get()
+        self.assertEqual(
+            services.totales_del_turno(turno)["total_efectivo"],
+            Decimal("1500.00"),
+        )
+
     def test_anonimo_redirige_a_login(self):
         url = reverse("ventas:cierre_turno")
         self.assertEqual(self.client.get(url).status_code, 302)

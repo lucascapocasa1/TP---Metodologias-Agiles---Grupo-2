@@ -270,6 +270,49 @@ class PanelPedidosTests(BasePedidos):
             self.client.get(reverse("pedidos:lista_pedidos")).status_code, 403
         )
 
+    def test_pedido_del_catalogo_general_no_se_pierde_en_el_panel(self):
+        """Un pedido sin negocio (catálogo general /catalogo/) tiene que ser
+        visible para el administrador que tiene negocio asignado.
+
+        Regresión: el panel filtraba solo por `negocio=request.negocio` y un
+        pedido con `negocio=None` era invisible para todos, aunque el stock
+        ya estaba reservado.
+        """
+        from negocios.models import Negocio
+        from usuarios.models import Empleado
+
+        self.armar_pedido()
+        self.confirmar()
+        pedido = Pedido.objects.get()
+        self.assertIsNone(pedido.negocio_id)
+
+        negocio = Negocio.objects.create(
+            nombre="Kiosco Test", slug="kiosco-test", activo=True
+        )
+        Empleado.objects.create(
+            usuario=self.admin, negocio=negocio, activo=True
+        )
+        self.login_admin()
+        respuesta = self.client.get(reverse("pedidos:lista_pedidos"))
+        self.assertEqual(respuesta.status_code, 200)
+        self.assertContains(respuesta, "Lucía Gómez")
+
+    def test_pedido_del_catalogo_hereda_el_negocio_de_sus_productos(self):
+        """Si todos los productos del pedido son de un mismo negocio, el
+        pedido queda asignado a ese negocio (aislamiento multiempresa)."""
+        from negocios.models import Negocio
+
+        negocio = Negocio.objects.create(
+            nombre="Kiosco Test", slug="kiosco-test", activo=True
+        )
+        self.producto.negocio = negocio
+        self.producto.save(update_fields=["negocio"])
+
+        self.armar_pedido()
+        self.confirmar()
+        pedido = Pedido.objects.get()
+        self.assertEqual(pedido.negocio, negocio)
+
     def test_anonimo_va_al_login(self):
         respuesta = self.client.get(reverse("pedidos:lista_pedidos"))
         self.assertEqual(respuesta.status_code, 302)

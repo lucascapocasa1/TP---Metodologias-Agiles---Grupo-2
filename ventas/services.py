@@ -14,6 +14,7 @@ from django.db.models import F, Count, Q, Sum
 from django.utils import timezone
 
 from clientes import services as fidelidad
+from usuarios.models import Empleado
 
 from .models import ArqueoTurno, DetalleVenta, Producto, Turno, Venta
 
@@ -284,11 +285,21 @@ def _crear_venta(items, metodo_pago, cliente, usuario, monto_entregado, finaliza
                 f"quedan {stock_disponible} unidades disponibles."
             )
 
+    # La venta pertenece al negocio del cajero (si tiene): sin esto, toda
+    # venta del POS quedaba con negocio=None y era invisible en los reportes,
+    # el detalle y el cierre de turno de cualquier usuario con negocio.
+    negocio_venta = None
+    if usuario is not None and usuario.is_authenticated:
+        empleado = Empleado.objects.filter(usuario=usuario).first()
+        if empleado is not None:
+            negocio_venta = empleado.negocio
+
     venta = Venta.objects.create(
         total=total,
         finalizada=finalizada,
         metodo_pago=metodo_pago,
         usuario=usuario if (usuario and usuario.is_authenticated) else None,
+        negocio=negocio_venta,
         monto_entregado=monto_final,
         vuelto=vuelto,
         cliente=cliente,

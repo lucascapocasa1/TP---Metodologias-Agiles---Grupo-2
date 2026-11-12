@@ -134,15 +134,30 @@ def pedido_confirmar(request):
 # ========== PANEL DE PEDIDOS (solo Administrador) ==========
 
 
+def _pedidos_visibles(user, negocio):
+    """Pedidos que este usuario puede ver y gestionar en el panel.
+
+    - Superadmin: todos (como en el resto del sistema).
+    - Resto: los de su negocio **más** los que quedaron sin negocio (pedido
+      armado en el catálogo general con productos mezclados). Sin esto, un
+      pedido `negocio=None` era invisible para cualquier usuario con negocio
+      asignado: se reservaba el stock pero no aparecía en ningún panel.
+    """
+    if user.is_superuser:
+        return Pedido.objects.all()
+    return Pedido.objects.filter(
+        Q(negocio=negocio) | Q(negocio__isnull=True)
+    )
+
+
 @rol_requerido("Administrador")
 def lista_pedidos(request):
     """Los pedidos recibidos desde el catálogo público, con filtro por estado."""
     estado = request.GET.get("estado", "")
     busqueda = request.GET.get("buscar", "").strip()
 
-    pedidos = Pedido.objects.filter(
-        negocio=request.negocio
-    ).prefetch_related("detalles")
+    visibles = _pedidos_visibles(request.user, request.negocio)
+    pedidos = visibles.prefetch_related("detalles")
     if estado in dict(Pedido.ESTADOS):
         pedidos = pedidos.filter(estado=estado)
     if busqueda:
@@ -151,9 +166,7 @@ def lista_pedidos(request):
             | Q(telefono__icontains=busqueda)
         )
 
-    pendientes = Pedido.objects.filter(
-        estado="pendiente", negocio=request.negocio
-    ).count()
+    pendientes = visibles.filter(estado="pendiente").count()
     contexto = {
         "pedidos": pedidos,
         "estado_actual": estado,
@@ -169,9 +182,10 @@ def lista_pedidos(request):
 @rol_requerido("Administrador")
 def detalle_pedido(request, pedido_id):
     pedido = get_object_or_404(
-        Pedido.objects.prefetch_related("detalles"),
+        _pedidos_visibles(request.user, request.negocio).prefetch_related(
+            "detalles"
+        ),
         pk=pedido_id,
-        negocio=request.negocio,
     )
     return render(
         request,
@@ -219,7 +233,9 @@ def entregar_pedido(request, pedido_id):
     if request.method != "POST":
         raise PermissionDenied("Esta acción se hace con POST.")
 
-    pedido = get_object_or_404(Pedido, pk=pedido_id, negocio=request.negocio)
+    pedido = get_object_or_404(
+        _pedidos_visibles(request.user, request.negocio), pk=pedido_id
+    )
 
     cliente = None
     cliente_id = (request.POST.get("cliente_id") or "").strip()
@@ -276,7 +292,9 @@ def cambiar_estado_pedido(request, pedido_id, estado):
     if request.method != "POST":
         raise PermissionDenied("Esta acción se hace con POST.")
 
-    pedido = get_object_or_404(Pedido, pk=pedido_id, negocio=request.negocio)
+    pedido = get_object_or_404(
+        _pedidos_visibles(request.user, request.negocio), pk=pedido_id
+    )
     estados_validos = dict(Pedido.ESTADOS)
     if estado not in estados_validos:
         messages.error(request, "Estado de pedido no válido.")

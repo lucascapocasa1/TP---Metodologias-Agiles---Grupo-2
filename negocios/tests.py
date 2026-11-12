@@ -6,6 +6,7 @@ Valida que:
 3. Un cliente puede comprar en varios negocios, pero cada negocio ve solo sus propias ventas.
 4. El flujo completo de compra online y retiro en local funciona correctamente.
 """
+import io
 from django.contrib.auth.models import Group, User
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -912,4 +913,132 @@ class DocumentosSeparacionTests(TestCase):
             respuesta,
             f"{reverse('negocios:lista_proveedores')}"
             f"?proveedor={self.proveedor.pk}",
+        )
+
+
+class BackfillNegociosTests(TestCase):
+    """backfill_negocios: repara ventas y pedidos que quedaron sin negocio."""
+
+    def setUp(self):
+        self.negocio_barrio = Negocio.objects.create(
+            nombre="Kiosco De Barrio", slug="de-barrio", activo=True
+        )
+        self.negocio_ferre = Negocio.objects.create(
+            nombre="Ferretería Martillito",
+            slug="ferreteria-martillito",
+            activo=True,
+        )
+
+        self.cajero = User.objects.create_user(
+            username="cajero_backfill", password="clave123"
+        )
+        Empleado.objects.create(
+            usuario=self.cajero, negocio=self.negocio_barrio, activo=True
+        )
+
+        self.categoria = Categoria.objects.create(
+            nombre="Bebidas", negocio=self.negocio_barrio
+        )
+        self.producto_barrio = Producto.objects.create(
+            nombre="Coca 500ml",
+            codigo_barras="7790000000500",
+            precio=Decimal("1500.00"),
+            stock=10,
+            categoria=self.categoria,
+            negocio=self.negocio_barrio,
+        )
+        self.producto_ferre = Producto.objects.create(
+            nombre="Martillo",
+            codigo_barras="7790000000501",
+            precio=Decimal("9000.00"),
+            stock=5,
+            categoria=self.categoria,
+            negocio=self.negocio_ferre,
+        )
+
+    def backfill(self):
+        from django.core.management import call_command
+
+        salida = io.StringIO()
+        call_command("backfill_negocios", stdout=salida)
+        return salida.getvalue()
+
+    def venta(self, usuario=None, negocio=None):
+        return Venta.objects.create(
+            total=Decimal("1500.00"),
+            finalizada=True,
+            metodo_pago="efectivo",
+            usuario=usuario,
+            negocio=negocio,
+        )
+
+    def pedido_con(self, productos):
+        pedido = Pedido.objects.create(nombre_cliente="Lucía Gómez")
+        for producto in productos:
+            ItemPedido.objects.create(
+                pedido=pedido,
+                producto=producto,
+                nombre_producto=producto.nombre,
+                cantidad=1,
+                precio_unitario=producto.precio,
+            )
+        return pedido
+
+    def test_asigna_el_negocio_del_empleado_a_las_ventas(self):
+        venta_bug = self.venta(usuario=self.cajero)
+        venta_ya_asignada = self.venta(
+            usuario=self.cajero, negocio=self.negocio_ferre
+        )
+        sin_usuario = self.venta()
+
+        salida = self.backfill()
+
+        venta_bug.refresh_from_db()
+        self.assertEqual(venta_bug.negocio, self.negocio_barrio)
+        # No toca las que ya tienen negocio ni resuelve las sin usuario.
+        venta_ya_asignada.refresh_from_db()
+        self.assertEqual(venta_ya_asignada.negocio, self.negocio_ferre)
+        sin_usuario.refresh_from_db()
+        self.assertIsNone(sin_usuario.negocio)
+        self.assertIn("Backfill de negocios: 1 ventas y 0 pedidos", salida)
+
+    def test_asigna_el_negocio_de_los_items_a_los_pedidos(self):
+        pedido_mismo = self.pedido_con([self.producto_barrio])
+        pedido_mixto = self.pedido_con(
+            [self.producto_barrio, self.producto_ferre]
+        )
+        sin_items = self.pedido_con([])
+
+        salida = self.backfill()
+
+        pedido_mismo.refresh_from_db()
+        self.assertEqual(pedido_mismo.negocio, self.negocio_barrio)
+        pedido_mixto.refresh_from_db()
+        self.assertIsNone(pedido_mixto.negocio)
+        sin_items.refresh_from_db()
+        self.assertIsNone(sin_items.negocio)
+        self.assertIn("0 ventas y 1 pedidos", salida)
+
+    def test_pedido_con_producto_eliminado_no_se_toca(self):
+        pedido = self.pedido_con([self.producto_barrio])
+        ItemPedido.objects.filter(pedido=pedido).update(producto=None)
+
+        self.backfill()
+
+        pedido.refresh_from_db()
+        self.assertIsNone(pedido.negocio)
+
+    def test_es_idempotente(self):
+        self.venta(usuario=self.cajero)
+        self.pedido_con([self.producto_barrio])
+
+        self.backfill()
+        salida = self.backfill()
+
+        self.assertIn("0 ventas y 0 pedidos asignados", salida)
+        self.assertEqual(
+            Venta.objects.filter(negocio=self.negocio_barrio).count(), 1
+        )
+        self.assertEqual(
+            Pedido.objects.filter(negocio=self.negocio_barrio).count(), 1
         )
