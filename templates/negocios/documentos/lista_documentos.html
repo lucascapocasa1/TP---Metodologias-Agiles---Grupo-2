@@ -260,7 +260,7 @@
                 <li class="page-item active"><span class="page-link">{{ num }}</span></li>
                 {% elif num > pagina.number|add:"-3" and num < pagina.number|add:"3" %}
                 <li class="page-item">
-                    <a class="page-link" href="?{% param page=num %}vista=vista_actual %">{{ num }}</a>
+                    <a class="page-link" href="?{% param page=num %}">{{ num }}</a>
                 </li>
                 {% endif %}
             {% endfor %}

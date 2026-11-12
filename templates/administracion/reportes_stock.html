@@ -171,7 +171,7 @@
             {% if is_paginated_stock %}
             <div class="kiosco-pagination mt-3">
                 {% if stock_bajo.has_previous %}
-                <a href="?page_stock_bajo={{ stock_bajo.previous_page_number }}" class="kiosco-pagination page-link">
+                <a href="{% querystring page_stock_bajo=stock_bajo.previous_page_number %}" class="kiosco-pagination page-link">
                     <i class="bi bi-chevron-left"></i> Anterior
                 </a>
                 {% endif %}
@@ -179,7 +179,7 @@
                     Página {{ stock_bajo.number }} de {{ stock_bajo.paginator.num_pages }}
                 </span>
                 {% if stock_bajo.has_next %}
-                <a href="?page_stock_bajo={{ stock_bajo.next_page_number }}" class="kiosco-pagination page-link">
+                <a href="{% querystring page_stock_bajo=stock_bajo.next_page_number %}" class="kiosco-pagination page-link">
                     Siguiente <i class="bi bi-chevron-right"></i>
                 </a>
                 {% endif %}
@@ -234,7 +234,7 @@
             {% if is_paginated_bm %}
             <div class="kiosco-pagination mt-3">
                 {% if bajo_margen.has_previous %}
-                <a href="?page_bm={{ bajo_margen.previous_page_number }}" class="kiosco-pagination page-link">
+                <a href="{% querystring page_bm=bajo_margen.previous_page_number %}" class="kiosco-pagination page-link">
                     <i class="bi bi-chevron-left"></i> Anterior
                 </a>
                 {% endif %}
@@ -242,7 +242,7 @@
                     Página {{ bajo_margen.number }} de {{ bajo_margen.paginator.num_pages }}
                 </span>
                 {% if bajo_margen.has_next %}
-                <a href="?page_bm={{ bajo_margen.next_page_number }}" class="kiosco-pagination page-link">
+                <a href="{% querystring page_bm=bajo_margen.next_page_number %}" class="kiosco-pagination page-link">
                     Siguiente <i class="bi bi-chevron-right"></i>
                 </a>
                 {% endif %}

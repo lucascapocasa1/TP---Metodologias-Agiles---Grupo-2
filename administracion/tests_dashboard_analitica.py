@@ -419,3 +419,24 @@ class ProductosSinMovimientoPrecioTests(BaseDashboardAnalitica):
         )
         self.assertEqual(resp.status_code, 200)
         self.assertEqual(self.client.get(url, {"dias": "x"}).status_code, 200)
+
+
+class PaginacionConservaFiltrosTests(BaseDashboardAnalitica):
+    def test_reporte_ventas_pagina_siguiente_mantiene_filtros(self):
+        for _ in range(11):
+            self.crear_venta(self.agua)
+        hoy = timezone.localdate().isoformat()
+        resp = self.client.get(
+            reverse("administracion:reportes_ventas"),
+            {"desde": hoy, "hasta": hoy, "finalizadas": "1"},
+        )
+        self.assertContains(resp, f"?desde={hoy}&amp;hasta={hoy}&amp;finalizadas=1&amp;page=2")
+
+    def test_reporte_stock_paginas_independientes(self):
+        for i in range(11):
+            Producto.objects.create(
+                nombre=f"Poco {i}", precio=Decimal("10"), costo=Decimal("5"),
+                stock=0, categoria=self.categoria, negocio=self.negocio,
+            )
+        resp = self.client.get(reverse("administracion:reportes_stock"), {"page_bm": "1"})
+        self.assertContains(resp, "?page_bm=1&amp;page_stock_bajo=2")
