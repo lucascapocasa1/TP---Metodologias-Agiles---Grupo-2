@@ -1,5 +1,6 @@
 {% extends "base_admin.html" %}
 {% load formatos pagination_tags %}
+{% block body_class %}con-menu-lateral documentos-panel-ancho{% endblock %}
 {% block titulo %}{{ titulo_listado }} — {{ negocio.nombre }}{% endblock %}
 {% block contenido %}
 <div class="admin-panel">

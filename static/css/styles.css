@@ -1747,6 +1747,32 @@ strong {
   margin: 0 auto;
 }
 
+/* Listados de facturas/proveedores: usan todo el ancho disponible para
+   que la tabla de documentos no genere barra de desplazamiento horizontal. */
+body.con-menu-lateral.documentos-panel-ancho .kiosco-main {
+  max-width: none;
+  padding-inline: 1rem;
+}
+body.con-menu-lateral.documentos-panel-ancho .admin-panel {
+  max-width: none;
+}
+
+/* En pantallas donde el ancho disponible todavía no alcanza, la tabla
+   de documentos se compacta un poco para evitar el scroll horizontal. */
+@media (max-width: 1600px) {
+  body.con-menu-lateral.documentos-panel-ancho .tabla-documentos th,
+  body.con-menu-lateral.documentos-panel-ancho .tabla-documentos td {
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+  }
+  body.con-menu-lateral.documentos-panel-ancho .tabla-documentos th {
+    font-size: 0.75rem;
+  }
+  body.con-menu-lateral.documentos-panel-ancho .tabla-documentos td {
+    font-size: 0.85rem;
+  }
+}
+
 .admin-header {
   display: flex;
   justify-content: space-between;
