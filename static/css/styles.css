@@ -5777,6 +5777,27 @@ body.con-menu-lateral .kiosco-main {
   border-color: var(--primario);
 }
 
+/* Ícono de PDF adjunto, junto al menú de acciones */
+.btn-ver-pdf {
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(26, 26, 46, 0.12);
+  background: var(--surface);
+  color: #dc2626;
+  text-decoration: none;
+  padding: 0;
+  margin: 0;
+}
+.btn-ver-pdf:hover {
+  color: #fff;
+  background: #dc2626;
+  border-color: #dc2626;
+}
+
 /* Contador de pestaña: blanco cuando está activa */
 .doc-tab-activa .doc-tab-contador {
   background: var(--primario);

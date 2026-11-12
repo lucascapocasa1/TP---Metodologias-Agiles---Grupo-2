@@ -190,9 +190,10 @@
                         {% endif %}
                     </td>
                     <td class="text-end celda-acciones">
-                        {% if documento.archivo %}
-                        <a href="{{ documento.archivo.url }}" target="_blank" class="btn btn-outline btn-sm" title="Ver adjunto">
-                            <i class="{{ documento.icono_archivo }}"></i>
+                        {% if documento.es_archivo_pdf %}
+                        <a href="{{ documento.archivo.url }}" target="_blank" rel="noopener"
+                           class="btn-ver-pdf" title="Ver PDF adjunto" aria-label="Ver PDF adjunto">
+                            <i class="bi bi-file-earmark-pdf"></i>
                         </a>
                         {% endif %}
                         <div class="acciones-grupo">
