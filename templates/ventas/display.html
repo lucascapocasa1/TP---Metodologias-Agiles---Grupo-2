@@ -29,6 +29,14 @@
         <p class="ayuda" id="montoPagado"></p>
         <p class="ayuda">Gracias por tu compra.</p>
     </section>
+
+    {# Muestra los cobros del usuario logueado: si el celu quedó con otra sesión, se cambia acá. #}
+    <form method="post" action="{% url 'usuarios:logout' %}" class="ayuda mt-4" style="font-size:.85rem;opacity:.75">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{% url 'usuarios:login' %}?next={% url 'ventas:display' %}">
+        Conectado como <strong>{{ request.user.username }}</strong>{% if request.negocio %} · {{ request.negocio.nombre }}{% endif %}<br>
+        <button type="submit" class="btn btn-link p-0" style="font-size:inherit;color:inherit;text-decoration:underline">Cambiar usuario</button>
+    </form>
 </main>
 
 <script>
